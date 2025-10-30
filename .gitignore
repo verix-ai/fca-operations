@@ -1,0 +1,45 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editors/IDEs
+.vscode/
+.idea/
+
+# Root common
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+*.log
+
+# fca-web app
+fca-web/node_modules/
+fca-web/dist/
+fca-web/.next/
+fca-web/.turbo/
+fca-web/.vercel/
+fca-web/.cache/
+fca-web/npm-debug.log*
+fca-web/yarn-debug.log*
+fca-web/yarn-error.log*
+fca-web/pnpm-debug.log*
+fca-web/.env
+fca-web/.env.*
+fca-web/coverage/
+fca-web/.parcel-cache/
+fca-web/.eslintcache
+
+# Python (if added later)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.envrc
+
+# Misc
+*.local
+
