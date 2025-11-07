@@ -35,7 +35,7 @@ export default function SectionHeader({
               {title && (
                 <TitleTag
                   className={cn(
-                    'text-3xl md:text-4xl font-black text-heading-primary drop-shadow-[0_0_25px_rgba(96,255,168,0.35)]',
+                    'text-3xl md:text-4xl font-black text-heading-primary',
                     titleClassName,
                   )}
                 >

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Client } from '@/entities/Client'
+import { Client } from '@/entities/Client.supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import CostShareChart from '@/components/dashboard/CostShareChart.jsx'
 import ClientsByCountyChart from '@/components/dashboard/ClientsByCountyChart.jsx'

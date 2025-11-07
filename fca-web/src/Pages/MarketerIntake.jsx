@@ -1,14 +1,15 @@
 import React, { useMemo, useState } from 'react'
 import { useAuth } from '@/auth/AuthProvider.jsx'
-import Referral from '@/entities/Referral'
+import Referral from '@/entities/Referral.supabase'
+import Marketer from '@/entities/Marketer.supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import Program from '@/entities/Program'
-import SettingsStore from '@/entities/Settings'
+import Program from '@/entities/Program.supabase'
+import SettingsStore from '@/entities/Settings.supabase'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { useNavigate } from 'react-router-dom'
 import { createPageUrl } from '@/utils'
@@ -119,14 +120,86 @@ export default function MarketerIntake() {
     e.preventDefault()
     setAttempted(true)
     if (Object.keys(requiredErrors).length > 0) return
-    const marketerInfo = user ? { marketer_id: user.id, marketer_name: user.name, marketer_email: user.email } : {}
-    await Referral.create({ ...form, ...marketerInfo })
-    setForm({
-      requested_program: '', sex: '', referral_name: '', caregiver_name: '', referral_dob: '', medicaid_or_ssn: '', phone: '', caregiver_phone: '', address_line1: '', address_line2: '', city: '', state: 'GA', zip: '', county: '', caregiver_lives_in_home: '', caregiver_relationship: '', physician: '', diagnosis: '', receives_benefits: '', benefits_pay_date: '', services_needed: {}, heard_about_us: '', additional_info: '',
-    })
-    setAttempted(false)
-    alert('Referral saved')
-    navigate(createPageUrl('Prospects'))
+    
+    try {
+      // Find or create marketer record for this user
+      let marketerRecord = null
+      if (user) {
+        try {
+          // Try to find existing marketer linked to this user
+          const marketers = await Marketer.list()
+          marketerRecord = marketers.find(m => m.user_id === user.id)
+          
+          // If no marketer record exists, create one
+          if (!marketerRecord) {
+            marketerRecord = await Marketer.create({
+              name: user.name,
+              email: user.email,
+              user_id: user.id,
+              is_active: true
+            })
+          }
+        } catch (err) {
+          console.error('Error handling marketer record (permissions issue):', err)
+          // This is expected - marketers don't have permission to read/write marketers table
+          // That's OK - admins will handle marketer records
+        }
+      }
+      
+      // ALWAYS store marketer name/email for filtering, even if we can't create marketer record
+      // The marketer_id will be null if record creation failed (permissions), but that's OK
+      // Admins can link it later
+      const marketerInfo = user ? { 
+        marketer_id: marketerRecord?.id || null, // Null if creation failed
+        marketer_name: user.name,  // ALWAYS store name
+        marketer_email: user.email // ALWAYS store email
+      } : {}
+      
+      const referralData = {
+        client_id: null, // No client yet - created during intake process
+        referred_by: user?.name || 'Unknown',
+        referral_date: new Date().toISOString().split('T')[0],
+        referral_source: form.heard_about_us,
+        // All form fields will be stored in notes field as JSON
+        referral_name: form.referral_name,
+        sex: form.sex,
+        referral_dob: form.referral_dob,
+        medicaid_or_ssn: form.medicaid_or_ssn,
+        phone: form.phone,
+        address_line1: form.address_line1,
+        address_line2: form.address_line2,
+        city: form.city,
+        state: form.state,
+        zip: form.zip,
+        county: form.county,
+        caregiver_name: form.caregiver_name,
+        caregiver_phone: form.caregiver_phone,
+        caregiver_relationship: form.caregiver_relationship,
+        caregiver_lives_in_home: form.caregiver_lives_in_home,
+        physician: form.physician,
+        diagnosis: form.diagnosis,
+        requested_program: form.requested_program,
+        services_needed: form.services_needed,
+        receives_benefits: form.receives_benefits,
+        benefits_pay_date: form.benefits_pay_date,
+        heard_about_us: form.heard_about_us,
+        additional_info: form.additional_info,
+        ...marketerInfo
+      }
+      
+      await Referral.create(referralData)
+      
+      // Reset form
+      setForm({
+        requested_program: '', sex: '', referral_name: '', caregiver_name: '', referral_dob: '', medicaid_or_ssn: '', phone: '', caregiver_phone: '', address_line1: '', address_line2: '', city: '', state: 'GA', zip: '', county: '', caregiver_lives_in_home: '', caregiver_relationship: '', physician: '', diagnosis: '', receives_benefits: '', benefits_pay_date: '', services_needed: {}, heard_about_us: '', additional_info: '',
+      })
+      setAttempted(false)
+      alert('Referral saved successfully!')
+      navigate(createPageUrl('Prospects'))
+    } catch (error) {
+      console.error('Error saving referral:', error)
+      alert('Error saving referral: ' + error.message)
+    }
   }
 
   const serviceRows = ['Ambulating/Transferring','Bathing','Dressing','Feeding','Hygiene/Grooming','Basic Housekeeping','Errand Assistance','Emergency Response/Alert System or Device','Do you require supplies to accommodate your individual needs?']
@@ -140,7 +213,7 @@ export default function MarketerIntake() {
         description="Log referral details, requested services, and caregiver contacts to kick off the marketer onboarding workflow."
       />
       <form onSubmit={save} className="space-y-8">
-          <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+          <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
             <CardHeader className="p-6"><CardTitle className="text-heading-primary">Intake & Referral Information</CardTitle></CardHeader>
             <CardContent className="p-6 grid md:grid-cols-2 gap-6">
               <div>
@@ -162,7 +235,7 @@ export default function MarketerIntake() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+          <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
             <CardHeader className="p-6"><CardTitle className="text-heading-primary">Referral & Caregiver Details</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-6">
               {/* Referral (top half) */}
@@ -247,7 +320,7 @@ export default function MarketerIntake() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+          <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
             <CardHeader className="p-6"><CardTitle className="text-heading-primary">Location & Living Situation</CardTitle></CardHeader>
             <CardContent className="p-6 grid md:grid-cols-2 gap-6">
               <div>
@@ -309,7 +382,7 @@ export default function MarketerIntake() {
 
           {/* Relationship & Medical Info section removed per spec; relevant fields moved */}
 
-          <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+          <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
             <CardHeader className="p-6"><CardTitle className="text-heading-primary">Benefits & Services</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-6">
               <div>
@@ -359,7 +432,7 @@ export default function MarketerIntake() {
               </div>
               <div>
                 <Label className="text-heading-subdued font-medium">Services Needed/Requested</Label>
-                <div className="grid md:grid-cols-2 gap-3">
+                <div className="grid md:grid-cols-2 gap-3 py-2 mt-2">
                   {serviceRows.map(row => (
                     <label key={row} className="flex items-center gap-2">
                       <input type="checkbox" checked={Boolean(form.services_needed[row])} onChange={(e)=>toggleService(row, e.target.checked)} />
@@ -371,12 +444,12 @@ export default function MarketerIntake() {
             </CardContent>
           </Card>
 
-          <Card className="bg-[rgba(9,16,33,0.78)] border border-[rgba(147,165,197,0.2)] shadow-card rounded-2xl">
+          <Card className="bg-[rgb(var(--card))] border border-[rgb(var(--border))] rounded-2xl">
             <CardHeader className="p-6"><CardTitle className="text-heading-primary">Referral Source & Additional Info</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-6">
               <div>
                 <Label className="text-heading-subdued font-medium">How did you hear about us?*</Label>
-                <div className="grid md:grid-cols-2 gap-2">
+                <div className="grid md:grid-cols-2 gap-2 py-2 mt-2">
                   {HEARD_OPTIONS.map(opt => (
                     <label key={opt} className="flex items-center gap-2">
                       <input type="radio" name="heard" checked={form.heard_about_us===opt} onChange={()=>setField('heard_about_us', opt)} />

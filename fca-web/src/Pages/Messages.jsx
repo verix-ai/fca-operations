@@ -51,7 +51,7 @@ export default function Messages() {
             <CardTitle className="text-heading-primary text-lg">Direct Messages</CardTitle>
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-4">
-            <div className="relative">
+            <div className="relative mt-4">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-heading-subdued w-4 h-4" />
               <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by user name" className="pl-12 rounded-xl" />
             </div>

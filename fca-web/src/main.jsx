@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
 import './index.css'
 
 import Dashboard from '@/Pages/Dashboard.jsx'
@@ -13,104 +13,136 @@ import MarketerIntake from '@/Pages/MarketerIntake.jsx'
 import Prospects from '@/Pages/Prospects.jsx'
 import ReferralProfile from '@/Pages/ReferralProfile.jsx'
 import Settings from '@/Pages/Settings.jsx'
-import Layout from '@/Layout.jsx'
+import Login from '@/Pages/Login.jsx'
+import Signup from '@/Pages/Signup.jsx'
+import ResetPassword from '@/Pages/ResetPassword.jsx'
+import AuthCallback from '@/Pages/AuthCallback.jsx'
+import Layout from './Layout.jsx'
 import { createPageUrl } from '@/utils'
 import { ToastProvider } from '@/components/ui/toast.jsx'
 import { ThemeProvider } from '@/components/theme/ThemeProvider.jsx'
+// Using Supabase AuthProvider for authentication (renamed from .supabase to default)
 import AuthProvider from '@/auth/AuthProvider.jsx'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute.jsx'
 
-function AppShell({ children, currentPageName }) {
+// Root component that wraps everything with AuthProvider
+function Root() {
   return (
     <AuthProvider>
-      <Layout currentPageName={currentPageName}>
-        {children}
-      </Layout>
+      <Outlet />
     </AuthProvider>
   )
 }
 
+// Wrapper for protected pages - requires authentication
+function ProtectedPage({ children, currentPageName }) {
+  return (
+    <ProtectedRoute>
+      <Layout currentPageName={currentPageName}>
+        {children}
+      </Layout>
+    </ProtectedRoute>
+  )
+}
+
+// Wrapper for public pages - no authentication required
+function PublicPage({ children }) {
+  return children
+}
+
 const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <Root />,
+    children: [
   {
     path: createPageUrl('Dashboard'),
     element: (
-      <AppShell currentPageName="Dashboard">
+      <ProtectedPage currentPageName="Dashboard">
         <Dashboard />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('MarketerIntake'),
     element: (
-      <AppShell currentPageName="MarketerIntake">
+      <ProtectedPage currentPageName="MarketerIntake">
         <MarketerIntake />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('Prospects'),
     element: (
-      <AppShell currentPageName="Prospects">
+      <ProtectedPage currentPageName="Prospects">
         <Prospects />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: '/prospects/:id',
     element: (
-      <AppShell currentPageName="Prospects">
+      <ProtectedPage currentPageName="Prospects">
         <ReferralProfile />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('Reports'),
     element: (
-      <AppShell currentPageName="Reports">
+      <ProtectedPage currentPageName="Reports">
         <Reports />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('ClientList'),
     element: (
-      <AppShell currentPageName="ClientList">
+      <ProtectedPage currentPageName="ClientList">
         <ClientList />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('ClientIntake'),
     element: (
-      <AppShell currentPageName="ClientIntake">
+      <ProtectedPage currentPageName="ClientIntake">
         <ClientIntake />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('Messages'),
     element: (
-      <AppShell currentPageName="Messages">
+      <ProtectedPage currentPageName="Messages">
         <Messages />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('ClientDetail'),
     element: (
-      <AppShell currentPageName="ClientDetail">
+      <ProtectedPage currentPageName="ClientDetail">
         <ClientDetail />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
   {
     path: createPageUrl('Settings'),
     element: (
-      <AppShell currentPageName="Settings">
+      <ProtectedPage currentPageName="Settings">
         <Settings />
-      </AppShell>
+      </ProtectedPage>
     ),
   },
-  { path: '/', element: (<AppShell currentPageName="Dashboard"><Dashboard /></AppShell>) },
+  { path: '', element: (<ProtectedPage currentPageName="Dashboard"><Dashboard /></ProtectedPage>) },
+  // Auth Routes - Don't require authentication to access
+  { path: 'login', element: <PublicPage><Login /></PublicPage> },
+  { path: 'signup', element: <PublicPage><Signup /></PublicPage> },
+  { path: 'reset-password', element: <PublicPage><ResetPassword /></PublicPage> },
+  { path: 'auth/callback', element: <PublicPage><AuthCallback /></PublicPage> },
+    ]
+  }
 ])
 
 createRoot(document.getElementById('root')).render(

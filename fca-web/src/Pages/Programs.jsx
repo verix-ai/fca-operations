@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import Program from '@/entities/Program'
+import Program from '@/entities/Program.supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -43,7 +43,7 @@ export default function Programs() {
         description="Manage the available care programs and keep naming aligned across your intake workflows."
       />
 
-      <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-6">
           <CardTitle className="text-heading-primary">Add Program</CardTitle>
         </CardHeader>
@@ -68,7 +68,7 @@ export default function Programs() {
         </CardContent>
       </Card>
 
-      <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-6">
           <CardTitle className="text-heading-primary">All Programs</CardTitle>
         </CardHeader>

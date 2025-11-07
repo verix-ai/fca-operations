@@ -1,6 +1,6 @@
 import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import Referral from '@/entities/Referral'
+import Referral from '@/entities/Referral.supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,11 +9,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { createPageUrl, formatDateInTimezone } from '@/utils'
-import SettingsStore from '@/entities/Settings'
+import SettingsStore from '@/entities/Settings.supabase'
+import { useAuth } from '@/auth/AuthProvider.jsx'
 
 export default function ReferralProfile() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [loading, setLoading] = React.useState(true)
   const [notFound, setNotFound] = React.useState(false)
   const [form, setForm] = React.useState(null)
@@ -21,6 +23,9 @@ export default function ReferralProfile() {
   const [confirmText, setConfirmText] = React.useState('')
   const [isDeleting, setIsDeleting] = React.useState(false)
   const [countyOptions, setCountyOptions] = React.useState([])
+  
+  // Check if user is a marketer (view-only mode)
+  const isMarketer = user?.role === 'marketer'
 
   React.useEffect(() => {
     (async () => {
@@ -74,7 +79,7 @@ export default function ReferralProfile() {
       <SectionHeader
         eyebrow="Referral"
         title="Referral Profile"
-        description="View and edit the captured details for this referral."
+        description={isMarketer ? "View the captured details for this referral." : "View and edit the captured details for this referral."}
       />
 
       <form
@@ -85,20 +90,20 @@ export default function ReferralProfile() {
         }}
         className="space-y-8"
       >
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Basics</CardTitle></CardHeader>
           <CardContent className="p-6 grid md:grid-cols-2 gap-6">
             <div>
               <Label className="text-heading-subdued font-medium">Referral Name</Label>
-              <Input value={form.referral_name || ''} onChange={(e)=>setField('referral_name', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.referral_name || ''} onChange={(e)=>setField('referral_name', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Caregiver Name</Label>
-              <Input value={form.caregiver_name || ''} onChange={(e)=>setField('caregiver_name', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.caregiver_name || ''} onChange={(e)=>setField('caregiver_name', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Caregiver Relationship</Label>
-              <Input value={form.caregiver_relationship || ''} onChange={(e)=>setField('caregiver_relationship', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.caregiver_relationship || ''} onChange={(e)=>setField('caregiver_relationship', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Marketer</Label>
@@ -106,66 +111,66 @@ export default function ReferralProfile() {
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Sex</Label>
-              <Input value={form.sex || ''} onChange={(e)=>setField('sex', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.sex || ''} onChange={(e)=>setField('sex', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Referral DOB</Label>
-              <Input type="date" value={form.referral_dob || ''} onChange={(e)=>setField('referral_dob', e.target.value)} className="rounded-xl py-3" />
+              <Input type="date" value={form.referral_dob || ''} onChange={(e)=>setField('referral_dob', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">GA Medicaid or SS#</Label>
-              <Input value={form.medicaid_or_ssn || ''} onChange={(e)=>setField('medicaid_or_ssn', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.medicaid_or_ssn || ''} onChange={(e)=>setField('medicaid_or_ssn', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Requested Program</Label>
-              <Input value={form.requested_program || ''} onChange={(e)=>setField('requested_program', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.requested_program || ''} onChange={(e)=>setField('requested_program', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Contacts</CardTitle></CardHeader>
           <CardContent className="p-6 grid md:grid-cols-2 gap-6">
             <div>
               <Label className="text-heading-subdued font-medium">Phone</Label>
-              <Input value={form.phone || ''} onChange={(e)=>setField('phone', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.phone || ''} onChange={(e)=>setField('phone', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Caregiver Phone</Label>
-              <Input value={form.caregiver_phone || ''} onChange={(e)=>setField('caregiver_phone', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.caregiver_phone || ''} onChange={(e)=>setField('caregiver_phone', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div className="md:col-span-2">
               <Label className="text-heading-subdued font-medium">Physician</Label>
-              <Input value={form.physician || ''} onChange={(e)=>setField('physician', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.physician || ''} onChange={(e)=>setField('physician', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Address</CardTitle></CardHeader>
           <CardContent className="p-6 grid md:grid-cols-2 gap-6">
             <div>
               <Label className="text-heading-subdued font-medium">Street Address</Label>
-              <Input value={form.address_line1 || ''} onChange={(e)=>setField('address_line1', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.address_line1 || ''} onChange={(e)=>setField('address_line1', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Apt, Suite, etc.</Label>
-              <Input value={form.address_line2 || ''} onChange={(e)=>setField('address_line2', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.address_line2 || ''} onChange={(e)=>setField('address_line2', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">City</Label>
-              <Input value={form.city || ''} onChange={(e)=>setField('city', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.city || ''} onChange={(e)=>setField('city', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             
             <div>
               <Label className="text-heading-subdued font-medium">ZIP</Label>
-              <Input value={form.zip || ''} onChange={(e)=>setField('zip', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.zip || ''} onChange={(e)=>setField('zip', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">County & State</Label>
               {countyOptions.length > 0 ? (
                 <>
-                  <Select value={(form.county || '').replace(/,\s*[A-Z]{2}$/,'')} onValueChange={(v)=>setField('county', v)}>
+                  <Select value={(form.county || '').replace(/,\s*[A-Z]{2}$/,'')} onValueChange={(v)=>setField('county', v)} disabled={isMarketer}>
                     <SelectTrigger className="rounded-xl py-3">
                       <SelectValue placeholder="Select county & state" />
                     </SelectTrigger>
@@ -177,23 +182,23 @@ export default function ReferralProfile() {
                   </Select>
                 </>
               ) : (
-                <Input value={form.county || ''} onChange={(e)=>setField('county', e.target.value)} placeholder="e.g., Bibb, GA" className="rounded-xl py-3" />
+                <Input value={form.county || ''} onChange={(e)=>setField('county', e.target.value)} placeholder="e.g., Bibb, GA" disabled={isMarketer} className="rounded-xl py-3" />
               )}
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Medical & Services</CardTitle></CardHeader>
           <CardContent className="p-6 space-y-6">
             <div>
               <Label className="text-heading-subdued font-medium">Diagnosis</Label>
-              <Input value={form.diagnosis || ''} onChange={(e)=>setField('diagnosis', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.diagnosis || ''} onChange={(e)=>setField('diagnosis', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div className="grid md:grid-cols-2 gap-3">
               {serviceRows.map(row => (
                 <label key={row} className="flex items-center gap-2">
-                  <input type="checkbox" checked={Boolean(form?.services_needed?.[row])} onChange={(e)=>toggleService(row, e.target.checked)} />
+                  <input type="checkbox" checked={Boolean(form?.services_needed?.[row])} onChange={(e)=>toggleService(row, e.target.checked)} disabled={isMarketer} />
                   <span>{row}</span>
                 </label>
               ))}
@@ -201,57 +206,57 @@ export default function ReferralProfile() {
           </CardContent>
         </Card>
 
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Pre-Onboarding (Optional)</CardTitle></CardHeader>
           <CardContent className="p-6 space-y-4">
             <div className="text-heading-subdued text-sm">You can start these while intake is pending approval.</div>
             <div className="grid md:grid-cols-2 gap-3">
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.viventium_onboarding_completed)} onChange={(e) => toggleFlag('viventium_onboarding_completed', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.viventium_onboarding_completed)} onChange={(e) => toggleFlag('viventium_onboarding_completed', e.target.checked)} disabled={isMarketer} />
                 <span>Viventium Onboarding Complete?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.caregiver_fingerprinted)} onChange={(e) => toggleFlag('caregiver_fingerprinted', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.caregiver_fingerprinted)} onChange={(e) => toggleFlag('caregiver_fingerprinted', e.target.checked)} disabled={isMarketer} />
                 <span>Caregiver has been Finger Printed?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.background_results_uploaded)} onChange={(e) => toggleFlag('background_results_uploaded', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.background_results_uploaded)} onChange={(e) => toggleFlag('background_results_uploaded', e.target.checked)} disabled={isMarketer} />
                 <span>Background Results Received & Uploaded?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.drivers_license_submitted)} onChange={(e) => toggleFlag('drivers_license_submitted', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.drivers_license_submitted)} onChange={(e) => toggleFlag('drivers_license_submitted', e.target.checked)} disabled={isMarketer} />
                 <span>Drivers License Submitted?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.ssn_or_birth_certificate_submitted)} onChange={(e) => toggleFlag('ssn_or_birth_certificate_submitted', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.ssn_or_birth_certificate_submitted)} onChange={(e) => toggleFlag('ssn_or_birth_certificate_submitted', e.target.checked)} disabled={isMarketer} />
                 <span>Social Security and/or Birth Certificate Submitted?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.tb_test_completed)} onChange={(e) => toggleFlag('tb_test_completed', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.tb_test_completed)} onChange={(e) => toggleFlag('tb_test_completed', e.target.checked)} disabled={isMarketer} />
                 <span>Completed TB Test?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.cpr_first_aid_completed)} onChange={(e) => toggleFlag('cpr_first_aid_completed', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.cpr_first_aid_completed)} onChange={(e) => toggleFlag('cpr_first_aid_completed', e.target.checked)} disabled={isMarketer} />
                 <span>Completed CPR/First Aid?</span>
               </label>
               <label className="flex items-center gap-2">
-                <input type="checkbox" checked={Boolean(form?.pca_cert_including_2_of_3)} onChange={(e) => toggleFlag('pca_cert_including_2_of_3', e.target.checked)} />
+                <input type="checkbox" checked={Boolean(form?.pca_cert_including_2_of_3)} onChange={(e) => toggleFlag('pca_cert_including_2_of_3', e.target.checked)} disabled={isMarketer} />
                 <span>PCA Cert incl 2/3</span>
               </label>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-[rgba(9,16,33,0.78)] border rounded-2xl surface-main">
+        <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
           <CardHeader className="p-6"><CardTitle className="text-heading-primary">Notes</CardTitle></CardHeader>
           <CardContent className="p-6 space-y-6">
             <div>
               <Label className="text-heading-subdued font-medium">How did you hear about us?</Label>
-              <Input value={form.heard_about_us || ''} onChange={(e)=>setField('heard_about_us', e.target.value)} className="rounded-xl py-3" />
+              <Input value={form.heard_about_us || ''} onChange={(e)=>setField('heard_about_us', e.target.value)} disabled={isMarketer} className="rounded-xl py-3" />
             </div>
             <div>
               <Label className="text-heading-subdued font-medium">Additional Info</Label>
-              <Textarea value={form.additional_info || ''} onChange={(e)=>setField('additional_info', e.target.value)} className="rounded-xl h-28" />
+              <Textarea value={form.additional_info || ''} onChange={(e)=>setField('additional_info', e.target.value)} disabled={isMarketer} className="rounded-xl h-28" />
             </div>
           </CardContent>
         </Card>
@@ -259,38 +264,54 @@ export default function ReferralProfile() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-heading-subdued text-xs sm:text-sm order-2 sm:order-1">Submitted {formatDateInTimezone(form.created_at)}</div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:gap-3 order-1 sm:order-2 w-full">
-            <Button
-              type="button"
-              variant="outline"
-              borderRadius="1rem"
-              background="rgba(239,68,68,0.1)"
-              textColor="rgb(239,68,68)"
-              style={{ borderColor: 'rgba(239,68,68,0.4)' }}
-              className="px-4 py-2 sm:py-0 hover:bg-red-500/15 w-full sm:w-auto"
-              onClick={() => { setConfirmText(''); setConfirmOpen(true) }}
-            >
-              Delete
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              borderRadius="1rem"
-              className="px-4 py-2 sm:py-0 w-full sm:w-auto"
-              onClick={() => navigate(createPageUrl('Prospects'))}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              borderRadius="1rem"
-              className="px-4 py-2 sm:py-0 w-full sm:w-auto"
-              onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
-              title="Start intake from this referral"
-            >
-              Start Intake
-            </Button>
-            <Button type="submit" borderRadius="1rem" className="px-4 py-2 sm:py-0 w-full sm:w-auto">Save Changes</Button>
+            {isMarketer ? (
+              // Marketers: View-only, just back button
+              <Button
+                type="button"
+                variant="outline"
+                borderRadius="1rem"
+                className="px-4 py-2 sm:py-0 w-full sm:w-auto"
+                onClick={() => navigate(createPageUrl('Prospects'))}
+              >
+                Back to Prospects
+              </Button>
+            ) : (
+              // Admins: Full edit capabilities
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  borderRadius="1rem"
+                  background="rgba(239,68,68,0.1)"
+                  textColor="rgb(239,68,68)"
+                  style={{ borderColor: 'rgba(239,68,68,0.4)' }}
+                  className="px-4 py-2 sm:py-0 hover:bg-red-500/15 w-full sm:w-auto"
+                  onClick={() => { setConfirmText(''); setConfirmOpen(true) }}
+                >
+                  Delete
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  borderRadius="1rem"
+                  className="px-4 py-2 sm:py-0 w-full sm:w-auto"
+                  onClick={() => navigate(createPageUrl('Prospects'))}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  borderRadius="1rem"
+                  className="px-4 py-2 sm:py-0 w-full sm:w-auto"
+                  onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
+                  title="Start intake from this referral"
+                >
+                  Start Intake
+                </Button>
+                <Button type="submit" borderRadius="1rem" className="px-4 py-2 sm:py-0 w-full sm:w-auto">Save Changes</Button>
+              </>
+            )}
           </div>
         </div>
       </form>
@@ -309,7 +330,7 @@ export default function ReferralProfile() {
                 Prospect: <span className="font-semibold">{form?.referral_name}</span>
               </p>
               <input
-                className="w-full rounded-2xl bg-[rgba(9,16,33,0.82)] border border-[rgba(147,165,197,0.25)] text-heading-primary placeholder-neutral-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand/60 focus:border-brand"
+                className="w-full rounded-2xl bg-[rgb(var(--card))] border border-[rgb(var(--border))] text-heading-primary placeholder-neutral-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand/60 focus:border-brand"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}
                 placeholder="Type DELETE to confirm"

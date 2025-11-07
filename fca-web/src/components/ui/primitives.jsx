@@ -10,11 +10,10 @@ export function Card({ className = '', children }) {
     <div
       data-card
       className={cn(
-        'relative overflow-hidden rounded-3xl border bg-[linear-gradient(160deg,rgba(40,41,48,0.96)_0%,rgba(28,29,36,0.96)_48%,rgba(50,52,60,0.97)_100%)] surface-main',
+        'relative overflow-hidden rounded-3xl border bg-[rgb(var(--card))] surface-main',
         className,
       )}
     >
-      <div className="absolute inset-0 pointer-events-none opacity-15 bg-[radial-gradient(circle_at_top_right,rgba(99,255,130,0.18),transparent_55%)]" />
       <div className="relative">{children}</div>
     </div>
   )
@@ -420,7 +419,7 @@ export function Sidebar({ className = '', children }) {
     <aside
       data-sidebar
       className={cn(
-        'w-72 bg-[linear-gradient(160deg,rgba(6,7,9,0.98)_0%,rgba(5,6,8,0.92)_60%,rgba(6,7,9,0.98)_100%)] border-r border-[rgba(0,217,255,0.1)]',
+        'w-72 bg-[rgb(var(--card))] border-r border-[rgb(var(--border))]',
         className,
       )}
     >

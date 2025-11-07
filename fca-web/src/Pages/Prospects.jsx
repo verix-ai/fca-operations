@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import Referral from '@/entities/Referral'
+import Referral from '@/entities/Referral.supabase'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { useNavigate } from 'react-router-dom'
 import { createPageUrl, formatDateInTimezone } from '@/utils'
-import CmCompany from '@/entities/CmCompany'
+import CmCompany from '@/entities/CmCompany.supabase'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search } from 'lucide-react'
@@ -25,6 +25,17 @@ export default function Prospects() {
     (async () => {
       try {
         const list = await Referral.list()
+        console.log('📋 All referrals loaded:', list)
+        console.log('👤 Current user:', user)
+        // Log marketer info for debugging
+        list.forEach(r => {
+          console.log(`📝 Referral ${r.id}:`)
+          console.log('  - marketer_id:', r.marketer_id)
+          console.log('  - marketer_name:', r.marketer_name)
+          console.log('  - marketer_email:', r.marketer_email)
+          console.log('  - notes (raw):', r.notes)
+          console.log('  - Full referral object:', r)
+        })
         setReferrals(list)
       } catch {}
       try {
@@ -32,7 +43,7 @@ export default function Prospects() {
         setCompanies(list)
       } catch {}
     })()
-  }, [])
+  }, [user])
 
   const marketerOptions = useMemo(() => {
     const seen = new Set()
@@ -63,10 +74,26 @@ export default function Prospects() {
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     let list = referrals
+    
+    // Filter for marketers: show only their own referrals
     if (user?.role === 'marketer') {
-      const name = (user?.name || '').trim()
-      list = list.filter(r => (r.marketer_name || '').trim() === name || (r.marketer_email || '').trim() === (user.email || '').trim())
+      // First try to get marketer record ID
+      list = list.filter(r => {
+        // Check by marketer_id (if marketer record exists)
+        if (r.marketer_id && user.id) {
+          // We need to check if this marketer_id belongs to this user
+          // For now, also check by name/email as backup
+          const matchesName = (r.marketer_name || '').trim() === (user?.name || '').trim()
+          const matchesEmail = (r.marketer_email || '').trim() === (user?.email || '').trim()
+          return matchesName || matchesEmail
+        }
+        // Fallback: check by name or email
+        const matchesName = (r.marketer_name || '').trim() === (user?.name || '').trim()
+        const matchesEmail = (r.marketer_email || '').trim() === (user?.email || '').trim()
+        return matchesName || matchesEmail
+      })
     }
+    
     if (marketerFilter) {
       const mf = marketerFilter.trim()
       list = list.filter(r => (r.marketer_name || r.marketer_email || '').trim() === mf)
@@ -137,7 +164,8 @@ export default function Prospects() {
           <CardTitle className="text-heading-primary">Your Prospects</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden lg:block overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-b border-white/5">
@@ -185,16 +213,100 @@ export default function Prospects() {
                       )}
                     </TableCell>
                     <TableCell className="p-4 text-heading-primary/60">
-                      <span>{/* formatted on client timezone setting */}{formatDateInTimezone(r.created_at)}</span>
+                      <span>{formatDateInTimezone(r.created_at)}</span>
                     </TableCell>
-                    <TableCell className="p-4 text-heading-primary/60 flex items-center gap-3">
+                    <TableCell className="p-4 text-heading-primary/60">
+                      <div className="flex items-center gap-2">
+                        {user?.role !== 'marketer' && (
+                          <Button
+                            variant="outline"
+                            borderRadius="1rem"
+                            className="px-3 py-1 text-xs whitespace-nowrap"
+                            onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${r.id}`)}
+                            title="Start intake from this referral"
+                          >
+                            Start Intake
+                          </Button>
+                        )}
+                        <Button
+                          variant="secondary"
+                          borderRadius="1rem"
+                          className="px-3 py-1 text-xs whitespace-nowrap"
+                          onClick={() => navigate(`/prospects/${r.id}`)}
+                          title="Open referral profile"
+                        >
+                          Open Profile
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="lg:hidden">
+            {rows.length === 0 ? (
+              <div className="text-center text-heading-subdued py-10 px-4">No prospects found</div>
+            ) : (
+              <div className="divide-y divide-white/5">
+                {rows.map(r => (
+                  <div key={r.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-heading-primary font-medium truncate">{r.referral_name}</div>
+                        <div className="text-sm text-heading-subdued">Caregiver: {r.caregiver_name}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <div className="text-heading-subdued text-xs">Phone</div>
+                        <div className="text-heading-primary">{r.phone || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-heading-subdued text-xs">County</div>
+                        <div className="text-heading-primary">{r.county || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-heading-subdued text-xs">Program</div>
+                        <div className="text-heading-primary">{r.requested_program || '-'}</div>
+                      </div>
+                      <div>
+                        <div className="text-heading-subdued text-xs">Submitted</div>
+                        <div className="text-heading-primary">{formatDateInTimezone(r.created_at)}</div>
+                      </div>
+                    </div>
+
+                    {user?.role !== 'marketer' && (
+                      <div>
+                        <div className="text-heading-subdued text-xs mb-1">Case Management Company</div>
+                        <select
+                          className="w-full rounded-lg bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
+                          value={r.cm_company || ''}
+                          onChange={async (e) => {
+                            const value = e.target.value
+                            const updated = { ...r, cm_company: value }
+                            setReferrals(prev => prev.map(x => x.id === r.id ? updated : x))
+                            try { await Referral.update(r.id, { cm_company: value }) } catch {}
+                          }}
+                        >
+                          <option value="">-- Select --</option>
+                          {companies.map(c => (
+                            <option key={c.id} value={c.name}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
                       {user?.role !== 'marketer' && (
                         <Button
                           variant="outline"
                           borderRadius="1rem"
-                          className="px-3 py-1 text-xs"
+                          className="flex-1 text-xs"
                           onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${r.id}`)}
-                          title="Start intake from this referral"
                         >
                           Start Intake
                         </Button>
@@ -202,17 +314,16 @@ export default function Prospects() {
                       <Button
                         variant="secondary"
                         borderRadius="1rem"
-                        className="px-3 py-1 text-xs"
+                        className="flex-1 text-xs"
                         onClick={() => navigate(`/prospects/${r.id}`)}
-                        title="Open referral profile"
                       >
                         Open Profile
                       </Button>
-                    </TableCell>
-                  </TableRow>
+                    </div>
+                  </div>
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
