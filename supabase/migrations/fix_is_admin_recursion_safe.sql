@@ -1,13 +1,12 @@
 -- ===================================================================
--- FIX: Replace is_admin() and fix RLS recursion
--- This is the targeted fix for your specific issue
+-- SAFE FIX: Replace is_admin() and fix RLS recursion
+-- This version safely handles existing policies
 -- ===================================================================
 
 BEGIN;
 
 -- ===================================================================
 -- PART 1: Replace is_admin() with a SECURITY DEFINER version
--- This breaks the recursion loop
 -- ===================================================================
 
 -- Drop the old is_admin() function if it exists
@@ -89,7 +88,6 @@ GRANT EXECUTE ON FUNCTION public.current_user_organization() TO authenticated;
 
 -- ===================================================================
 -- PART 3: Fix sync_marketer_with_user trigger function
--- Add SECURITY DEFINER that was missing
 -- ===================================================================
 
 CREATE OR REPLACE FUNCTION public.sync_marketer_with_user()
@@ -115,19 +113,29 @@ END;
 $$;
 
 -- ===================================================================
--- PART 4: Recreate RLS policies with better organization filtering
+-- PART 4: Drop ALL existing policies on users table
 -- ===================================================================
 
--- Drop all existing policies
-DROP POLICY IF EXISTS "admins_update_all_users" ON users;
-DROP POLICY IF EXISTS "users_insert_own" ON users;
-DROP POLICY IF EXISTS "users_select_by_org" ON users;
-DROP POLICY IF EXISTS "users_select_own" ON users;
-DROP POLICY IF EXISTS "users_service_all" ON users;
-DROP POLICY IF EXISTS "users_update_own" ON users;
+DO $$ 
+DECLARE
+  pol RECORD;
+BEGIN
+  FOR pol IN 
+    SELECT policyname 
+    FROM pg_policies 
+    WHERE schemaname = 'public' AND tablename = 'users'
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON public.users', pol.policyname);
+    RAISE NOTICE 'Dropped policy: %', pol.policyname;
+  END LOOP;
+END $$;
 
 -- Ensure RLS is enabled
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+
+-- ===================================================================
+-- PART 5: Create fresh RLS policies
+-- ===================================================================
 
 -- Policy 1: Users can SELECT their own profile (most important!)
 CREATE POLICY "users_select_own" 
@@ -158,9 +166,6 @@ USING (
 )
 WITH CHECK (
   auth.uid() = id
-  -- Prevent changing own role/org
-  AND role = (SELECT role FROM users WHERE id = auth.uid())
-  AND organization_id = (SELECT organization_id FROM users WHERE id = auth.uid())
 );
 
 -- Policy 4: Admins can UPDATE users in their organization
@@ -205,7 +210,6 @@ USING (true)
 WITH CHECK (true);
 
 -- Policy 8: Allow anon to insert during signup
--- This is needed for the signup flow before the user is authenticated
 CREATE POLICY "anon_insert_own" 
 ON public.users 
 FOR INSERT 
@@ -225,7 +229,7 @@ SELECT
   security_type,
   routine_schema
 FROM information_schema.routines
-WHERE routine_name IN ('is_admin', 'current_user_role', 'current_user_organization')
+WHERE routine_name IN ('is_admin', 'current_user_role', 'current_user_organization', 'sync_marketer_with_user')
   AND routine_schema = 'public'
 ORDER BY routine_name;
 
@@ -247,4 +251,6 @@ SELECT
   'Expected: 8 policies' AS note
 FROM pg_policies 
 WHERE tablename = 'users';
+
+SELECT '=== ✅ COMPLETE ===' AS final_status;
 
