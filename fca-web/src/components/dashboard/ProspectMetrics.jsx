@@ -1,11 +1,12 @@
-import React, { useMemo } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Users, TrendingUp, TrendingDown, Clock, AlertTriangle } from 'lucide-react'
+import { Users, TrendingUp, TrendingDown, Clock, AlertTriangle, HelpCircle } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { createPageUrl } from '@/utils'
 
 export default function ProspectMetrics({ referrals = [], clients = [], isLoading }) {
+  const [showInfo, setShowInfo] = useState(false)
   
   // Filter to get only prospects (referrals without client_id)
   const prospects = useMemo(() => {
@@ -126,7 +127,16 @@ export default function ProspectMetrics({ referrals = [], clients = [], isLoadin
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-heading-primary">Prospect Pipeline</h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xl font-bold text-heading-primary">Prospect Pipeline</h3>
+          <button
+            onClick={() => setShowInfo(!showInfo)}
+            className="text-heading-subdued hover:text-brand transition-colors"
+            title="What am I looking at?"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
+        </div>
         <Link 
           to={createPageUrl('Prospects')}
           className="text-sm text-brand hover:text-brand/80 transition-colors"
@@ -134,6 +144,38 @@ export default function ProspectMetrics({ referrals = [], clients = [], isLoadin
           View All →
         </Link>
       </div>
+      
+      {/* Info Panel */}
+      {showInfo && (
+        <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-sm space-y-2">
+          <p className="font-semibold text-heading-primary">What This Shows:</p>
+          <p className="text-heading-secondary">
+            These cards track your <strong>prospect pipeline</strong> - people who have been referred 
+            but haven't started intake yet.
+          </p>
+          <div className="grid md:grid-cols-2 gap-3 pt-2">
+            <div>
+              <p className="text-heading-secondary">
+                <strong className="text-purple-400">Active Prospects:</strong> Total waiting in pipeline
+              </p>
+              <p className="text-heading-secondary">
+                <strong className="text-green-400">Conversion Rate:</strong> % becoming clients
+              </p>
+            </div>
+            <div>
+              <p className="text-heading-secondary">
+                <strong className="text-orange-400">Avg Wait Time:</strong> Days since referred
+              </p>
+              <p className="text-heading-secondary">
+                <strong className="text-red-400">Stale Prospects:</strong> Over 14 days old
+              </p>
+            </div>
+          </div>
+          <p className="text-heading-subdued pt-2 text-xs">
+            💡 <strong>Action:</strong> Follow up with stale prospects daily to improve conversion
+          </p>
+        </div>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
         {statCards.map((stat, index) => {

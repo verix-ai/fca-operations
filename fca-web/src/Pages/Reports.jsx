@@ -10,7 +10,8 @@ import ClientIntakeTrendChart from '@/components/dashboard/ClientIntakeTrendChar
 import MarketerPerformanceTable from '@/components/dashboard/MarketerPerformanceTable.jsx'
 import PhaseTimeChart from '@/components/dashboard/PhaseTimeChart.jsx'
 import ProspectMetrics from '@/components/dashboard/ProspectMetrics.jsx'
-import ProspectFunnelChart from '@/components/dashboard/ProspectFunnelChart.jsx'
+import ReferralConversionChart from '@/components/dashboard/ReferralConversionChart.jsx'
+import ClientPipelineChart from '@/components/dashboard/ClientPipelineChart.jsx'
 import KpiHero from '@/components/dashboard/KpiHero.jsx'
 import StatsOverview from '@/components/dashboard/StatsOverview.jsx'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
@@ -70,14 +71,17 @@ export default function Reports() {
       {/* Prospect Pipeline Section */}
       <ProspectMetrics referrals={visibleReferrals} clients={visibleClients} isLoading={isLoading} />
 
+      {/* Conversion Funnel - Split into Two Parts */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ReferralConversionChart referrals={visibleReferrals} clients={visibleClients} isLoading={isLoading} />
+        <ClientPipelineChart clients={visibleClients} isLoading={isLoading} />
+      </div>
+
       {/* Primary Charts - Intake Trends and Throughput */}
       <div className="grid gap-6 lg:grid-cols-2">
         <ClientIntakeTrendChart clients={visibleClients} isLoading={isLoading} />
         <ThroughputChart clients={visibleClients} isLoading={isLoading} />
       </div>
-
-      {/* Prospect Funnel */}
-      <ProspectFunnelChart referrals={visibleReferrals} clients={visibleClients} isLoading={isLoading} />
 
       {/* Secondary Charts */}
       <div className="grid gap-6 lg:grid-cols-2">
