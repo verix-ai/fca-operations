@@ -24,6 +24,7 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true
     let sessionRestored = false
+    let profileLoadInProgress = false
     
     // Set up auth state change listener FIRST - this fires immediately with INITIAL_SESSION
     const {
@@ -44,18 +45,31 @@ export default function AuthProvider({ children }) {
         
         if (session?.user) {
           console.log('🔐 [Auth] INITIAL_SESSION: Restoring user session')
+          profileLoadInProgress = true
           await loadUserProfile(session.user.id, session.user)
+          profileLoadInProgress = false
         } else {
           console.log('🔐 [Auth] INITIAL_SESSION: No session found')
           setUser(null)
         }
       } else if (event === 'SIGNED_IN') {
-        // SIGNED_IN can fire on refresh if session was restored - treat it like INITIAL_SESSION
-        // BUT: Don't auto-navigate if user is on signup page (they might be filling out the form)
+        // Skip if INITIAL_SESSION hasn't fired yet (prevent double-load)
+        if (!sessionRestored) {
+          console.log('🔐 [Auth] SIGNED_IN: Skipping (waiting for INITIAL_SESSION)')
+          return
+        }
+        
+        // Skip if a profile load is already in progress
+        if (profileLoadInProgress) {
+          console.log('🔐 [Auth] SIGNED_IN: Skipping (profile load in progress)')
+          return
+        }
+        
         sessionRestored = true
         
         if (session?.user) {
           console.log('🔐 [Auth] SIGNED_IN: Loading user profile')
+          profileLoadInProgress = true
           // Keep loading=true until profile is loaded
           try {
             await loadUserProfile(session.user.id, session.user)
@@ -71,6 +85,7 @@ export default function AuthProvider({ children }) {
               })
             }
           } finally {
+            profileLoadInProgress = false
             // Always set loading to false, even if profile load fails
             setLoading(false)
             setInitialized(true)
@@ -92,19 +107,28 @@ export default function AuthProvider({ children }) {
         setUser(null)
         setLoading(false)
         setInitialized(true)
+        profileLoadInProgress = false
         navigate('/login', { replace: true })
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         // Token refreshed successfully - only reload profile if user changed
         // Don't reload if we already have the same user loaded (avoid unnecessary reloads)
         if (!user || user.id !== session.user.id) {
           console.log('🔐 [Auth] TOKEN_REFRESHED: Reloading user profile (user changed or not loaded)')
-          await loadUserProfile(session.user.id, session.user)
+          if (!profileLoadInProgress) {
+            profileLoadInProgress = true
+            await loadUserProfile(session.user.id, session.user)
+            profileLoadInProgress = false
+          }
         } else {
           console.log('🔐 [Auth] TOKEN_REFRESHED: Same user, skipping profile reload')
         }
       } else if (session?.user) {
         // Other events with session - ensure user profile is loaded
-        await loadUserProfile(session.user.id, session.user)
+        if (!profileLoadInProgress && !user) {
+          profileLoadInProgress = true
+          await loadUserProfile(session.user.id, session.user)
+          profileLoadInProgress = false
+        }
       } else {
         setUser(null)
       }
