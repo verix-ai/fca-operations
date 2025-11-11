@@ -1,0 +1,13 @@
+{
+  "buildCommand": "cd fca-web && npm run build",
+  "outputDirectory": "fca-web/dist",
+  "installCommand": "cd fca-web && npm install",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
+
