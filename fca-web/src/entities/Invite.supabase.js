@@ -343,7 +343,7 @@ export const Invite = {
       .select('id')
       .eq('email', email)
       .eq('organization_id', organizationId)
-      .single()
+      .maybeSingle()
 
     if (existingUser) {
       throw new Error('User with this email already exists in your organization')

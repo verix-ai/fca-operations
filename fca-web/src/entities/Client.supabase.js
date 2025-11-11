@@ -79,7 +79,6 @@ export const Client = {
       .select(`
         *,
         marketer:marketers(*),
-        program:programs(*),
         cm_company:cm_companies(*),
         notes:client_notes(
           *,

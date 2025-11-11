@@ -1,41 +1,134 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Send } from 'lucide-react'
+import { Search, Send, Loader2, User as UserIcon } from 'lucide-react'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
-
-const MOCK_USERS = [
-  { id: 1, name: 'Nataly Chaplack', unread: 10 },
-  { id: 2, name: 'Schastchaslav Yurchuk', unread: 2 },
-  { id: 3, name: 'Apanovych Lubomudr', unread: 0 },
-  { id: 4, name: 'Mary Croostina', unread: 4 },
-]
-
-const initialMessages = [
-  { id: 1, from: 'nataly', text: "Hello, I am sending today's indicators", ts: 'Fri 2:20pm' },
-  { id: 2, from: 'me', text: "Sure thing, I'll have a look today.", ts: 'Fri 8:20pm' },
-]
+import { Message } from '@/entities/Message.supabase'
+import { User } from '@/entities/User.supabase'
+import { useAuth } from '@/auth/AuthProvider'
+import { format } from 'date-fns'
 
 export default function Messages() {
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
-  const [activeUserId, setActiveUserId] = useState(MOCK_USERS[0].id)
-  const [messages, setMessages] = useState(initialMessages)
+  const [activeUserId, setActiveUserId] = useState(null)
+  const [conversations, setConversations] = useState([])
+  const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+
+  // Load conversation list
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  // Load messages when active user changes
+  useEffect(() => {
+    if (activeUserId) {
+      loadMessages(activeUserId)
+    }
+  }, [activeUserId])
+
+  const loadConversations = async () => {
+    try {
+      setIsLoading(true)
+      const conversationList = await Message.getConversationList()
+      
+      // Also get all users in organization for starting new conversations
+      const allUsers = await User.getActive()
+      
+      // Filter out current user from the list
+      const otherUsers = allUsers.filter(u => u.id !== user?.id)
+      
+      // Create a Set of user IDs we already have conversations with
+      const existingUserIds = new Set(conversationList.map(c => c.user.id))
+      
+      // Add users we don't have conversations with yet
+      const newConversations = otherUsers
+        .filter(u => !existingUserIds.has(u.id))
+        .map(u => ({
+          user: u,
+          lastMessage: null,
+          unreadCount: 0
+        }))
+      
+      setConversations([...conversationList, ...newConversations])
+      
+      // Set first user as active if none selected
+      if (!activeUserId && (conversationList.length > 0 || newConversations.length > 0)) {
+        const firstUser = conversationList[0]?.user || newConversations[0]?.user
+        if (firstUser) {
+          setActiveUserId(firstUser.id)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadMessages = async (userId) => {
+    try {
+      setIsLoadingMessages(true)
+      const conversationMessages = await Message.getConversation(userId)
+      setMessages(conversationMessages)
+      
+      // Mark unread messages as read
+      const unreadMessages = conversationMessages.filter(
+        m => !m.is_read && m.recipient_id === user?.id
+      )
+      if (unreadMessages.length > 0) {
+        await Promise.all(unreadMessages.map(m => Message.markAsRead(m.id)))
+        // Refresh conversation list to update unread counts
+        loadConversations()
+      }
+    } catch (error) {
+      console.error('Error loading messages:', error)
+    } finally {
+      setIsLoadingMessages(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return MOCK_USERS.filter(u => u.name.toLowerCase().includes(q))
-  }, [search])
+    return conversations.filter(c => 
+      c.user.name?.toLowerCase().includes(q) || 
+      c.user.email?.toLowerCase().includes(q)
+    )
+  }, [search, conversations])
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const text = draft.trim()
-    if (!text) return
-    setMessages(prev => [...prev, { id: Date.now(), from: 'me', text, ts: 'Now' }])
+    if (!text || !activeUserId) return
+    
+    try {
+      setIsSending(true)
+      await Message.send({
+        recipient_id: activeUserId,
+        subject: 'Direct Message',
+        content: text
+      })
+      
     setDraft('')
+      // Reload messages to show the new one
+      await loadMessages(activeUserId)
+      // Refresh conversation list
+      loadConversations()
+    } catch (error) {
+      console.error('Error sending message:', error)
+      alert('Failed to send message. Please try again.')
+    } finally {
+      setIsSending(false)
+    }
   }
+
+  const activeUser = conversations.find(c => c.user.id === activeUserId)?.user
 
   return (
     <div className="space-y-10">
@@ -56,20 +149,40 @@ export default function Messages() {
               <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by user name" className="pl-12 rounded-xl" />
             </div>
             <div className="space-y-2 max-h-[60vh] overflow-auto pr-1">
-              {filtered.map(user => (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand" />
+                </div>
+              ) : filtered.length === 0 ? (
+                <div className="text-center py-8 text-heading-subdued">
+                  <UserIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No users found</p>
+                </div>
+              ) : (
+                filtered.map(conversation => (
                 <button
-                  key={user.id}
-                  onClick={() => setActiveUserId(user.id)}
+                    key={conversation.user.id}
+                    onClick={() => setActiveUserId(conversation.user.id)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors ${
-                    activeUserId === user.id ? 'chat-list-item chat-list-item--active' : 'chat-list-item'
+                      activeUserId === conversation.user.id ? 'chat-list-item chat-list-item--active' : 'chat-list-item'
                   }`}
                 >
-                  <span className="truncate text-left text-heading-primary">{user.name}</span>
-                  {user.unread > 0 && (
-                    <Badge className="bg-brand/20 text-button-contrast border-brand/30 px-2 py-0.5">+{user.unread}</Badge>
+                    <div className="flex-1 text-left min-w-0">
+                      <div className="truncate text-heading-primary font-medium">{conversation.user.name}</div>
+                      {conversation.lastMessage && (
+                        <div className="text-xs text-heading-subdued truncate mt-0.5">
+                          {conversation.lastMessage.content}
+                        </div>
+                      )}
+                    </div>
+                    {conversation.unreadCount > 0 && (
+                      <Badge className="bg-brand/20 text-button-contrast border-brand/30 px-2 py-0.5 ml-2">
+                        {conversation.unreadCount}
+                      </Badge>
                   )}
                 </button>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
@@ -78,29 +191,70 @@ export default function Messages() {
         <Card className="lg:col-span-8 bg-hero-card border rounded-2xl surface-main flex flex-col min-h-[70vh]">
           <CardHeader className="p-5 border-b border-[rgba(147,165,197,0.2)]">
             <CardTitle className="text-heading-primary text-lg">
-              {MOCK_USERS.find(u => u.id === activeUserId)?.name}
+              {activeUser ? (
+                <div>
+                  <div>{activeUser.name}</div>
+                  <div className="text-sm text-heading-subdued font-normal">{activeUser.email}</div>
+                </div>
+              ) : (
+                'Select a conversation'
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-5 flex-1 flex flex-col">
             <div className="flex-1 overflow-auto space-y-3 mb-4">
-              {messages.map(m => (
-                <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`${m.from === 'me' ? 'bg-brand text-button-contrast' : 'chat-bubble'} max-w-[75%] px-4 py-2 rounded-2xl shadow-sm`}>
-                    <div className="whitespace-pre-wrap">{m.text}</div>
+              {isLoadingMessages ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-8 h-8 animate-spin text-brand" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex items-center justify-center h-full text-heading-subdued">
+                  <div className="text-center">
+                    <Send className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No messages yet. Start the conversation!</p>
                   </div>
                 </div>
-              ))}
+              ) : (
+                messages.map(m => {
+                  const isFromMe = m.sender_id === user?.id
+                  return (
+                    <div key={m.id} className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`${isFromMe ? 'bg-green-700/80 text-white' : 'chat-bubble'} max-w-[75%] px-4 py-2 rounded-2xl shadow-sm`}>
+                        <div className="whitespace-pre-wrap">{m.content}</div>
+                        <div className={`text-xs mt-1 ${isFromMe ? 'text-white/70' : 'text-heading-subdued'}`}>
+                          {format(new Date(m.created_at), 'MMM d, h:mm a')}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
             </div>
             <div className="flex items-end gap-3">
-              <TextareaLike value={draft} onChange={setDraft} placeholder="Write a message" />
+              <TextareaLike 
+                value={draft} 
+                onChange={setDraft} 
+                placeholder="Write a message" 
+                disabled={!activeUserId}
+              />
               <Button
                 onClick={handleSend}
+                disabled={!draft.trim() || !activeUserId || isSending}
                 variant="default"
                 borderRadius="1rem"
                 className="gap-2 px-5"
               >
+                {isSending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Sending
+                  </>
+                ) : (
+                  <>
                 <Send className="w-4 h-4 mr-2" />
                 Send
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -110,14 +264,15 @@ export default function Messages() {
   )
 }
 
-function TextareaLike({ value, onChange, placeholder }) {
+function TextareaLike({ value, onChange, placeholder, disabled }) {
   return (
-    <div className="flex-1 border border-[rgba(147,165,197,0.3)] rounded-xl surface-input shadow-input px-3 py-2">
+    <div className={`flex-1 border border-[rgba(147,165,197,0.3)] rounded-xl surface-input shadow-input px-3 py-2 ${disabled ? 'opacity-50' : ''}`}>
       <textarea
         value={value}
         placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
-        className="w-full h-20 resize-none bg-transparent focus:outline-none text-heading-primary placeholder-muted"
+        disabled={disabled}
+        className="w-full h-20 resize-none bg-transparent focus:outline-none text-heading-primary placeholder-muted disabled:cursor-not-allowed"
       />
     </div>
   )

@@ -1,4 +1,4 @@
-export function createPageUrl(name) {
+export function createPageUrl(name, params = {}) {
   switch (name) {
     case 'Dashboard':
       return '/dashboard';
@@ -11,9 +11,11 @@ export function createPageUrl(name) {
     case 'ClientIntake':
       return '/clients/new';
     case 'ClientDetail':
-      return '/client';
+      return params.id ? `/client/${params.id}` : '/client';
     case 'Messages':
       return '/messages';
+    case 'Notifications':
+      return '/notifications';
     case 'Prospects':
       return '/prospects';
     case 'Settings':

@@ -280,7 +280,7 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
 
     {/* Full Journey Progress */}
     <div className="mt-8">
-      <PhaseProgress client={client} onUpdate={onUpdate} />
+      <PhaseProgress client={client} onUpdate={onUpdate} readOnly={readOnly} />
     </div>
     </>
   );

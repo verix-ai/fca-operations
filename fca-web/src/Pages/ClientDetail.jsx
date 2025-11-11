@@ -3,7 +3,7 @@ import { Client } from "@/entities/Client.supabase";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Edit, Save, MessageSquare, FileText, User, Heart, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/AuthProvider.jsx";
@@ -17,6 +17,7 @@ import SectionHeader from "@/components/layout/SectionHeader.jsx";
 export default function ClientDetail() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { id } = useParams();
   const [client, setClient] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
@@ -26,16 +27,15 @@ export default function ClientDetail() {
 
   useEffect(() => {
     loadClient();
-  }, []);
+  }, [id]);
 
   const loadClient = async () => {
     setIsLoading(true);
     try {
       const urlParams = new URLSearchParams(window.location.search);
-      const clientId = urlParams.get('id');
       const tab = urlParams.get('tab');
-      if (clientId) {
-        const clientData = await Client.get(clientId);
+      if (id) {
+        const clientData = await Client.get(id);
         setClient(clientData);
       }
       if (tab) {

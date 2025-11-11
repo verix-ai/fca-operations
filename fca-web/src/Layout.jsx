@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import {
   BarChart3,
+  Bell,
   ChevronLeft,
   ChevronRight,
   ClipboardList,
@@ -18,6 +19,7 @@ import ThemeToggle from '@/components/theme/ThemeToggle.jsx'
 import { useAuth } from '@/auth/AuthProvider.jsx'
 import { createPageUrl } from '@/utils'
 import { Button } from '@/components/ui/button'
+import NotificationNavItem from '@/components/layout/NotificationNavItem.jsx'
 
 const softSpringEasing = 'cubic-bezier(0.25, 1.1, 0.4, 1)'
 
@@ -54,6 +56,7 @@ function buildNavigationSections(user) {
       id: 'workspace',
       title: 'Workspace',
       items: [
+        { id: 'notifications', title: 'Notifications', icon: Bell, url: createPageUrl('Notifications'), isCustom: true },
         // Settings hidden for marketers
         ...(!isMarketer ? [{ id: 'settings', title: 'Settings', icon: Settings, url: createPageUrl('Settings'), placement: 'footer' }] : []),
       ],
@@ -95,7 +98,13 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
         </button>
       </div>
       <nav className="flex w-full flex-1 flex-col items-center gap-2">
-        {items.map((item) => (
+        {items.map((item) => {
+          // Render custom NotificationNavItem for notifications
+          if (item.isCustom && item.id === 'notifications') {
+            return <NotificationNavItem key={item.id} variant="rail" />
+          }
+          
+          return (
           <NavLink
             key={item.id}
             to={item.url}
@@ -112,7 +121,8 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
             <item.icon className="h-5 w-5" aria-hidden="true" />
             <span className="sr-only">{item.title}</span>
           </NavLink>
-        ))}
+          )
+        })}
       </nav>
       <div className="flex w-full flex-col items-center gap-2">
         <ThemeToggle className="h-11 w-11 border border-[rgba(var(--border),0.45)] bg-[rgba(var(--bg),0.82)] text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.65)]" />
@@ -222,7 +232,13 @@ function DetailSidebar({ sections, currentPageName, onCollapse }) {
                   </span>
                 </div>
               )}
-              {section.items.map((item) => (
+              {section.items.map((item) => {
+                // Render custom NotificationNavItem for notifications
+                if (item.isCustom && item.id === 'notifications') {
+                  return <NotificationNavItem key={item.id} variant="detail" />
+                }
+                
+                return (
                 <NavLink
                   key={item.id}
                   to={item.url}
@@ -247,7 +263,8 @@ function DetailSidebar({ sections, currentPageName, onCollapse }) {
                     Open
                   </span>
                 </NavLink>
-              ))}
+                )
+              })}
             </div>
           </div>
         ))}
@@ -301,7 +318,9 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
             <span className="text-sm font-semibold text-[rgb(var(--text))]">Navigation</span>
           </div>
         </div>
-        <ThemeToggle className="ml-auto" />
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+        </div>
       </div>
       {isOpen && (
         <div className="mt-3 flex flex-col gap-3">
@@ -311,7 +330,13 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
                 {section.title}
               </span>
               <div className="flex flex-col">
-                {section.items.map((item) => (
+                {section.items.map((item) => {
+                  // Render custom NotificationNavItem for notifications
+                  if (item.isCustom && item.id === 'notifications') {
+                    return <NotificationNavItem key={item.id} variant="mobile" />
+                  }
+                  
+                  return (
                   <NavLink
                     key={item.id}
                     to={item.url}
@@ -326,7 +351,8 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
                     <item.icon className="h-4 w-4" aria-hidden="true" />
                     <span className="flex-1 text-left">{item.title}</span>
                   </NavLink>
-                ))}
+                  )
+                })}
               </div>
             </div>
           ))}

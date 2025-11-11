@@ -43,7 +43,7 @@ export default function ClientCard({
             <Badge className={`${programColors[client.program] || 'bg-[rgba(96,255,168,0.14)] text-button-contrast border-brand/30'} flex-shrink-0 whitespace-nowrap rounded-xl px-3 py-1 font-medium`}>
               {client.program}
             </Badge>
-            <Link to={`${createPageUrl('ClientDetail')}?id=${client.id}`}>
+            <Link to={createPageUrl('ClientDetail', { id: client.id })}>
               <Button
                 variant="ghost"
                 size="icon"

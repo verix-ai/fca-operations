@@ -34,7 +34,10 @@ export default function ClientIntake() {
       const firstName = nameParts[0] || ''
       const lastName = nameParts.slice(1).join(' ') || ''
       
-      // Build client data with all intake form fields
+      // Build client data with all intake form fields + all referral data
+      console.log('📋 Intake Form Data:', formData);
+      console.log('📋 Referral Prefill Data:', prefill);
+      
       const clientData = {
         // Name fields (store both formats for compatibility)
         first_name: firstName,
@@ -44,22 +47,49 @@ export default function ClientIntake() {
         // Contact information
         email: formData.email || null,
         phone_numbers: formData.phone_numbers || [],
-        client_phone: formData.client_phone || null,
-        caregiver_phone: formData.caregiver_phone || null,
+        client_phone: formData.client_phone || prefill?.phone || null,
+        caregiver_phone: formData.caregiver_phone || prefill?.caregiver_phone || null,
         
         // Caregiver information
-        caregiver_name: formData.caregiver_name || null,
-        caregiver_relationship: formData.caregiver_relationship || null,
+        caregiver_name: formData.caregiver_name || prefill?.caregiver_name || null,
+        caregiver_relationship: formData.caregiver_relationship || prefill?.caregiver_relationship || null,
+        caregiver_lives_in_home: prefill?.caregiver_lives_in_home || null,
+        
+        // Demographics (from referral)
+        sex: prefill?.sex || null,
+        date_of_birth: prefill?.referral_dob || null,
+        medicaid_or_ssn: prefill?.medicaid_or_ssn || null,
+        
+        // Address (from referral)
+        address_line1: prefill?.address_line1 || null,
+        address_line2: prefill?.address_line2 || null,
+        city: prefill?.city || null,
+        state: prefill?.state || 'GA',
+        zip: prefill?.zip || null,
         
         // Program and service details
         company: formData.company || 'FCA',
-        program: formData.program || null,
+        program: formData.program || null, // ONLY from intake form, NOT from referral
         frequency: formData.frequency || null,
         cost_share_amount: formData.cost_share_amount || 0,
         
         // Location (store both formats for compatibility)
-        county: formData.location || null,
-        location: formData.location || null,
+        county: formData.location || prefill?.county || null,
+        location: formData.location || prefill?.county || null,
+        
+        // Medical information (from referral)
+        physician: prefill?.physician || null,
+        diagnosis: prefill?.diagnosis || null,
+        
+        // Services and benefits (from referral)
+        services_needed: prefill?.services_needed || {},
+        receives_benefits: prefill?.receives_benefits || null,
+        benefits_pay_date: prefill?.benefits_pay_date || null,
+        
+        // Referral source information
+        heard_about_us: prefill?.heard_about_us || null,
+        additional_info: prefill?.additional_info || null,
+        referral_date: prefill?.referral_date || null,
         
         // Dates
         intake_date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
@@ -69,7 +99,7 @@ export default function ClientIntake() {
         director_of_marketing: formData.director_of_marketing || prefill?.marketer_name || null,
         
         // Additional information
-        notes: formData.notes || null,
+        notes: formData.notes || prefill?.additional_info || null,
         
         // Pre-Onboarding checkboxes (transfer from referral if they were completed)
         viventium_onboarding_completed: prefill?.viventium_onboarding_completed || false,
@@ -85,6 +115,8 @@ export default function ClientIntake() {
         current_phase: 'intake',
         status: 'active'
       };
+      
+      console.log('📋 Final Client Data to Save:', clientData);
       
       await Client.create(clientData);
       

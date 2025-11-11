@@ -276,7 +276,7 @@ export default function ClientList() {
                               size="icon"
                               borderRadius="1rem"
                               className="rounded-2xl text-kpi-secondary hover:text-heading-primary"
-                              onClick={() => navigate(`${createPageUrl('ClientDetail')}?id=${client.id}`)}
+                              onClick={() => navigate(createPageUrl('ClientDetail', { id: client.id }))}
                             >
                               <Eye className="w-4 h-4" />
                             </Button>
@@ -287,7 +287,7 @@ export default function ClientList() {
                                   size="icon"
                                   borderRadius="1rem"
                                   className="rounded-2xl text-kpi-secondary hover:text-heading-primary"
-                                  onClick={() => navigate(`${createPageUrl('ClientDetail')}?id=${client.id}&tab=edit`)}
+                                  onClick={() => navigate(createPageUrl('ClientDetail', { id: client.id }))}
                                 >
                                   <Edit className="w-4 h-4" />
                                 </Button>

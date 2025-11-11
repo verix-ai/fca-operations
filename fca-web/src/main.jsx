@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom'
 import './index.css'
 
 import Dashboard from '@/Pages/Dashboard.jsx'
@@ -9,6 +9,7 @@ import ClientList from '@/Pages/ClientList.jsx'
 import ClientIntake from '@/Pages/ClientIntake.jsx'
 import ClientDetail from '@/Pages/ClientDetail.jsx'
 import Messages from '@/Pages/Messages.jsx'
+import Notifications from '@/Pages/Notifications.jsx'
 import MarketerIntake from '@/Pages/MarketerIntake.jsx'
 import Prospects from '@/Pages/Prospects.jsx'
 import ReferralProfile from '@/Pages/ReferralProfile.jsx'
@@ -23,7 +24,8 @@ import { ToastProvider } from '@/components/ui/toast.jsx'
 import { ThemeProvider } from '@/components/theme/ThemeProvider.jsx'
 // Using Supabase AuthProvider for authentication (renamed from .supabase to default)
 import AuthProvider from '@/auth/AuthProvider.jsx'
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute.jsx'
+import { ProtectedRoute, RoleRoute } from '@/components/auth/ProtectedRoute.jsx'
+import { useAuth } from '@/auth/AuthProvider.jsx'
 
 // Root component that wraps everything with AuthProvider
 function Root() {
@@ -50,6 +52,18 @@ function PublicPage({ children }) {
   return children
 }
 
+// Home redirect component - redirects based on user role
+function HomeRedirect() {
+  const { user } = useAuth()
+  
+  // Default to dashboard for non-marketers, referral form for marketers
+  if (user?.role === 'marketer') {
+    return <Navigate to={createPageUrl('MarketerIntake')} replace />
+  }
+  
+  return <Navigate to={createPageUrl('Dashboard')} replace />
+}
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -58,9 +72,13 @@ const router = createBrowserRouter([
   {
     path: createPageUrl('Dashboard'),
     element: (
-      <ProtectedPage currentPageName="Dashboard">
-        <Dashboard />
-      </ProtectedPage>
+      <ProtectedRoute>
+        <RoleRoute roles={['admin']}>
+          <Layout currentPageName="Dashboard">
+            <Dashboard />
+          </Layout>
+        </RoleRoute>
+      </ProtectedRoute>
     ),
   },
   {
@@ -120,7 +138,15 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: createPageUrl('ClientDetail'),
+    path: createPageUrl('Notifications'),
+    element: (
+      <ProtectedPage currentPageName="Notifications">
+        <Notifications />
+      </ProtectedPage>
+    ),
+  },
+  {
+    path: '/client/:id',
     element: (
       <ProtectedPage currentPageName="ClientDetail">
         <ClientDetail />
@@ -135,7 +161,14 @@ const router = createBrowserRouter([
       </ProtectedPage>
     ),
   },
-  { path: '', element: (<ProtectedPage currentPageName="Dashboard"><Dashboard /></ProtectedPage>) },
+  { 
+    path: '', 
+    element: (
+      <ProtectedRoute>
+        <HomeRedirect />
+      </ProtectedRoute>
+    ) 
+  },
   // Auth Routes - Don't require authentication to access
   { path: 'login', element: <PublicPage><Login /></PublicPage> },
   { path: 'signup', element: <PublicPage><Signup /></PublicPage> },

@@ -80,8 +80,8 @@ export default function AuthProvider({ children }) {
           // IMPORTANT: Don't navigate away from /signup - user might be filling out the form
           const currentPath = window.location.pathname
           if (currentPath === '/login') {
-            // Only navigate from login page, not from signup
-            navigate(createPageUrl('Dashboard'), { replace: true })
+            // Navigate to home, which will redirect based on role
+            navigate('/', { replace: true })
           }
           // If on /signup, let the signup form handle navigation after successful submission
         } else {
