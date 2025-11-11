@@ -82,7 +82,7 @@ export default function Dashboard() {
         />
 
         {/* Stats Overview */}
-        <StatsOverview clients={clients} isLoading={isLoading} />
+        <StatsOverview clients={clients} referrals={[]} isLoading={isLoading} />
 
 
         {/* Operation Board */}

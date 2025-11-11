@@ -104,7 +104,7 @@ function CustomTooltip({ active, payload }) {
   )
 }
 
-export default function KpiHero({ clients = [], isLoading }) {
+export default function KpiHero({ clients = [], referrals = [], isLoading }) {
   const monthlyTrend = useMemo(() => buildMonthlyTrend(clients), [clients])
 
   const totals = useMemo(() => {
@@ -115,14 +115,45 @@ export default function KpiHero({ clients = [], isLoading }) {
     return { all, intake, onboarding, service }
   }, [clients])
 
-  const revenueProjection = useMemo(() => {
-    const base = totals.all * 12800
-    return [
-      { label: '2023', value: base * 0.6 },
-      { label: '2024', value: base * 0.85 },
-      { label: '2025', value: base },
+  // Calculate conversion rate (referrals that became clients)
+  const conversionRate = useMemo(() => {
+    if (!referrals.length) return 0
+    const clientsWithReferrals = clients.filter(c => c.referral_id || referrals.some(r => r.client_id === c.id))
+    return (clientsWithReferrals.length / referrals.length) * 100
+  }, [clients, referrals])
+
+  // Calculate average throughput time (days from created to service_initiation)
+  const avgThroughputDays = useMemo(() => {
+    const completedClients = clients.filter(c => c.current_phase === 'service_initiation' && c.created_at)
+    if (completedClients.length === 0) return 0
+    
+    const totalDays = completedClients.reduce((sum, client) => {
+      const created = new Date(client.created_at)
+      const now = new Date()
+      const days = Math.floor((now - created) / (1000 * 60 * 60 * 24))
+      return sum + days
+    }, 0)
+    
+    return Math.round(totalDays / completedClients.length)
+  }, [clients])
+
+  // Client growth over last 3 periods (quarters or months)
+  const clientGrowth = useMemo(() => {
+    const now = new Date()
+    const periods = [
+      { label: 'Q1', months: [10, 11, 12] }, // Oct-Dec (Q1 of fiscal year)
+      { label: 'Q2', months: [1, 2, 3] },    // Jan-Mar
+      { label: 'Q3', months: [4, 5, 6] },    // Apr-Jun
     ]
-  }, [totals.all])
+    
+    return periods.map(period => {
+      const count = clients.filter(c => {
+        const created = new Date(c.created_at)
+        return period.months.includes(created.getMonth())
+      }).length
+      return { label: period.label, value: count }
+    })
+  }, [clients])
 
   const currentMonth = monthlyTrend[monthlyTrend.length - 1] || { intake: 0, onboarding: 0, service: 0 }
   const previousMonth = monthlyTrend[monthlyTrend.length - 2] || { intake: 0, onboarding: 0, service: 0 }
@@ -132,10 +163,10 @@ export default function KpiHero({ clients = [], isLoading }) {
 
   const highlightMetrics = [
     {
-      title: 'Pipeline Velocity',
-      value: `${currentTotal.toFixed(0)}`,
+      title: 'Avg Throughput',
+      value: `${avgThroughputDays} days`,
       change: formatPercent(growthRate),
-      icon: TrendingUp,
+      icon: Activity,
     },
     {
       title: 'Active Clients',
@@ -144,37 +175,37 @@ export default function KpiHero({ clients = [], isLoading }) {
       icon: Users,
     },
     {
-      title: 'Intake Lead Time',
-      value: `${Math.max(totals.intake * 2, 12)} hrs`,
-      change: '+2.3%',
-      icon: Activity,
+      title: 'Conversion Rate',
+      value: `${conversionRate.toFixed(1)}%`,
+      change: formatPercent(0.023),
+      icon: TrendingUp,
     },
     {
-      title: 'Compliance Tasks',
-      value: `${totals.onboarding * 3}`,
-      change: '+4.8%',
+      title: 'Referrals',
+      value: `${referrals.length}`,
+      change: formatPercent((referrals.length - clients.length) / Math.max(clients.length, 1)),
       icon: CalendarDays,
     },
   ]
 
   const bottomPills = [
     {
-      label: 'New Users',
+      label: 'New Intakes',
       value: totals.intake,
-      delta: '+3.7%',
+      delta: formatPercent(growthRate),
       icon: Sparkles,
     },
     {
-      label: 'New Purchases',
+      label: 'In Service',
       value: totals.service,
-      delta: '+6.8%',
+      delta: formatPercent(totals.service / Math.max(totals.all, 1)),
       icon: BarChart3,
     },
     {
-      label: 'Total Revenue',
-      value: formatCurrency(totals.all * 12500),
-      delta: '+12%',
-      icon: TrendingUp,
+      label: 'In Onboarding',
+      value: totals.onboarding,
+      delta: formatPercent(totals.onboarding / Math.max(totals.all, 1)),
+      icon: Users,
     },
   ]
 
@@ -190,29 +221,29 @@ export default function KpiHero({ clients = [], isLoading }) {
               <ul className="space-y-3 text-lg font-semibold tracking-tight text-heading-primary">
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-brand/70" />
-                  Revenue
+                  Client Intake
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-aqua-600/80" />
-                  Product
+                  Throughput
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-brand/60" />
-                  Sales
+                  Marketer Performance
                 </li>
                 <li className="flex items-center gap-2">
                   <span className="h-2 w-2 rounded-full bg-neutral-500/80" />
-                  KPI Dashboard
+                  Operations
                 </li>
               </ul>
               <div className="mt-8 space-y-3">
-                {revenueProjection.map((entry) => (
+                {clientGrowth.map((entry) => (
                   <div
                     key={entry.label}
                     className="flex items-center justify-between rounded-2xl border border-[rgba(96,255,168,0.18)] focus-pill px-4 py-3 text-sm text-kpi-secondary"
                   >
                     <span className="uppercase tracking-[0.35em] text-xs text-heading-subdued">{entry.label}</span>
-                    <span className="font-semibold text-heading-primary">{formatCurrency(entry.value)}</span>
+                    <span className="font-semibold text-heading-primary">{entry.value} clients</span>
                   </div>
                 ))}
               </div>
@@ -243,7 +274,7 @@ export default function KpiHero({ clients = [], isLoading }) {
               <div className="flex items-start justify-between gap-6">
                 <div>
                   <p className="text-xs uppercase tracking-[0.4em] text-heading-subdued mb-2">Monthly Progress</p>
-                  <p className="text-3xl font-black text-heading-primary tracking-tight">Increase in Sales Every Month</p>
+                  <p className="text-3xl font-black text-heading-primary tracking-tight">Client Intake & Onboarding Pipeline</p>
                 </div>
                 <div className="rounded-2xl border bg-hero-side px-4 py-3 text-right surface-top">
                   <p className="text-xs uppercase tracking-[0.4em] text-heading-subdued">Growth</p>
