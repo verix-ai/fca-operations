@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider, Outlet, Navigate } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import './index.css'
 
 import Dashboard from '@/Pages/Dashboard.jsx'
@@ -183,6 +184,7 @@ createRoot(document.getElementById('root')).render(
     <ThemeProvider>
       <ToastProvider>
         <RouterProvider router={router} />
+        <Analytics />
       </ToastProvider>
     </ThemeProvider>
   </StrictMode>,
