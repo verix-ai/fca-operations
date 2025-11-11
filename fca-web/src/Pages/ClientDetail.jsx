@@ -148,38 +148,42 @@ export default function ClientDetail() {
 
         {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="bg-hero-card p-2 rounded-3xl border border-[rgba(147,165,197,0.25)] backdrop-blur-xl">
-            <TabsTrigger 
-              value="overview" 
-              className="rounded-2xl px-6 py-3"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            {user?.role !== 'marketer' && (
+          <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+            <TabsList className="bg-hero-card p-2 rounded-3xl border border-[rgba(147,165,197,0.25)] backdrop-blur-xl inline-flex w-auto min-w-full md:w-full">
               <TabsTrigger 
-                value="edit" 
-                className="rounded-2xl px-6 py-3"
+                value="overview" 
+                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
-                <Edit className="w-4 h-4 mr-2" />
-                Edit Details
+                <FileText className="w-4 h-4 mr-2" />
+                Overview
               </TabsTrigger>
-            )}
-            <TabsTrigger 
-              value="notes" 
-              className="rounded-2xl px-6 py-3"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Notes
-            </TabsTrigger>
-            <TabsTrigger 
-              value="messages" 
-              className="rounded-2xl px-6 py-3"
-            >
-              <MessageSquare className="w-4 h-4 mr-2" />
-              Team Messages
-            </TabsTrigger>
-          </TabsList>
+              {user?.role !== 'marketer' && (
+                <TabsTrigger 
+                  value="edit" 
+                  className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+                >
+                  <Edit className="w-4 h-4 mr-2" />
+                  <span className="hidden sm:inline">Edit Details</span>
+                  <span className="sm:hidden">Edit</span>
+                </TabsTrigger>
+              )}
+              <TabsTrigger 
+                value="notes" 
+                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Notes
+              </TabsTrigger>
+              <TabsTrigger 
+                value="messages" 
+                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+              >
+                <MessageSquare className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Team Messages</span>
+                <span className="sm:hidden">Messages</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="overview">
             <ClientOverview client={client} onUpdate={handleClientUpdate} readOnly={user?.role === 'marketer'} />

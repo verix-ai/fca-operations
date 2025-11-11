@@ -192,8 +192,8 @@ export default function ClientList() {
           </CardContent>
         </Card>
 
-        {/* Client Table */}
-        <Card className="border border-[rgba(96,255,168,0.16)] rounded-3xl relative z-0">
+        {/* Client Table - Desktop */}
+        <Card className="hidden md:block border border-[rgba(96,255,168,0.16)] rounded-3xl relative z-0">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
@@ -313,6 +313,117 @@ export default function ClientList() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Client Cards - Mobile */}
+        <div className="md:hidden space-y-4">
+          {isLoading ? (
+            Array(3).fill(0).map((_, i) => (
+              <Card key={i} className="border border-[rgba(96,255,168,0.16)] rounded-3xl">
+                <CardContent className="p-4">
+                  <div className="text-heading-subdued">Loading...</div>
+                </CardContent>
+              </Card>
+            ))
+          ) : filteredClients.length === 0 ? (
+            <Card className="border border-[rgba(96,255,168,0.16)] rounded-3xl">
+              <CardContent className="p-6 text-center text-heading-subdued">
+                No clients found matching your filters
+              </CardContent>
+            </Card>
+          ) : (
+            filteredClients.map((client) => (
+              <Card 
+                key={client.id} 
+                className="border border-[rgba(96,255,168,0.16)] rounded-3xl hover:border-brand/40 transition-colors"
+              >
+                <CardContent className="p-5 space-y-4">
+                  {/* Client Name & Phase */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-heading-primary text-lg">
+                        {client.client_name}
+                      </h3>
+                      <p className="text-sm text-kpi-secondary mt-1">
+                        {client.intake_date
+                          ? format(new Date(client.intake_date), 'MMM d, yyyy')
+                          : '-'
+                        }
+                      </p>
+                    </div>
+                    <Badge className={`${phaseColors[client.current_phase]} px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap`}>
+                      {formatPhaseDisplay(client.current_phase)}
+                    </Badge>
+                  </div>
+
+                  {/* Program Badge */}
+                  <div>
+                    <Badge className={`${programColors[client.program] || 'bg-light-chip text-neutral-50'} px-3 py-1.5 rounded-lg font-medium text-xs`}>
+                      {client.program}
+                    </Badge>
+                  </div>
+
+                  {/* Client Details Grid */}
+                  <div className="space-y-3 pt-2 border-t border-white/5">
+                    <div className="flex items-start gap-2">
+                      <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Caregiver</span>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-heading-primary">{client.caregiver_name}</div>
+                        {client.caregiver_relationship && (
+                          <div className="text-xs text-kpi-secondary">{client.caregiver_relationship}</div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Location</span>
+                      <span className="text-sm text-heading-primary">{client.location || '-'}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Frequency</span>
+                      <span className="text-sm text-heading-primary">{client.frequency || '-'}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-3 border-t border-white/5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex-1 rounded-2xl text-kpi-secondary hover:text-heading-primary hover:bg-light-chip"
+                      onClick={() => navigate(createPageUrl('ClientDetail', { id: client.id }))}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      View
+                    </Button>
+                    {user?.role !== 'marketer' && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="flex-1 rounded-2xl text-kpi-secondary hover:text-heading-primary hover:bg-light-chip"
+                          onClick={() => navigate(createPageUrl('ClientDetail', { id: client.id }))}
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="rounded-2xl text-kpi-secondary hover:text-red-400 hover:bg-red-500/10"
+                          onClick={() => openDeleteConfirm(client)}
+                          title="Delete client"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </div>
 
         {confirmOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center">
