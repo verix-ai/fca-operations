@@ -15,6 +15,7 @@ import { CAREGIVER_RELATIONSHIPS } from "../../constants/caregiver.js";
 import { formatPhone } from "@/utils";
 import { Notification } from "@/entities/Notification.supabase";
 import { User } from "@/entities/User.supabase";
+import { Marketer } from "@/entities/Marketer.supabase";
 import {
   Select,
   SelectContent,
@@ -134,6 +135,34 @@ export default function CaregiverProfile({
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
+  const resolveMarketerUserId = async () => {
+    try {
+      if (client?.marketer?.user?.id) return client.marketer.user.id;
+      if (client?.marketer?.user_id) return client.marketer.user_id;
+
+      let marketerRecord = client?.marketer || null;
+      if (!marketerRecord && client?.marketer_id) {
+        marketerRecord = await Marketer.get(client.marketer_id);
+      }
+
+      if (marketerRecord?.user?.id) return marketerRecord.user.id;
+      if (marketerRecord?.user_id) return marketerRecord.user_id;
+
+      const emailCandidates = [
+        marketerRecord?.email,
+        client?.marketer_email,
+      ].filter((email) => typeof email === "string" && email.includes("@"));
+
+      for (const email of emailCandidates) {
+        const marketerUser = await User.findByEmail(email);
+        if (marketerUser?.id) return marketerUser.id;
+      }
+    } catch (error) {
+      console.error("Failed to resolve marketer user", error);
+    }
+    return null;
+  };
+
   const notifyCaregiverChange = async (action, caregiverName) => {
     if (!client?.id) return;
     try {
@@ -142,11 +171,7 @@ export default function CaregiverProfile({
         (admins || []).map((admin) => admin.id).filter(Boolean)
       );
 
-      let marketerUserId = client?.marketer?.user_id || null;
-      if (!marketerUserId && client?.marketer?.email) {
-        const marketerUser = await User.findByEmail(client.marketer.email);
-        marketerUserId = marketerUser?.id || null;
-      }
+      const marketerUserId = await resolveMarketerUserId();
       if (marketerUserId) {
         recipientIds.add(marketerUserId);
       }
