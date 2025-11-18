@@ -8,10 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { confirm } from "@/components/ui";
 import { useToast } from "@/components/ui/toast.jsx";
-import { Heart, Phone, Mail, Home, MapPin, User } from "lucide-react";
+import { Heart, Phone, Mail, Home, MapPin, User as UserIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { CAREGIVER_RELATIONSHIPS } from "../../constants/caregiver.js";
+import { formatPhone } from "@/utils";
+import { Notification } from "@/entities/Notification.supabase";
+import { User } from "@/entities/User.supabase";
 import {
   Select,
   SelectContent,
@@ -106,6 +109,10 @@ export default function CaregiverProfile({
   }, [form.relationship, useCustomRelationship]);
 
   const caregiverPhase = PHASES.find((phase) => phase.key === "onboarding");
+  const onboardingFields = useMemo(() => {
+    if (!caregiverPhase) return [];
+    return caregiverPhase.items.map((item) => item.field);
+  }, [caregiverPhase]);
   const caregiverPhaseIndex = PHASES.findIndex((phase) => phase.key === "onboarding");
   const nextPhaseKey =
     caregiverPhaseIndex >= 0 && caregiverPhaseIndex < PHASES.length - 1
@@ -125,6 +132,49 @@ export default function CaregiverProfile({
 
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const notifyCaregiverChange = async (action, caregiverName) => {
+    if (!client?.id) return;
+    try {
+      const admins = await User.getByRole("admin");
+      const recipientIds = new Set(
+        (admins || []).map((admin) => admin.id).filter(Boolean)
+      );
+
+      let marketerUserId = client?.marketer?.user_id || null;
+      if (!marketerUserId && client?.marketer?.email) {
+        const marketerUser = await User.findByEmail(client.marketer.email);
+        marketerUserId = marketerUser?.id || null;
+      }
+      if (marketerUserId) {
+        recipientIds.add(marketerUserId);
+      }
+
+      if (!recipientIds.size) return;
+
+      const title =
+        action === "added" ? "New Caregiver Added" : "Caregiver Deactivated";
+      const message =
+        action === "added"
+          ? `${caregiverName} was added as a caregiver for ${client.client_name}.`
+          : `${caregiverName} was deactivated for ${client.client_name}.`;
+
+      await Promise.all(
+        Array.from(recipientIds).map((userId) =>
+          Notification.create({
+            user_id: userId,
+            type: "client_updated",
+            title,
+            message,
+            related_entity_type: "client",
+            related_entity_id: client.id,
+          })
+        )
+      );
+    } catch (error) {
+      console.error("Failed to send caregiver notification", error);
+    }
   };
 
   const validateForm = () => {
@@ -155,13 +205,23 @@ export default function CaregiverProfile({
         notes: form.notes?.trim() || null,
       };
       await ClientCaregiver.addCaregiver(client.id, payload);
+
+      const resetChecklist = onboardingFields.reduce(
+        (acc, field) => ({ ...acc, [field]: false }),
+        {}
+      );
+
       await onUpdate({
         caregiver_name: payload.full_name,
         caregiver_relationship: payload.relationship,
         caregiver_phone: payload.phone,
         caregiver_lives_in_home: payload.lives_in_home,
+        onboarding_finalized: false,
+        current_phase: "onboarding",
+        ...resetChecklist,
       });
       push({ title: "Caregiver added", description: `${payload.full_name} is now active.` });
+      await notifyCaregiverChange("added", payload.full_name);
       setForm(defaultCaregiverForm);
       setErrors({});
       setIsAdding(false);
@@ -198,6 +258,7 @@ export default function CaregiverProfile({
         caregiver_lives_in_home: null,
       });
       push({ title: "Caregiver deactivated", description: activeCaregiver.full_name });
+      await notifyCaregiverChange("deactivated", activeCaregiver.full_name);
       if (onRefresh) {
         await onRefresh();
       }
@@ -273,7 +334,7 @@ export default function CaregiverProfile({
                 {displayCaregiver?.lives_in_home ? " • Lives in home" : ""}
               </p>
               <div className="grid sm:grid-cols-2 gap-3">
-                <InfoRow icon={User} label="Client" value={client.client_name} />
+                <InfoRow icon={UserIcon} label="Client" value={client.client_name} />
                 <InfoRow icon={MapPin} label="Location" value={client.location} />
                 <InfoRow
                   icon={Home}
@@ -430,7 +491,7 @@ export default function CaregiverProfile({
                   </Label>
                   <Input
                     value={form.phone}
-                    onChange={(e) => handleFormChange("phone", e.target.value)}
+                    onChange={(e) => handleFormChange("phone", formatPhone(e.target.value))}
                     placeholder="(555) 555-5555"
                     className={errors.phone ? "border-red-500" : ""}
                   />
@@ -441,8 +502,11 @@ export default function CaregiverProfile({
                     Email
                   </Label>
                   <Input
+                    type="email"
                     value={form.email}
-                    onChange={(e) => handleFormChange("email", e.target.value)}
+                    onChange={(e) =>
+                      handleFormChange("email", e.target.value.toLowerCase().trim())
+                    }
                     placeholder="caregiver@email.com"
                   />
                 </div>
@@ -505,13 +569,29 @@ export default function CaregiverProfile({
                 {sortedCaregivers.map((cg) => (
                   <div
                     key={cg.id}
-                    className="rounded-2xl border border-[rgba(147,165,197,0.2)] bg-client-check p-4 space-y-2"
+                    className={`rounded-2xl border p-4 space-y-2 ${
+                      cg.status === "active"
+                        ? "border-[rgba(147,165,197,0.2)] bg-client-check"
+                        : "border-[rgba(20,24,33,0.9)] bg-[rgba(4,7,15,0.85)] text-heading-subdued"
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="text-heading-primary font-semibold">{cg.full_name}</p>
+                        <p
+                          className={`font-semibold ${
+                            cg.status === "active" ? "text-heading-primary" : "text-heading-subdued"
+                          }`}
+                        >
+                          {cg.full_name}
+                        </p>
                         {cg.relationship && (
-                          <p className="text-xs text-heading-subdued uppercase tracking-[0.3em] mt-1">
+                          <p
+                            className={`text-xs uppercase tracking-[0.3em] mt-1 ${
+                              cg.status === "active"
+                                ? "text-heading-subdued"
+                                : "text-heading-subdued/70"
+                            }`}
+                          >
                             {cg.relationship}
                           </p>
                         )}
@@ -520,31 +600,45 @@ export default function CaregiverProfile({
                         className={
                           cg.status === "active"
                             ? "bg-brand/15 text-heading-primary border-brand/40"
-                            : "bg-light-chip text-heading-subdued border-[rgba(147,165,197,0.3)]"
+                            : "bg-black/40 text-heading-subdued border-[rgba(147,165,197,0.05)]"
                         }
                       >
                         {cg.status === "active" ? "Active" : "Inactive"}
                       </Badge>
                     </div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-heading-subdued">
+                    <p
+                      className={`text-xs uppercase tracking-[0.3em] ${
+                        cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
+                      }`}
+                    >
                       {formatRange(cg.started_at, cg.ended_at)}
                     </p>
-                    <div className="grid sm:grid-cols-2 gap-2 text-sm text-heading-subdued">
+                    <div
+                      className={`grid sm:grid-cols-2 gap-2 text-sm ${
+                        cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
+                      }`}
+                    >
                       {cg.phone && (
                         <span className="inline-flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-brand/60" />
+                          <Phone className={`w-4 h-4 ${cg.status === "active" ? "text-brand/60" : "text-heading-subdued/50"}`} />
                           {cg.phone}
                         </span>
                       )}
                       {cg.email && (
                         <span className="inline-flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-brand/60" />
+                          <Mail className={`w-4 h-4 ${cg.status === "active" ? "text-brand/60" : "text-heading-subdued/50"}`} />
                           {cg.email}
                         </span>
                       )}
                     </div>
                     {cg.notes && (
-                      <p className="text-sm text-heading-subdued/80 whitespace-pre-wrap">
+                      <p
+                        className={`text-sm whitespace-pre-wrap ${
+                          cg.status === "active"
+                            ? "text-heading-subdued/80"
+                            : "text-heading-subdued/60"
+                        }`}
+                      >
                         {cg.notes}
                       </p>
                     )}
