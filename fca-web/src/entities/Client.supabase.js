@@ -78,6 +78,7 @@ export const Client = {
       .from('clients')
       .select(`
         *,
+        caregivers:client_caregivers(*),
         marketer:marketers(*),
         cm_company:cm_companies(*),
         notes:client_notes(

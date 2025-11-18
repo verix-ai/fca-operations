@@ -98,8 +98,8 @@ function CustomTooltip({ active, payload }) {
       <p className="text-kpi-secondary uppercase tracking-[0.3em] mb-1">{data.month}</p>
       <p className="text-heading-primary font-semibold">Total: {total.toFixed(0)}</p>
       <p className="text-brand/80">Intake: {data.intake.toFixed(0)}</p>
-      <p className="text-aqua-600/80">Onboarding: {data.onboarding.toFixed(0)}</p>
-      <p className="text-kpi-secondary">Service: {data.service.toFixed(0)}</p>
+      <p className="text-aqua-600/80">Caregiver Onboarding: {data.onboarding.toFixed(0)}</p>
+      <p className="text-kpi-secondary">Services Initiated: {data.service.toFixed(0)}</p>
     </div>
   )
 }
@@ -196,13 +196,13 @@ export default function KpiHero({ clients = [], referrals = [], isLoading }) {
       icon: Sparkles,
     },
     {
-      label: 'In Service',
+      label: 'Services Initiated',
       value: totals.service,
       delta: formatPercent(totals.service / Math.max(totals.all, 1)),
       icon: BarChart3,
     },
     {
-      label: 'In Onboarding',
+      label: 'Caregiver Onboarding',
       value: totals.onboarding,
       delta: formatPercent(totals.onboarding / Math.max(totals.all, 1)),
       icon: Users,
@@ -261,7 +261,7 @@ export default function KpiHero({ clients = [], referrals = [], isLoading }) {
                   <span className="text-lg font-semibold text-heading-primary">{totals.intake}</span>
                 </div>
                 <div className="flex items-center justify-between text-kpi-secondary">
-                  <span>In Service</span>
+                  <span>Services Initiated</span>
                   <span className="text-lg font-semibold text-heading-primary">{totals.service}</span>
                 </div>
               </div>
@@ -274,7 +274,7 @@ export default function KpiHero({ clients = [], referrals = [], isLoading }) {
               <div className="flex items-start justify-between gap-6">
                 <div>
                   <p className="text-xs uppercase tracking-[0.4em] text-heading-subdued mb-2">Monthly Progress</p>
-                  <p className="text-3xl font-black text-heading-primary tracking-tight">Client Intake & Onboarding Pipeline</p>
+                  <p className="text-3xl font-black text-heading-primary tracking-tight">Client Intake & Caregiver Onboarding Pipeline</p>
                 </div>
                 <div className="rounded-2xl border bg-hero-side px-4 py-3 text-right surface-top">
                   <p className="text-xs uppercase tracking-[0.4em] text-heading-subdued">Growth</p>

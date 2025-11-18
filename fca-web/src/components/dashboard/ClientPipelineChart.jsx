@@ -31,14 +31,14 @@ export default function ClientPipelineChart({ clients = [], isLoading }) {
         percentage: totalClients > 0 ? (inIntake / totalClients) * 100 : 0,
       },
       {
-        stage: 'In Onboarding',
+        stage: 'Caregiver Onboarding',
         description: 'Hiring and training caregivers',
         count: inOnboarding,
         color: '#00D9FF',
         percentage: totalClients > 0 ? (inOnboarding / totalClients) * 100 : 0,
       },
       {
-        stage: 'In Service',
+        stage: 'Services Initiated',
         description: 'Actively receiving care',
         count: inService,
         color: '#00B9FF',
@@ -86,11 +86,11 @@ export default function ClientPipelineChart({ clients = [], isLoading }) {
               </button>
             </div>
             <p className="text-sm text-heading-subdued mt-1">
-              Where your clients are in the onboarding process
+              Where your clients are in the care journey
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs uppercase tracking-[0.3em] text-heading-subdued">In Service</p>
+            <p className="text-xs uppercase tracking-[0.3em] text-heading-subdued">Services Initiated</p>
             <p className="text-2xl font-bold text-brand">{completionRate}%</p>
           </div>
         </div>
@@ -111,10 +111,10 @@ export default function ClientPipelineChart({ clients = [], isLoading }) {
                 <strong className="text-brand">In Intake:</strong> Completing paperwork, assessments, and initial setup
               </p>
               <p className="text-heading-secondary">
-                <strong className="text-cyan-400">In Onboarding:</strong> Hiring caregivers, background checks, training
+                <strong className="text-cyan-400">Caregiver Onboarding:</strong> Hiring caregivers, background checks, training
               </p>
               <p className="text-heading-secondary">
-                <strong className="text-cyan-400">In Service:</strong> Actively receiving homecare services
+                <strong className="text-cyan-400">Services Initiated:</strong> Actively receiving homecare services
               </p>
             </div>
             <p className="text-heading-subdued pt-2 text-xs">

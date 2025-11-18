@@ -40,6 +40,12 @@ supabase db push
   - `director_of_marketing` (TEXT) - Marketing director name
   - `notes` (TEXT) - Additional notes
 
+### `20251118_marketer_dm_access.sql`
+- **Date**: 2025-11-18
+- **Purpose**: Restores marketer access to other users in their organization so DM conversations and recipients load properly.
+- **Changes**:
+  - Adds `marketers_select_org` RLS policy on `public.users` allowing marketers to `SELECT` peers in the same organization.
+
 ## Migration History
 
 Keep track of applied migrations:

@@ -9,7 +9,7 @@ import { format } from "date-fns";
 
 const TEAM_MEMBERS = [
   "Sarah Johnson - Clinical Lead",
-  "Michael Davis - Marketing Director", 
+  "Michael Davis - Marketer", 
   "Jennifer Wilson - Clinical Scheduler",
   "Lisa Thompson - Training Coordinator",
   "David Brown - Operations Manager"
@@ -28,7 +28,7 @@ export default function ClientMessages({ clientId }) {
     },
     {
       id: 2,
-      to: "Michael Davis - Marketing Director",
+      to: "Michael Davis - Marketer",
       from: "Current User", 
       subject: "Client satisfaction follow-up",
       message: "Michael, this client was referred through your network. They seem very satisfied with the initial process. Great work on the referral!",

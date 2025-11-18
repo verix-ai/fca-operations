@@ -108,9 +108,9 @@ export default function ClientList() {
       case 'intake':
         return 'Client Intake';
       case 'onboarding':
-        return 'Onboarding';
+        return 'Caregiver Onboarding';
       case 'service_initiation':
-        return 'Service Initiation';
+        return 'Services Initiated';
       default:
         return phase;
     }
@@ -173,8 +173,8 @@ export default function ClientList() {
                 <SelectContent>
                   <SelectItem value="all">All Phases</SelectItem>
                   <SelectItem value="intake">Client Intake</SelectItem>
-                  <SelectItem value="onboarding">Onboarding</SelectItem>
-                  <SelectItem value="service_initiation">Service Initiation</SelectItem>
+                  <SelectItem value="onboarding">Caregiver Onboarding</SelectItem>
+                  <SelectItem value="service_initiation">Services Initiated</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={programFilter} onValueChange={setProgramFilter}>

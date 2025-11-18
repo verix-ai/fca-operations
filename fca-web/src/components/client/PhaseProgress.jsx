@@ -7,7 +7,7 @@ import { confirm } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast.jsx";
 
-const PHASES = [
+export const PHASES = [
   {
     key: 'intake',
     label: 'Client Intake',
@@ -22,7 +22,7 @@ const PHASES = [
   },
   {
     key: 'onboarding',
-    label: 'Onboarding',
+    label: 'Caregiver Onboarding',
     items: [
       { field: 'viventium_onboarding_completed', label: 'Viventium Onboarding Complete?' },
       { field: 'caregiver_fingerprinted', label: 'Caregiver has been Finger Printed?' },
@@ -37,7 +37,7 @@ const PHASES = [
   },
   {
     key: 'service_initiation',
-    label: 'Service Initiation',
+    label: 'Services Initiated',
     items: [
       { field: 'edwp_created_and_sent', label: 'Start Of EDWP Created & Sent to Case Manager?' },
       { field: 'edwp_transmittal_completed', label: 'EDWP Transmittal?' },
@@ -49,14 +49,12 @@ const PHASES = [
 ];
 
 function computePhaseStatus(client) {
-  const index = PHASES.findIndex(p => p.key === client.current_phase);
-  return PHASES.map((phase, i) => {
+  return PHASES.map((phase) => {
     const total = phase.items.length;
     const completed = phase.items.reduce((acc, item) => acc + (client[item.field] ? 1 : 0), 0);
-    const isCurrent = i === index;
-    const isCompleted = completed === total && i < index || (isCurrent && completed === total);
-    const isPending = i > index;
-    return { phase, total, completed, isCurrent, isCompleted, isPending };
+    const isCurrent = client.current_phase === phase.key;
+    const isCompleted = completed === total;
+    return { phase, total, completed, isCurrent, isCompleted };
   });
 }
 
@@ -67,6 +65,24 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
     const idx = PHASES.findIndex(p => p.key === client.current_phase);
     return idx >= 0 && idx < PHASES.length - 1 ? PHASES[idx + 1].key : null;
   }, [client.current_phase]);
+
+  const totalTasks = useMemo(
+    () => PHASES.reduce((sum, phase) => sum + phase.items.length, 0),
+    []
+  );
+
+  const completedTasks = useMemo(
+    () =>
+      PHASES.reduce(
+        (sum, phase) =>
+          sum +
+          phase.items.reduce((acc, item) => acc + (client[item.field] ? 1 : 0), 0),
+        0
+      ),
+    [client]
+  );
+
+  const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   const isPhaseReadyToFinalize = (phaseKey) => {
     const phase = PHASES.find(p => p.key === phaseKey);
@@ -83,22 +99,30 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
       <CardHeader className="p-6 border-b border-white/5">
         <CardTitle className="text-heading-primary text-xl flex items-center justify-between tracking-tight">
           <span>Care Journey</span>
-          <div className="flex gap-3">
-            {statuses.map(({ phase, isCompleted, isCurrent }) => (
-              <div key={phase.key} className="h-2 w-28 rounded-full progress-track overflow-hidden">
-                <div
-                  className={`${isCompleted ? 'progress-fill-active' : isCurrent ? 'progress-fill-current' : 'progress-fill-idle'} h-full transition-all`}
-                  style={{ width: '100%' }}
-                />
-              </div>
-            ))}
+          <div className="flex flex-col items-end gap-2 min-w-[200px]">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-heading-subdued">
+              Overall Progress
+              <span className="text-heading-primary tracking-normal font-semibold">{completionRate}%</span>
+            </div>
+            <div className="w-48 h-2 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="h-full bg-brand transition-all duration-500"
+                style={{ width: `${completionRate}%` }}
+              />
+            </div>
+            <div className="text-[0.65rem] uppercase tracking-[0.3em] text-heading-subdued">
+              {completedTasks}/{totalTasks} Tasks Complete
+            </div>
           </div>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
         <div className="grid md:grid-cols-3 gap-6">
-          {statuses.map(({ phase, total, completed, isCurrent, isCompleted }) => (
-            <div key={phase.key} className={`rounded-2xl border border-[rgba(147,165,197,0.2)] bg-client-check p-5 backdrop-blur ${(client[`${phase.key}_finalized`] || readOnly) ? 'opacity-60' : ''}`}>
+          {statuses.map(({ phase, total, completed, isCurrent, isCompleted }) => {
+            const phaseFinalized = client[`${phase.key}_finalized`];
+            const canEdit = !readOnly;
+            return (
+            <div key={phase.key} className="rounded-2xl border border-[rgba(147,165,197,0.2)] bg-client-check p-5 backdrop-blur">
               <div className="flex items-center justify-between mb-4">
                 <div className={`px-3 py-1 rounded-xl text-xs font-semibold uppercase tracking-[0.2em] border ${isCompleted ? 'bg-[rgba(96,255,168,0.12)] text-heading-primary border-brand/35' : isCurrent ? 'bg-brand/20 text-heading-primary border-brand/30' : 'bg-light-chip text-heading-subdued border-[rgba(147,165,197,0.25)]'}`}>{phase.label}</div>
                 <Badge className="bg-light-chip text-heading-subdued border-[rgba(147,165,197,0.3)] px-2 py-0.5 rounded-lg">
@@ -114,17 +138,16 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
                       type="date"
                       value={client.training_or_care_start_date || ''}
                       onChange={async (e) => {
-                        if (!isCurrent || client[`${phase.key}_finalized`] || readOnly) return;
+                        if (readOnly) return;
                         await onUpdate({ training_or_care_start_date: e.target.value });
                       }}
-                      disabled={!isCurrent || client[`${phase.key}_finalized`] || readOnly}
+                      disabled={readOnly}
                       className="rounded-lg"
                     />
                   </div>
                 )}
                 {phase.items.map(item => {
                   const checked = Boolean(client[item.field]);
-                  const canEdit = isCurrent && !client[`${phase.key}_finalized`] && !readOnly;
                   return (
                     <div key={item.field} className="flex items-center gap-3">
                       <Checkbox
@@ -147,9 +170,8 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
                 <div className="pt-2 flex justify-end">
                   <Button
                     variant="default"
-                    disabled={!isCurrent || readOnly || client[`${phase.key}_finalized`] || !isPhaseReadyToFinalize(phase.key)}
+                    disabled={readOnly || phaseFinalized || !isPhaseReadyToFinalize(phase.key)}
                     onClick={async () => {
-                      if (!isCurrent) return;
                       const confirmed = await confirm({ title: 'Finalize this phase?', description: 'This will lock its checklist.' });
                       if (!confirmed) return;
                       await onUpdate({ [`${phase.key}_finalized`]: true });
@@ -165,7 +187,7 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       </CardContent>
     </Card>

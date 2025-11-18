@@ -13,10 +13,10 @@ import SettingsStore from '@/entities/Settings.supabase'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { useNavigate } from 'react-router-dom'
 import { createPageUrl } from '@/utils'
+import { CAREGIVER_RELATIONSHIPS } from '../constants/caregiver.js'
 
 const INTAKE_BY = ['Ahmad','Quantez','Manda','Carlos','Emory','Melvin','Dwayne','Tevin','Kayla','Brittany','Carrie','Lorenzo','Jeffrey','Miya','Maurice','Reggie','Jimmy/Precious','Aubrey','Alexus/Shan','Dentay','Latina','Otis','Jeremiah','Josiah','Maddox','Jeanette','Lanita','Darius','Travis','Meg','Darius Rogers-Wilson','J Hall','Stacy','Diane Davis','Alexus','Brian','Mike','Sumo','Ms. Val','Adonis “AD” Thomas','Lovie','Valencia','Angel']
 const SEX = ['Female','Male','Prefer not to say']
-const RELATIONSHIPS = ['Mother','Father','Daughter','Son','Sister','Brother','Cousin','Grandchild','In-Law','Friend','Step-Parent','Step-Sibling','Partner','Grandparent','Niece','Nephew']
 // Formatting helpers
 function formatSSN(input) {
   const digits = String(input || '').replace(/\D/g, '').slice(0, 9)
@@ -300,7 +300,7 @@ export default function MarketerIntake() {
                       <SelectValue placeholder="Select" />
                     </SelectTrigger>
                     <SelectContent>
-                      {RELATIONSHIPS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+                      {CAREGIVER_RELATIONSHIPS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}
                     </SelectContent>
                   </Select>
                   {attempted && requiredErrors.caregiver_relationship && <div className="text-red-600 text-sm mt-1">Required</div>}

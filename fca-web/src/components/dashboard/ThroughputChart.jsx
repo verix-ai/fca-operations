@@ -123,7 +123,7 @@ export default function ThroughputChart({ clients = [], isLoading }) {
                 <Line 
                   type="monotone" 
                   dataKey="toOnboarding" 
-                  name="To Onboarding"
+                  name="To Caregiver Onboarding"
                   stroke="#00D9FF" 
                   strokeWidth={2}
                   strokeDasharray="5 5"
@@ -132,7 +132,7 @@ export default function ThroughputChart({ clients = [], isLoading }) {
                 <Line 
                   type="monotone" 
                   dataKey="toService" 
-                  name="To Service"
+                  name="To Services Initiated"
                   stroke="#7DFF68" 
                   strokeWidth={2}
                   strokeDasharray="5 5"

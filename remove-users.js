@@ -100,3 +100,7 @@ rl.question('Enter your Supabase SERVICE_ROLE_KEY (not the anon key): ', async (
 
 
 
+
+
+
+

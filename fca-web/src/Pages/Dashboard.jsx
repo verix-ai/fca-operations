@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { Client } from "@/entities/Client.supabase";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { createPageUrl } from "@/utils";
-import { Plus } from "lucide-react";
 
 import PhaseColumn from "@/components/dashboard/PhaseColumn";
 import StatsOverview from "@/components/dashboard/StatsOverview";
@@ -65,20 +61,7 @@ export default function Dashboard() {
         <SectionHeader
           eyebrow="Overview"
           title="Operations Board"
-          description="Monitor Referrals, Clients, and Service Initiation."
-          actions={(
-            <Link to={createPageUrl("ClientIntake")} className="w-full md:w-auto">
-              <Button
-                variant="default"
-                size="lg"
-                borderRadius="999px"
-                className="w-full gap-2 px-8 text-lg font-semibold"
-              >
-                <Plus className="w-5 h-5 mr-2" />
-                New Client Intake
-              </Button>
-            </Link>
-          )}
+          description="Monitor Referrals, Clients, and Services Initiated."
         />
 
         {/* Stats Overview */}
@@ -88,7 +71,7 @@ export default function Dashboard() {
         {/* Operation Board */}
         <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <PhaseColumn
-            title="Client Intake/Input"
+            title="Client Intake"
             phase="intake"
             clients={getClientsByPhase("intake")}
             isLoading={isLoading}
@@ -97,7 +80,7 @@ export default function Dashboard() {
             color="from-brand/30 to-brand"
           />
           <PhaseColumn
-            title="Onboarding/Employee Recruitment"
+            title="Caregiver Onboarding"
             phase="onboarding"
             clients={getClientsByPhase("onboarding")}
             isLoading={isLoading}
@@ -106,7 +89,7 @@ export default function Dashboard() {
             color="from-brand/20 to-brand"
           />
           <PhaseColumn
-            title="Service Initiation & Caregiver Overview"
+            title="Services Initiated"
             phase="service_initiation"
             clients={getClientsByPhase("service_initiation")}
             isLoading={isLoading}

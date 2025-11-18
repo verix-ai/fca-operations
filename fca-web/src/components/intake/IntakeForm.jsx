@@ -225,7 +225,7 @@ export default function IntakeForm({ onSubmit, isSubmitting, referral }) {
         </div>
       </div>
 
-      {/* Director of Marketing removed from intake (already captured on referral) */}
+      {/* Marketer field removed from intake (already captured on referral) */}
 
       <div className="space-y-3">
         <Label htmlFor="notes" className="text-white/70 font-medium">Additional Notes</Label>

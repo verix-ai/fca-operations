@@ -37,7 +37,7 @@ export default function StatsOverview({ clients, isLoading }) {
       delta: "+4.8%",
     },
     {
-      title: "In Onboarding",
+      title: "CG Onboarding",
       value: stats.onboarding,
       icon: AlertCircle,
       accent: "from-aqua-600/80 via-brand/70 to-brand/40",
@@ -45,7 +45,7 @@ export default function StatsOverview({ clients, isLoading }) {
       delta: "+3.2%",
     },
     {
-      title: "In Service",
+      title: "Services Initiated",
       value: stats.service,
       icon: CheckCircle,
       accent: "from-brand via-brand/70 to-aqua-600/70",

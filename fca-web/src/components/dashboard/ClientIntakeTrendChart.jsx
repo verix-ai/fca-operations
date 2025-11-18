@@ -55,8 +55,8 @@ export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
         <p className="text-kpi-secondary uppercase tracking-[0.3em] mb-1">{data.month}</p>
         <p className="text-heading-primary font-semibold">Total: {data.count}</p>
         <p className="text-brand/80">In Intake: {data.intake}</p>
-        <p className="text-aqua-600/80">In Onboarding: {data.onboarding}</p>
-        <p className="text-green-400/80">In Service: {data.service}</p>
+        <p className="text-aqua-600/80">Caregiver Onboarding: {data.onboarding}</p>
+        <p className="text-green-400/80">Services Initiated: {data.service}</p>
       </div>
     )
   }

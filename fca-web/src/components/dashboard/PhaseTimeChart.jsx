@@ -44,13 +44,13 @@ export default function PhaseTimeChart({ clients = [], isLoading }) {
         color: '#63FF82'
       },
       {
-        phase: 'Onboarding',
+        phase: 'Caregiver Onboarding',
         avgDays: phaseData.onboarding.count > 0 ? Math.round(phaseData.onboarding.total / phaseData.onboarding.count) : 0,
         count: phaseData.onboarding.count,
         color: '#00D9FF'
       },
       {
-        phase: 'Service Init',
+        phase: 'Services Initiated',
         avgDays: phaseData.service_initiation.count > 0 ? Math.round(phaseData.service_initiation.total / phaseData.service_initiation.count) : 0,
         count: phaseData.service_initiation.count,
         color: '#7DFF68'

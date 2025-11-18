@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Client } from "@/entities/Client.supabase";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +12,7 @@ import ClientEditForm from "@/components/client/ClientEditForm";
 import ClientNotes from "@/components/client/ClientNotes";
 import ClientMessages from "@/components/client/ClientMessages";
 import ClientOverview from "@/components/client/ClientOverview";
+import CaregiverProfile from "@/components/client/CaregiverProfile";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 
 export default function ClientDetail() {
@@ -25,11 +26,7 @@ export default function ClientDetail() {
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    loadClient();
-  }, [id]);
-
-  const loadClient = async () => {
+  const loadClient = useCallback(async () => {
     setIsLoading(true);
     try {
       const urlParams = new URLSearchParams(window.location.search);
@@ -45,7 +42,11 @@ export default function ClientDetail() {
       console.error("Error loading client:", error);
     }
     setIsLoading(false);
-  };
+  }, [id]);
+
+  useEffect(() => {
+    loadClient();
+  }, [loadClient]);
 
   const handleClientUpdate = async (updatedData) => {
     try {
@@ -157,6 +158,13 @@ export default function ClientDetail() {
                 <FileText className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
+              <TabsTrigger 
+                value="caregiver" 
+                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+              >
+                <Heart className="w-4 h-4 mr-2" />
+                Caregiver
+              </TabsTrigger>
               {user?.role !== 'marketer' && (
                 <TabsTrigger 
                   value="edit" 
@@ -187,6 +195,15 @@ export default function ClientDetail() {
 
           <TabsContent value="overview">
             <ClientOverview client={client} onUpdate={handleClientUpdate} readOnly={user?.role === 'marketer'} />
+          </TabsContent>
+          <TabsContent value="caregiver">
+            <CaregiverProfile
+              client={client}
+              caregivers={client.caregivers || []}
+              onUpdate={handleClientUpdate}
+              onRefresh={loadClient}
+              readOnly={user?.role === 'marketer'}
+            />
           </TabsContent>
 
           {user?.role !== 'marketer' && (

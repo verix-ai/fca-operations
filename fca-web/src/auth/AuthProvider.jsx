@@ -25,6 +25,25 @@ export default function AuthProvider({ children }) {
     let mounted = true
     let sessionRestored = false
     let profileLoadInProgress = false
+    let forcedLogout = false
+
+    const handleProfileLoadFailure = async (context, error) => {
+      console.error(`🔐 [Auth] ${context}: Profile load failed`, error)
+      if (forcedLogout) return
+      forcedLogout = true
+
+      try {
+        await supabase.auth.signOut()
+      } catch (signOutError) {
+        console.warn('🔐 [Auth] Force logout signOut error:', signOutError?.message || signOutError)
+      } finally {
+        setSession(null)
+        setUser(null)
+        setLoading(false)
+        setInitialized(true)
+        navigate('/login', { replace: true })
+      }
+    }
     
     // Set up auth state change listener FIRST - this fires immediately with INITIAL_SESSION
     const {
@@ -46,7 +65,13 @@ export default function AuthProvider({ children }) {
         if (session?.user) {
           console.log('🔐 [Auth] INITIAL_SESSION: Restoring user session')
           profileLoadInProgress = true
-          await loadUserProfile(session.user.id, session.user)
+          try {
+            await loadUserProfile(session.user.id, session.user)
+          } catch (err) {
+            profileLoadInProgress = false
+            await handleProfileLoadFailure('INITIAL_SESSION', err)
+            return
+          }
           profileLoadInProgress = false
         } else {
           console.log('🔐 [Auth] INITIAL_SESSION: No session found')
@@ -74,16 +99,9 @@ export default function AuthProvider({ children }) {
           try {
             await loadUserProfile(session.user.id, session.user)
           } catch (err) {
-            console.error('🔐 [Auth] Error in loadUserProfile:', err)
-            // If profile load fails, create minimal user
-            if (session.user) {
-              setUser({
-                id: session.user.id,
-                email: session.user.email,
-                name: session.user.user_metadata?.name || session.user.email?.split('@')[0] || 'User',
-                role: 'viewer'
-              })
-            }
+            profileLoadInProgress = false
+            await handleProfileLoadFailure('SIGNED_IN', err)
+            return
           } finally {
             profileLoadInProgress = false
             // Always set loading to false, even if profile load fails
@@ -116,7 +134,13 @@ export default function AuthProvider({ children }) {
           console.log('🔐 [Auth] TOKEN_REFRESHED: Reloading user profile (user changed or not loaded)')
           if (!profileLoadInProgress) {
             profileLoadInProgress = true
-            await loadUserProfile(session.user.id, session.user)
+            try {
+              await loadUserProfile(session.user.id, session.user)
+            } catch (err) {
+              profileLoadInProgress = false
+              await handleProfileLoadFailure('TOKEN_REFRESHED', err)
+              return
+            }
             profileLoadInProgress = false
           }
         } else {
@@ -126,7 +150,13 @@ export default function AuthProvider({ children }) {
         // Other events with session - ensure user profile is loaded
         if (!profileLoadInProgress && !user) {
           profileLoadInProgress = true
-          await loadUserProfile(session.user.id, session.user)
+          try {
+            await loadUserProfile(session.user.id, session.user)
+          } catch (err) {
+            profileLoadInProgress = false
+            await handleProfileLoadFailure('SESSION_RECOVERY', err)
+            return
+          }
           profileLoadInProgress = false
         }
       } else {
@@ -147,7 +177,11 @@ export default function AuthProvider({ children }) {
           setInitialized(true)
           
           if (session?.user) {
-            await loadUserProfile(session.user.id, session.user)
+            try {
+              await loadUserProfile(session.user.id, session.user)
+            } catch (err) {
+              await handleProfileLoadFailure('FALLBACK_GET_SESSION', err)
+            }
           } else {
             setUser(null)
           }
@@ -193,33 +227,14 @@ export default function AuthProvider({ children }) {
       if (timeoutId) clearTimeout(timeoutId)
 
       if (error) {
-        // If profile doesn't exist yet, that's okay - it will be created on first login
         if (error.code === 'PGRST116') {
-          console.log('🔐 [Auth] User profile not found (PGRST116), creating minimal user from session')
-          // Create a minimal user object from session until profile is created
-          if (sessionUser) {
-            setUser({
-              id: sessionUser.id,
-              email: sessionUser.email,
-              name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',
-              role: 'marketer' // Default role until profile is created
-            })
-            console.log('🔐 [Auth] Created minimal user from session')
-          }
-          return
+          console.error('🔐 [Auth] User profile not found (PGRST116)')
+          const notFoundError = new Error('Profile not found')
+          notFoundError.code = 'PROFILE_NOT_FOUND'
+          throw notFoundError
         }
         console.error('🔐 [Auth] Error loading user profile:', error)
-        // If profile load fails but we have session, create minimal user
-        if (sessionUser) {
-          console.log('🔐 [Auth] Profile load failed, creating minimal user from session')
-              setUser({
-                id: sessionUser.id,
-                email: sessionUser.email,
-                name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',
-                role: 'marketer'
-              })
-        }
-        return
+        throw error
       }
 
       console.log('🔐 [Auth] User profile loaded:', data?.email, data?.role)
@@ -227,16 +242,7 @@ export default function AuthProvider({ children }) {
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId)
       console.error('🔐 [Auth] Error loading user profile:', error)
-      // If profile load fails but we have session, create minimal user
-      if (sessionUser) {
-        console.log('🔐 [Auth] Profile load error, creating minimal user from session')
-              setUser({
-                id: sessionUser.id,
-                email: sessionUser.email,
-                name: sessionUser.user_metadata?.name || sessionUser.email?.split('@')[0] || 'User',
-                role: 'marketer'
-              })
-      }
+      throw error
     }
   }
 

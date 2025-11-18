@@ -196,7 +196,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                   <p className="text-heading-primary font-medium mt-1">${client.cost_share_amount || '0.00'}</p>
                 </div>
                 <div>
-                  <Label className="text-heading-subdued text-xs">Director of Marketing</Label>
+                  <Label className="text-heading-subdued text-xs">Marketer</Label>
                   <p className="text-heading-primary font-medium mt-1">{client.director_of_marketing || '-'}</p>
                 </div>
               </div>
@@ -495,7 +495,7 @@ export default function ClientEditForm({ client, onUpdate }) {
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="director_of_marketing" className="text-heading-subdued font-medium">Director of Marketing</Label>
+              <Label htmlFor="director_of_marketing" className="text-heading-subdued font-medium">Marketer</Label>
               {marketers.length > 0 ? (
                 <Select value={formData.director_of_marketing} onValueChange={(v) => handleInputChange('director_of_marketing', v)}>
                   <SelectTrigger className="rounded-xl py-3">

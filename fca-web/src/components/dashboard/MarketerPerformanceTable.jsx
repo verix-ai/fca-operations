@@ -123,8 +123,8 @@ export default function MarketerPerformanceTable({ clients = [], isLoading }) {
                     </div>
                   </TableHead>
                   <TableHead className="text-heading-subdued font-semibold text-center">Intake</TableHead>
-                  <TableHead className="text-heading-subdued font-semibold text-center">Onboarding</TableHead>
-                  <TableHead className="text-heading-subdued font-semibold text-center">Service</TableHead>
+                  <TableHead className="text-heading-subdued font-semibold text-center">Caregiver Onboarding</TableHead>
+                  <TableHead className="text-heading-subdued font-semibold text-center">Services Initiated</TableHead>
                   <TableHead className="text-heading-subdued font-semibold text-center">
                     <div className="flex items-center justify-center gap-1">
                       <Clock className="w-3 h-3" />
