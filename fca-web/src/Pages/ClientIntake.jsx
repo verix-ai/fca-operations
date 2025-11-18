@@ -45,7 +45,8 @@ export default function ClientIntake() {
         client_name: formData.client_name || null, // Full name for display
         
         // Contact information
-        email: formData.email || null,
+        email: formData.client_email || null,
+        caregiver_email: formData.caregiver_email || null,
         phone_numbers: formData.phone_numbers || [],
         client_phone: formData.client_phone || prefill?.phone || null,
         caregiver_phone: formData.caregiver_phone || prefill?.caregiver_phone || null,

@@ -28,7 +28,8 @@ export default function IntakeForm({ onSubmit, isSubmitting, referral }) {
     client_phone: '',
     caregiver_phone: '',
     caregiver_relationship: '',
-    email: '',
+    client_email: '',
+    caregiver_email: '',
     location: '',
     frequency: '',
     cost_share_amount: '',
@@ -116,21 +117,8 @@ export default function IntakeForm({ onSubmit, isSubmitting, referral }) {
     <form onSubmit={handleSubmit} className="space-y-8">
       {/* Client Information Section */}
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="space-y-3">
-          <Label htmlFor="client_name" className="text-white/70 font-medium">Client Name *</Label>
-          <Input
-            id="client_name"
-            value={formData.client_name}
-            onChange={(e) => { handleInputChange('client_name', e.target.value); if (attemptedSubmit) setErrors(validate({ ...formData, client_name: e.target.value })) }}
-            placeholder="e.g., Susie Q"
-            required
-            disabled={Boolean(referral)}
-            className={`rounded-xl py-3 ${errors.client_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
-          />
-          {attemptedSubmit && errors.client_name && (<div className="text-red-600 text-sm">{errors.client_name}</div>)}
-        </div>
-
-        <div className="space-y-3">
+        {/* Row 1: Approved Program (Full Width or just first) */}
+        <div className="space-y-3 md:col-span-2">
           <Label htmlFor="program" className="text-white/70 font-medium">Approved Program *</Label>
           <Select value={formData.program} onValueChange={(value) => { handleInputChange('program', value); if (attemptedSubmit) setErrors(validate({ ...formData, program: value })) }}>
             <SelectTrigger className={`rounded-xl py-3 ${errors.program ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}>
@@ -147,6 +135,35 @@ export default function IntakeForm({ onSubmit, isSubmitting, referral }) {
           {attemptedSubmit && errors.program && (<div className="text-red-600 text-sm">{errors.program}</div>)}
         </div>
 
+        {/* Row 2: Client Name | Client Email */}
+        <div className="space-y-3">
+          <Label htmlFor="client_name" className="text-white/70 font-medium">Client Name *</Label>
+          <Input
+            id="client_name"
+            value={formData.client_name}
+            onChange={(e) => { handleInputChange('client_name', e.target.value); if (attemptedSubmit) setErrors(validate({ ...formData, client_name: e.target.value })) }}
+            placeholder="e.g., Susie Q"
+            required
+            disabled={Boolean(referral)}
+            className={`rounded-xl py-3 ${errors.client_name ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+          />
+          {attemptedSubmit && errors.client_name && (<div className="text-red-600 text-sm">{errors.client_name}</div>)}
+        </div>
+
+        <div className="space-y-3">
+          <Label htmlFor="client_email" className="text-white/70 font-medium">Client Email</Label>
+          <Input
+            id="client_email"
+            type="email"
+            value={formData.client_email}
+            onChange={(e) => { handleInputChange('client_email', e.target.value); if (attemptedSubmit) setErrors(validate({ ...formData, client_email: e.target.value })) }}
+            placeholder="client@example.com"
+            className={`rounded-xl py-3 ${errors.client_email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+          />
+          {attemptedSubmit && errors.client_email && (<div className="text-red-600 text-sm">{errors.client_email}</div>)}
+        </div>
+
+        {/* Row 3: Caregiver Name | Caregiver Email */}
         <div className="space-y-3">
           <Label htmlFor="caregiver_name" className="text-white/70 font-medium">Caregiver Name *</Label>
           <Input
@@ -162,22 +179,18 @@ export default function IntakeForm({ onSubmit, isSubmitting, referral }) {
         </div>
 
         <div className="space-y-3">
-          <Label htmlFor="email" className="text-white/70 font-medium">Email</Label>
+          <Label htmlFor="caregiver_email" className="text-white/70 font-medium">Caregiver Email</Label>
           <Input
-            id="email"
+            id="caregiver_email"
             type="email"
-            value={formData.email}
-            onChange={(e) => { handleInputChange('email', e.target.value); if (attemptedSubmit) setErrors(validate({ ...formData, email: e.target.value })) }}
-            placeholder="example@test.com"
-            className={`rounded-xl py-3 ${errors.email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
+            value={formData.caregiver_email}
+            onChange={(e) => { handleInputChange('caregiver_email', e.target.value); if (attemptedSubmit) setErrors(validate({ ...formData, caregiver_email: e.target.value })) }}
+            placeholder="caregiver@example.com"
+            className={`rounded-xl py-3 ${errors.caregiver_email ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : ''}`}
           />
-          {attemptedSubmit && errors.email && (<div className="text-red-600 text-sm">{errors.email}</div>)}
+          {attemptedSubmit && errors.caregiver_email && (<div className="text-red-600 text-sm">{errors.caregiver_email}</div>)}
         </div>
-
-        {/* Location removed from intake (already captured on referral) */}
       </div>
-
-      {/* Phone numbers removed from intake (already captured on referral) */}
 
       {/* Additional Information */}
       <div className="grid md:grid-cols-2 gap-6">
