@@ -55,6 +55,7 @@ export default function ClientDetail() {
       setClient(prev => ({ ...prev, ...updatedData }));
     } catch (error) {
       console.error("Error updating client:", error);
+      throw error;
     }
   };
 
@@ -148,26 +149,26 @@ export default function ClientDetail() {
         </div>
 
         {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
             <TabsList className="bg-hero-card p-2 rounded-3xl border border-[rgba(147,165,197,0.25)] backdrop-blur-xl inline-flex w-auto min-w-full md:w-full">
-              <TabsTrigger 
-                value="overview" 
+              <TabsTrigger
+                value="overview"
                 className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Overview
               </TabsTrigger>
-              <TabsTrigger 
-                value="caregiver" 
+              <TabsTrigger
+                value="caregiver"
                 className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
                 <Heart className="w-4 h-4 mr-2" />
                 Caregiver
               </TabsTrigger>
               {user?.role !== 'marketer' && (
-                <TabsTrigger 
-                  value="edit" 
+                <TabsTrigger
+                  value="edit"
                   className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
                 >
                   <Edit className="w-4 h-4 mr-2" />
@@ -175,15 +176,15 @@ export default function ClientDetail() {
                   <span className="sm:hidden">Edit</span>
                 </TabsTrigger>
               )}
-              <TabsTrigger 
-                value="notes" 
+              <TabsTrigger
+                value="notes"
                 className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
                 <FileText className="w-4 h-4 mr-2" />
                 Notes
               </TabsTrigger>
-              <TabsTrigger 
-                value="messages" 
+              <TabsTrigger
+                value="messages"
                 className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
                 <MessageSquare className="w-4 h-4 mr-2" />

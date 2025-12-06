@@ -3,6 +3,8 @@ import Program from '@/entities/Program.supabase'
 import CmCompany from '@/entities/CmCompany.supabase'
 import User from '@/entities/User.supabase'
 import Invite from '@/entities/Invite.supabase'
+import SettingsStore from '@/entities/Settings.supabase'
+import countiesData from '@/data/counties.json'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -29,7 +31,7 @@ export default function Settings() {
         {isAdmin && <EmployeeManagementSection />}
         <ProgramsSection />
         <CmCompaniesSection />
-        <TimezoneSection />
+        <CaregiverAlertsSection />
         <CountiesSection />
       </div>
     </div>
@@ -79,30 +81,30 @@ function EmployeeManagementSection() {
       setError(null)
       setSuccessMessage(null)
       setNewInvite(null)
-      
+
       const invite = await Invite.create({ email: inviteEmail, role: inviteRole })
-      
+
       if (!invite || !invite.token) {
         throw new Error('Failed to generate invite code. Please try again.')
       }
 
       setNewInvite(invite)
-      
+
       if (invite.emailSent) {
         setSuccessMessage(`Invitation email sent successfully to ${inviteEmail}`)
       } else {
         setSuccessMessage(`Invitation created! Email sending is not configured. Copy the link below to share with ${inviteEmail}`)
       }
-      
+
       setInviteEmail('')
       setInviteRole('marketer')
       setIsInviting(false)
-      
+
       // Reload invites in background (non-blocking)
       load().catch(err => {
         console.warn('Background reload failed:', err)
       })
-      
+
       // Auto-hide success message after 10 seconds
       setTimeout(() => {
         setSuccessMessage(null)
@@ -134,26 +136,26 @@ function EmployeeManagementSection() {
       setError('Invalid invite ID')
       return
     }
-    
+
     if (!confirm('Cancel this invitation? This action cannot be undone.')) return
-    
+
     // Store the invite being deleted in case we need to revert
     const inviteToDelete = invites.find(inv => inv.id === inviteId)
-    
+
     try {
       setError(null)
       setSuccessMessage(null)
       setLoading(true)
-      
+
       console.log('Canceling invite:', inviteId)
       const result = await Invite.cancel(inviteId)
-      
+
       if (result.success) {
         setSuccessMessage('Invitation canceled successfully')
-        
+
         // Reload to ensure we have fresh data from the database
         await load()
-        
+
         // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(null), 3000)
       }
@@ -161,7 +163,7 @@ function EmployeeManagementSection() {
       console.error('Error canceling invite:', err)
       setError(err.message || 'Failed to cancel invitation. Please try again.')
       setSuccessMessage(null)
-      
+
       // Reload to ensure sync with database
       await load()
     } finally {
@@ -174,21 +176,21 @@ function EmployeeManagementSection() {
       setError('Invalid invite ID')
       return
     }
-    
+
     try {
       setError(null)
       setSuccessMessage(null)
       setLoading(true)
-      
+
       console.log('Repairing invite:', inviteId)
       const result = await Invite.repair(inviteId)
-      
+
       if (result.success) {
         setSuccessMessage(result.message || 'Invite repaired successfully')
-        
+
         // Reload to ensure we have fresh data from the database
         await load()
-        
+
         // Clear success message after 5 seconds
         setTimeout(() => setSuccessMessage(null), 5000)
       } else {
@@ -200,7 +202,7 @@ function EmployeeManagementSection() {
       console.error('Error repairing invite:', err)
       setError(err.message || 'Failed to repair invitation. Please try again.')
       setSuccessMessage(null)
-      
+
       // Reload to ensure sync with database
       await load()
     } finally {
@@ -602,63 +604,6 @@ function EmployeeManagementSection() {
   )
 }
 
-function TimezoneSection() {
-  const [currentTz, setCurrentTz] = useState('UTC')
-  const [saving, setSaving] = useState(false)
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const s = await SettingsStore.get()
-        setCurrentTz(s?.timezone || 'UTC')
-      } catch {}
-    })()
-  }, [])
-
-  const timezones = [
-    'UTC',
-    'America/New_York',
-    'America/Chicago',
-    'America/Denver',
-    'America/Los_Angeles',
-  ]
-
-  const saveTz = async () => {
-    setSaving(true)
-    try {
-      await SettingsStore.update({ timezone: currentTz })
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  return (
-      <Card className="bg-hero-card border rounded-2xl surface-main">
-        <CardHeader className="p-4 flex flex-row items-center justify-between">
-          <CardTitle className="text-heading-primary">Timezone</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4 space-y-3">
-          <div className="w-64">
-            <Select value={currentTz} onValueChange={setCurrentTz}>
-              <SelectTrigger className="rounded-xl h-9 !text-center flex items-center justify-center">
-                <SelectValue placeholder="Select timezone" />
-              </SelectTrigger>
-              <SelectContent>
-                {timezones.map(tz => (
-                  <SelectItem key={tz} value={tz}>{tz}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Button onClick={saveTz} variant="default" borderRadius="1rem" className="px-5" disabled={saving}>
-              {saving ? 'Saving…' : 'Save'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-  )
-}
 function CmCompaniesSection() {
   const [list, setList] = useState([])
   const [editingId, setEditingId] = useState(null)
@@ -667,7 +612,7 @@ function CmCompaniesSection() {
   const [newName, setNewName] = useState('')
   const [error, setError] = useState(null)
 
-  const load = async () => { 
+  const load = async () => {
     const companies = await CmCompany.list()
     setList(companies.sort((a, b) => a.name.localeCompare(b.name)))
   }
@@ -676,7 +621,7 @@ function CmCompaniesSection() {
       let companies = await CmCompany.list()
       if (companies.length === 0) {
         // seed with existing values from legacy constant
-        const defaults = ['B & B Care','NSC','Infinity','Compassionate','Legacy-ICWP','HCM-ICWP','AAA','First Choice','Paris Heights','Rapha Health']
+        const defaults = ['B & B Care', 'NSC', 'Infinity', 'Compassionate', 'Legacy-ICWP', 'HCM-ICWP', 'AAA', 'First Choice', 'Paris Heights', 'Rapha Health']
         for (const name of defaults) {
           try {
             await CmCompany.create({ name })
@@ -746,7 +691,7 @@ function CmCompaniesSection() {
                 <TableRow key={m.id} className="border-b border-[rgba(147,165,197,0.2)]">
                   <TableCell className="p-4">
                     {editingId === m.id ? (
-                      <Input value={editingName} onChange={(e)=>setEditingName(e.target.value)} className="rounded-xl" />
+                      <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} className="rounded-xl" />
                     ) : (
                       <span className="text-heading-primary">{m.name}</span>
                     )}
@@ -773,14 +718,14 @@ function CmCompaniesSection() {
 
       {isAdding && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={()=>setIsAdding(false)} />
+          <div className="absolute inset-0 bg-black/30" onClick={() => setIsAdding(false)} />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-[rgb(var(--card))] rounded-2xl border surface-top">
               <div className="p-4 border-b border-[rgba(147,165,197,0.2)] flex items-center justify-between">
                 <h3 className="text-heading-primary font-semibold">Add Case Management Company</h3>
               </div>
               <div className="p-4 space-y-3">
-                <Input autoFocus value={newName} onChange={(e)=>setNewName(e.target.value)} placeholder="Company name" className="rounded-xl" />
+                <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Company name" className="rounded-xl" />
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" borderRadius="1rem" className="px-4" onClick={() => { setIsAdding(false); setNewName('') }}>Cancel</Button>
                   <Button variant="default" borderRadius="1rem" className="gap-2 px-5" onClick={async () => { await addItem(); setIsAdding(false) }}>Save</Button>
@@ -801,7 +746,7 @@ function ProgramsSection() {
   const [isAdding, setIsAdding] = useState(false)
   const [newName, setNewName] = useState('')
 
-  const load = async () => { 
+  const load = async () => {
     const list = await Program.list()
     setPrograms(list.sort((a, b) => a.name.localeCompare(b.name)))
   }
@@ -854,7 +799,7 @@ function ProgramsSection() {
                 <TableRow key={p.id} className="border-b border-[rgba(147,165,197,0.2)]">
                   <TableCell className="p-4">
                     {editingId === p.id ? (
-                      <Input value={editingName} onChange={(e)=>setEditingName(e.target.value)} className="rounded-xl" />
+                      <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} className="rounded-xl" />
                     ) : (
                       <span className="text-heading-primary">{p.name}</span>
                     )}
@@ -900,14 +845,14 @@ function ProgramsSection() {
 
       {isAdding && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={()=>setIsAdding(false)} />
+          <div className="absolute inset-0 bg-black/30" onClick={() => setIsAdding(false)} />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-[rgb(var(--card))] rounded-2xl border surface-top">
               <div className="p-4 border-b border-[rgba(147,165,197,0.2)] flex items-center justify-between">
                 <h3 className="text-heading-primary font-semibold">Add Program</h3>
               </div>
               <div className="p-4 space-y-3">
-                <Input autoFocus value={newName} onChange={(e)=>setNewName(e.target.value)} placeholder="Program name" className="rounded-xl" />
+                <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Program name" className="rounded-xl" />
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
@@ -954,7 +899,7 @@ async function fetchCountiesCSV(stateCode) {
   const cacheKey = `fca_counties_${stateCode}`
   const cached = localStorage.getItem(cacheKey)
   if (cached) {
-    try { return JSON.parse(cached) } catch {}
+    try { return JSON.parse(cached) } catch { }
   }
   // Try multiple CSV sources, stop on first success
   const sources = [
@@ -998,8 +943,7 @@ async function fetchCountiesCSV(stateCode) {
   return []
 }
 
-import SettingsStore from '@/entities/Settings.supabase'
-import countiesData from '@/data/counties.json'
+
 async function fetchCounties(stateCode) {
   return countiesData[stateCode] || []
 }
@@ -1031,7 +975,7 @@ function CountiesSection() {
 
   const loadModalForState = async (code) => {
     setModalState(code)
-    const list = (regions||{})[code] || []
+    const list = (regions || {})[code] || []
     setModalOriginal(list)
     setModalSelected(list)
     const full = await fetchCounties(code)
@@ -1041,7 +985,7 @@ function CountiesSection() {
   const arraysEqual = (a, b) => {
     if (a.length !== b.length) return false
     const sa = [...a].sort(); const sb = [...b].sort();
-    return sa.every((v,i)=>v===sb[i])
+    return sa.every((v, i) => v === sb[i])
   }
 
   const toggleModalCounty = (county) => {
@@ -1056,7 +1000,7 @@ function CountiesSection() {
     setIsAdding(false)
   }
 
-  const selectedStates = Object.keys(regions).filter(k => (regions[k]||[]).length > 0)
+  const selectedStates = Object.keys(regions).filter(k => (regions[k] || []).length > 0)
 
   return (
     <>
@@ -1081,22 +1025,22 @@ function CountiesSection() {
               <div className="space-y-4">
                 {selectedStates.map(code => (
                   <div key={code}>
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="text-heading-subdued font-medium">{US_STATES.find(s=>s.code===code)?.name || code}</div>
-                        <Button
-                          variant="outline"
-                          borderRadius="1rem"
-                          className="h-8 px-3"
-                          onClick={() => {
-                            setIsAdding(true)
-                            loadModalForState(code)
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      </div>
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-heading-subdued font-medium">{US_STATES.find(s => s.code === code)?.name || code}</div>
+                      <Button
+                        variant="outline"
+                        borderRadius="1rem"
+                        className="h-8 px-3"
+                        onClick={() => {
+                          setIsAdding(true)
+                          loadModalForState(code)
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    </div>
                     <div className="flex flex-wrap gap-2">
-                      {(regions[code]||[]).map(c => (
+                      {(regions[code] || []).map(c => (
                         <span key={c} className="county-chip">{c} County</span>
                       ))}
                     </div>
@@ -1110,13 +1054,13 @@ function CountiesSection() {
 
       {isAdding && (
         <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={()=>setIsAdding(false)} />
+          <div className="absolute inset-0 bg-black/30" onClick={() => setIsAdding(false)} />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="w-full max-w-lg bg-[rgb(var(--card))] rounded-2xl border surface-top">
               <div className="p-4 border-b border-[rgba(147,165,197,0.2)] flex items-center justify-between">
                 <h3 className="text-heading-primary font-semibold">Select Counties</h3>
                 <div className="w-52">
-                  <Select value={modalState} onValueChange={(v)=>{ loadModalForState(v) }}>
+                  <Select value={modalState} onValueChange={(v) => { loadModalForState(v) }}>
                     <SelectTrigger className="rounded-xl h-9">
                       <SelectValue placeholder="Select state" />
                     </SelectTrigger>
@@ -1160,5 +1104,112 @@ function CountiesSection() {
         </div>
       )}
     </>
+  )
+}
+/* ... existing code ... */
+
+function CaregiverAlertsSection() {
+  const [settings, setSettings] = useState({
+    cpr_days: 30,
+    tb_days: 30,
+    drivers_license_days: 30,
+    training_days: 30
+  })
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await SettingsStore.get()
+        if (s.caregiver_alerts) {
+          setSettings(prev => ({ ...prev, ...s.caregiver_alerts }))
+        }
+      } catch (e) {
+        console.error("Failed to load caregiver alert settings", e)
+      }
+    })()
+  }, [])
+
+  const handleChange = (key, val) => {
+    setSettings(prev => ({ ...prev, [key]: parseInt(val) || 0 }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await SettingsStore.update({ caregiver_alerts: settings })
+    } catch (e) {
+      console.error("Failed to save settings", e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="bg-hero-card border rounded-2xl surface-main">
+      <CardHeader className="p-4 flex flex-row items-center justify-between">
+        <CardTitle className="text-heading-primary">Caregiver Expiration Alerts</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 space-y-4">
+        <p className="text-sm text-heading-subdued">
+          Set the number of days before expiration to trigger notifications for administrators.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-heading-subdued">CPR & First Aid</label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={settings.cpr_days}
+                onChange={e => handleChange('cpr_days', e.target.value)}
+                className="rounded-xl pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-heading-subdued">Days</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-heading-subdued">TB Test</label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={settings.tb_days}
+                onChange={e => handleChange('tb_days', e.target.value)}
+                className="rounded-xl pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-heading-subdued">Days</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-heading-subdued">License</label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={settings.drivers_license_days}
+                onChange={e => handleChange('drivers_license_days', e.target.value)}
+                className="rounded-xl pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-heading-subdued">Days</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-heading-subdued">Training</label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={settings.training_days}
+                onChange={e => handleChange('training_days', e.target.value)}
+                className="rounded-xl pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-heading-subdued">Days</span>
+            </div>
+          </div>
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSave} disabled={saving} variant="default" className="w-full sm:w-auto">
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

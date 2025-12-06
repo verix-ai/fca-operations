@@ -9,12 +9,12 @@ const inviteService = new SupabaseService('invites')
 async function getUserOrganization() {
   // First try to get session - more reliable than getUser()
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-  
+
   if (sessionError) {
     console.error('❌ Session error:', sessionError)
     throw new Error(`Authentication error: ${sessionError.message}`)
   }
-  
+
   if (!session?.user) {
     console.error('❌ No session found')
     throw new Error('Not authenticated. Please sign in again.')
@@ -32,7 +32,7 @@ async function getUserOrganization() {
     console.error('❌ Error fetching user profile:', error)
     throw error
   }
-  
+
   if (!userProfile?.organization_id) {
     throw new Error('User not assigned to an organization')
   }
@@ -49,12 +49,12 @@ async function getOrganizationDetails(organizationId) {
     .select('name')
     .eq('id', organizationId)
     .single()
-  
+
   if (error) {
     console.warn('Error fetching organization details:', error)
     return { name: 'Your Organization' }
   }
-  
+
   return data || { name: 'Your Organization' }
 }
 
@@ -67,12 +67,12 @@ async function getInviterDetails(userId) {
     .select('name, email')
     .eq('id', userId)
     .single()
-  
+
   if (error) {
     console.warn('Error fetching inviter details:', error)
     return { name: 'A team member', email: '' }
   }
-  
+
   return data || { name: 'A team member', email: '' }
 }
 
@@ -84,23 +84,23 @@ async function getInviterDetails(userId) {
 async function sendInviteEmail({ email, inviteUrl, inviteRole, organizationName, inviterName, token, session: providedSession = null }) {
   try {
     console.log('📧 Attempting to send invite email via Edge Function:', { email, inviteUrl: inviteUrl.substring(0, 50) + '...' })
-    
+
     // Use provided session or get current session (avoid calling getSession if session is provided)
     let session = providedSession
     if (!session) {
       const { data: { session: currentSession } } = await supabase.auth.getSession()
       session = currentSession
     }
-    
+
     if (!session) {
       throw new Error('Not authenticated')
     }
-    
+
     // Get Supabase URL from the client
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     const functionUrl = `${supabaseUrl}/functions/v1/send-invite-email`
-    
+
     const response = await fetch(functionUrl, {
       method: 'POST',
       headers: {
@@ -117,7 +117,7 @@ async function sendInviteEmail({ email, inviteUrl, inviteRole, organizationName,
         token
       })
     })
-    
+
     const responseText = await response.text()
     let responseData
     try {
@@ -125,16 +125,16 @@ async function sendInviteEmail({ email, inviteUrl, inviteRole, organizationName,
     } catch {
       responseData = { error: responseText }
     }
-    
-    console.log('📧 Edge Function response:', { 
-      status: response.status, 
-      statusText: response.statusText, 
+
+    console.log('📧 Edge Function response:', {
+      status: response.status,
+      statusText: response.statusText,
       data: responseData,
       responseText: responseText,  // Also log the raw text
       success: responseData?.success,
       messageId: responseData?.messageId
     })
-    
+
     if (response.ok && responseData?.success) {
       console.log('✅ Invite email sent successfully via Edge Function', {
         messageId: responseData.messageId,
@@ -142,12 +142,12 @@ async function sendInviteEmail({ email, inviteUrl, inviteRole, organizationName,
       })
       return { success: true, method: 'edge-function' }
     }
-    
+
     // If response.ok but success is false, log the error
     if (response.ok && !responseData?.success) {
       console.error('⚠️ Edge Function returned 200 but success=false:', responseData)
     }
-    
+
     // Log error details
     console.error('❌ Edge Function error:', {
       status: response.status,
@@ -157,7 +157,7 @@ async function sendInviteEmail({ email, inviteUrl, inviteRole, organizationName,
       config: responseData.config,
       fullResponse: responseData  // Log the entire response
     })
-    
+
   } catch (err) {
     console.error('❌ Exception calling Edge Function:', err)
     console.log('ℹ️ Email sending not configured. Invite link will be shown to admin for manual sharing.')
@@ -181,9 +181,9 @@ function generateToken() {
       console.warn('crypto.randomUUID() failed, using fallback:', e)
     }
   }
-  
+
   // Fallback: Generate a UUID v4-like token
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (Math.random() * 16) | 0
     const v = c === 'x' ? r : (r & 0x3) | 0x8
     return v.toString(16)
@@ -206,7 +206,7 @@ export const Invite = {
    */
   async getPending() {
     const { organizationId } = await getUserOrganization()
-    
+
     const { data, error } = await supabase
       .from('invites')
       .select('*')
@@ -219,7 +219,7 @@ export const Invite = {
       console.error('Error fetching pending invites:', error)
       throw error
     }
-    
+
     // Get all users in the organization to filter out invites for existing users
     const { data: users, error: usersError } = await supabase
       .from('users')
@@ -249,7 +249,7 @@ export const Invite = {
       if (!invite || !invite.id || !invite.email) {
         return false
       }
-      
+
       const inviteEmail = String(invite.email).toLowerCase().trim()
       if (existingUserEmails.has(inviteEmail)) {
         console.log(`🔍 Filtering out invite for ${inviteEmail} - user already exists in public.users`)
@@ -259,7 +259,7 @@ export const Invite = {
         })
         return false
       }
-      
+
       return true
     })
 
@@ -279,7 +279,7 @@ export const Invite = {
   async markInviteAsUsedIfUserExists(inviteId, email) {
     try {
       const { organizationId } = await getUserOrganization()
-      
+
       // Check if user exists
       const { data: user } = await supabase
         .from('users')
@@ -292,9 +292,9 @@ export const Invite = {
         console.log(`✅ Marking invite ${inviteId} as used - user ${email} exists`)
         const { error } = await supabase
           .from('invites')
-          .update({ 
-            used: true, 
-            used_at: new Date().toISOString() 
+          .update({
+            used: true,
+            used_at: new Date().toISOString()
           })
           .eq('id', inviteId)
           .eq('organization_id', organizationId)
@@ -303,10 +303,10 @@ export const Invite = {
           console.error(`❌ Error marking invite ${inviteId} as used:`, error)
           return { success: false, error }
         }
-        
+
         return { success: true }
       }
-      
+
       return { success: false, reason: 'User not found' }
     } catch (err) {
       console.error(`❌ Error in markInviteAsUsedIfUserExists:`, err)
@@ -407,7 +407,7 @@ export const Invite = {
 
     // Generate invite URL
     const inviteUrl = `${window.location.origin}/signup?invite=${token}`
-    
+
     // Get organization and inviter details for email
     const [orgDetails, inviterDetails] = await Promise.all([
       getOrganizationDetails(organizationId).catch(() => ({ name: 'Your Organization' })),
@@ -416,7 +416,7 @@ export const Invite = {
 
     // Get current session ONCE to avoid triggering multiple refreshes
     const { data: { session: currentSession } } = await supabase.auth.getSession()
-    
+
     // Attempt to send email (non-blocking)
     const emailResult = await sendInviteEmail({
       email,
@@ -430,7 +430,7 @@ export const Invite = {
       console.warn('Email sending failed (non-critical):', err)
       return { success: false, method: 'manual' }
     })
-    
+
     return {
       ...invite,
       inviteUrl,
@@ -526,7 +526,7 @@ export const Invite = {
     }
 
     const inviteUrl = `${window.location.origin}/signup?invite=${newToken}`
-    
+
     // Get organization and inviter details for email
     const [orgDetails, inviterDetails] = await Promise.all([
       getOrganizationDetails(existingInvite.organization_id).catch(() => ({ name: 'Your Organization' })),
@@ -549,7 +549,7 @@ export const Invite = {
       console.warn('Email sending failed (non-critical):', err)
       return { success: false, method: 'manual' }
     })
-    
+
     return {
       ...invite,
       inviteUrl,
@@ -567,7 +567,7 @@ export const Invite = {
   async repair(inviteId) {
     console.log(`🔧 [Repair] Starting repair for invite: ${inviteId}`)
     const { userId, organizationId, role } = await getUserOrganization()
-    
+
     // Only admins can repair invites
     if (role !== 'admin') {
       throw new Error('Only admins can repair invites')
@@ -612,9 +612,9 @@ export const Invite = {
       console.log(`✅ [Repair] User ${invite.email} already exists in public.users, marking invite as used`)
       const { error: markError } = await supabase
         .from('invites')
-        .update({ 
-          used: true, 
-          used_at: new Date().toISOString() 
+        .update({
+          used: true,
+          used_at: new Date().toISOString()
         })
         .eq('id', inviteId)
 
@@ -624,8 +624,8 @@ export const Invite = {
       }
 
       console.log(`✅ [Repair] Successfully marked invite as used`)
-      return { 
-        success: true, 
+      return {
+        success: true,
         action: 'marked_used',
         message: `User already exists. Invite marked as used.`
       }
@@ -637,12 +637,12 @@ export const Invite = {
     // This prevents it from showing as pending, and they can contact support if needed
     console.log(`⚠️ [Repair] User ${invite.email} not found in public.users`)
     console.log(`⚠️ [Repair] Marking invite as used anyway (user may exist in auth.users but profile creation failed)`)
-    
+
     const { error: markError } = await supabase
       .from('invites')
-      .update({ 
-        used: true, 
-        used_at: new Date().toISOString() 
+      .update({
+        used: true,
+        used_at: new Date().toISOString()
       })
       .eq('id', inviteId)
 
@@ -706,7 +706,7 @@ export const Invite = {
     // Note: RLS policy will automatically filter by organization_id and role
     // We don't need to filter by organization_id in the query - RLS handles it
     console.log('🗑️ Attempting delete with RLS:', { id, organizationId, role, userId })
-    
+
     const { error, data, count } = await supabase
       .from('invites')
       .delete()
@@ -723,28 +723,28 @@ export const Invite = {
         details: error.details,
         hint: error.hint
       })
-      
+
       // Check if it's an RLS policy error
       if (error.code === '42501' || error.message?.includes('permission') || error.message?.includes('policy')) {
         throw new Error(`Permission denied: Unable to delete invite. Make sure you're an admin and the invite belongs to your organization. Error: ${error.message}`)
       }
-      
+
       throw new Error(`Failed to cancel invite: ${error.message}`)
     }
 
     // If no data returned and no error, RLS policy silently filtered out the row
     if (!data || data.length === 0) {
       console.warn('⚠️ Delete returned no rows - checking if invite still exists...')
-      
+
       // Check if invite still exists (RLS policy may be blocking)
       const { data: checkInvite, error: checkError } = await supabase
         .from('invites')
         .select('id, organization_id, email')
         .eq('id', id)
         .single()
-      
+
       console.log('🔍 Invite check result:', { checkInvite, checkError, stillExists: !!checkInvite })
-      
+
       if (checkInvite) {
         console.error('❌ Invite still exists after delete attempt')
         console.error('❌ Invite details:', {
@@ -752,7 +752,7 @@ export const Invite = {
           userOrg: organizationId,
           orgMatch: checkInvite.organization_id === organizationId
         })
-        
+
         throw new Error(`Unable to delete invite. The RLS policy is blocking the delete. Please verify that:
 1. You are logged in as an admin (current role: ${role})
 2. The invite belongs to your organization (invite org: ${checkInvite.organization_id}, your org: ${organizationId})
@@ -765,7 +765,7 @@ WHERE schemaname = 'public'
   AND tablename = 'invites'
   AND cmd = 'DELETE';`)
       }
-      
+
       // Invite doesn't exist - it was deleted successfully
       console.log('✅ Invite was deleted successfully (no rows returned due to RLS)')
       return { success: true, deletedInvite: null }

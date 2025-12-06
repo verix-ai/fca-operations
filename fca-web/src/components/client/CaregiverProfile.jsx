@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { confirm } from "@/components/ui";
 import { useToast } from "@/components/ui/toast.jsx";
-import { Heart, Phone, Mail, Home, MapPin, User as UserIcon } from "lucide-react";
-import { format } from "date-fns";
+import { Heart, Phone, Mail, Home, MapPin, User as UserIcon, Calendar, AlertTriangle, Pencil } from "lucide-react";
+import { format, isBefore, addDays, addYears } from "date-fns";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { CAREGIVER_RELATIONSHIPS } from "../../constants/caregiver.js";
 import { formatPhone } from "@/utils";
@@ -23,15 +23,45 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import SettingsStore from '@/entities/Settings.supabase';
 import { PHASES } from "./PhaseProgress";
 
-const InfoRow = ({ icon: Icon, label, value }) => {
+const InfoRow = ({ icon: Icon, label, value, status, onEdit }) => {
   if (!value) return null;
+  // Status: 'ok' | 'warning' | 'error'
+  let borderColor = 'border-white/5';
+  let bgColor = 'bg-black/10';
+  let iconColor = 'text-brand/70';
+  let labelColor = 'text-heading-subdued';
+  let valueColor = '';
+
+  if (status === 'warning') {
+    borderColor = 'border-amber-500/30';
+    bgColor = 'bg-amber-500/10';
+    iconColor = 'text-amber-500';
+    labelColor = 'text-amber-200';
+    valueColor = 'text-amber-100';
+  } else if (status === 'error') {
+    borderColor = 'border-red-500/30';
+    bgColor = 'bg-red-500/10';
+    iconColor = 'text-red-500';
+    labelColor = 'text-red-200';
+    valueColor = 'text-red-100';
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
-      <Icon className="w-4 h-4 text-brand/70" />
-      <div className="text-xs uppercase tracking-[0.3em] text-heading-subdued">{label}</div>
-      <div className="text-heading-primary text-sm font-medium truncate">{value}</div>
+    <div className={`flex items-center gap-3 rounded-2xl border px-3 py-2 ${borderColor} ${bgColor}`}>
+      <Icon className={`w-4 h-4 ${iconColor}`} />
+      <div className={`text-xs uppercase tracking-[0.3em] ${labelColor}`}>{label}</div>
+      <div className={`text-heading-primary text-sm font-medium truncate ml-auto ${valueColor}`}>{value}</div>
+      {onEdit && (
+        <button
+          onClick={onEdit}
+          className="ml-2 bg-black/20 hover:bg-black/40 p-1.5 rounded-lg text-heading-subdued hover:text-heading-primary transition-colors"
+        >
+          <Pencil className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 };
@@ -50,6 +80,11 @@ const formatRange = (start, end) => {
   const startLabel = start ? format(new Date(start), "MMM d, yyyy") : "Unknown start";
   const endLabel = end ? format(new Date(end), "MMM d, yyyy") : "Present";
   return `${startLabel} – ${endLabel}`;
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return null;
+  return format(new Date(dateString), "MMM d, yyyy");
 };
 
 export default function CaregiverProfile({
@@ -109,6 +144,13 @@ export default function CaregiverProfile({
     }
   }, [form.relationship, useCustomRelationship]);
 
+  const [settings, setSettings] = useState(null);
+  useEffect(() => {
+    SettingsStore.get().then(s => {
+      if (s?.caregiver_alerts) setSettings(s.caregiver_alerts);
+    }).catch(console.error);
+  }, []);
+
   const caregiverPhase = PHASES.find((phase) => phase.key === "onboarding");
   const onboardingFields = useMemo(() => {
     if (!caregiverPhase) return [];
@@ -130,6 +172,28 @@ export default function CaregiverProfile({
   }, [client, caregiverPhase]);
   const completionRate = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const canEdit = !readOnly;
+
+  // Edit Date Modal State
+  const [editingDate, setEditingDate] = useState(null); // { field, label, currentDate }
+
+  const handleEditDate = (field, label, currentValue) => {
+    if (!canEdit) return;
+    setEditingDate({ field, label, value: currentValue || '' });
+  };
+
+  const saveDateEdit = async () => {
+    if (!editingDate) return;
+    try {
+      console.log('Saving date:', editingDate);
+      const val = editingDate.value === '' ? null : editingDate.value;
+      await onUpdate({ [editingDate.field]: val });
+      push({ title: "Date updated" });
+      setEditingDate(null);
+    } catch (e) {
+      console.error("Failed to update date", e);
+      push({ title: "Failed to update date", description: e.message || "Unknown error", variant: "destructive" });
+    }
+  }
 
   const handleFormChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -166,16 +230,26 @@ export default function CaregiverProfile({
   const notifyCaregiverChange = async (action, caregiverName) => {
     if (!client?.id) return;
     try {
+      console.log("🔔 Sending caregiver notification:", { action, caregiverName, clientId: client.id });
       const admins = await User.getByRole("admin");
+      console.log("👥 Found admins:", admins?.length || 0, admins?.map(a => ({ id: a.id, email: a.email })));
       const recipientIds = new Set(
         (admins || []).map((admin) => admin.id).filter(Boolean)
       );
 
       const marketerUserId = await resolveMarketerUserId();
+      console.log("🎯 Resolved marketer user ID:", marketerUserId);
+      console.log("📊 Client data for marketer lookup:", {
+        marketer: client?.marketer,
+        marketer_id: client?.marketer_id,
+        marketer_email: client?.marketer_email,
+        director_of_marketing: client?.director_of_marketing
+      });
       if (marketerUserId) {
         recipientIds.add(marketerUserId);
       }
 
+      console.log("📬 Total recipients:", Array.from(recipientIds));
       if (!recipientIds.size) return;
 
       const title =
@@ -197,8 +271,9 @@ export default function CaregiverProfile({
           })
         )
       );
+      console.log("✅ Notifications sent successfully");
     } catch (error) {
-      console.error("Failed to send caregiver notification", error);
+      console.error("❌ Failed to send caregiver notification", error);
     }
   };
 
@@ -323,6 +398,23 @@ export default function CaregiverProfile({
 
   const isReadyToFinalize = caregiverPhase.items.every((item) => Boolean(client[item.field]));
 
+  // Calculate expiration dates
+  const cprExpiration = client.cpr_issued_at ? addYears(new Date(client.cpr_issued_at), 2) : null;
+  const tbExpiration = client.tb_test_issued_at ? addYears(new Date(client.tb_test_issued_at), 1) : null;
+  const trainingExpiration = client.training_or_care_start_date ? addYears(new Date(client.training_or_care_start_date), 1) : null;
+  const licenseExpiration = client.drivers_license_expires_at ? new Date(client.drivers_license_expires_at) : null;
+
+  // Determine status: 'ok', 'warning', 'error'
+  const getStatus = (expirationDate, daysThreshold = 30) => {
+    if (!expirationDate) return 'ok';
+    const now = new Date();
+    // Check if expired
+    if (isBefore(expirationDate, now)) return 'error';
+    // Check if within warning threshold
+    if (isBefore(expirationDate, addDays(now, daysThreshold))) return 'warning';
+    return 'ok';
+  };
+
   return (
     <div className="space-y-8">
       <Card className="border border-[rgba(96,255,168,0.18)]">
@@ -358,7 +450,7 @@ export default function CaregiverProfile({
                 Primary caregiver for {client.client_name || "this client"}{" "}
                 {displayCaregiver?.lives_in_home ? " • Lives in home" : ""}
               </p>
-              <div className="grid sm:grid-cols-2 gap-3">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <InfoRow icon={UserIcon} label="Client" value={client.client_name} />
                 <InfoRow icon={MapPin} label="Location" value={client.location} />
                 <InfoRow
@@ -369,11 +461,89 @@ export default function CaregiverProfile({
                 <InfoRow icon={Phone} label="Phone" value={caregiverPhone} />
                 <InfoRow icon={Mail} label="Email" value={displayCaregiver?.email || client.email} />
                 <InfoRow icon={Heart} label="Program" value={client.program} />
+
+                {/* Expiration Dates */}
+                <InfoRow
+                  icon={getStatus(cprExpiration, settings?.cpr_days) !== 'ok' ? AlertTriangle : Calendar}
+                  label="CPR | First Aid Expires"
+                  value={cprExpiration ? format(cprExpiration, "MMM d, yyyy") : null}
+                  status={getStatus(cprExpiration, settings?.cpr_days)}
+                  onEdit={() => handleEditDate('cpr_issued_at', 'CPR Issued Date', client.cpr_issued_at)}
+                />
+                <InfoRow
+                  icon={getStatus(tbExpiration, settings?.tb_days) !== 'ok' ? AlertTriangle : Calendar}
+                  label="TB Test Expires"
+                  value={tbExpiration ? format(tbExpiration, "MMM d, yyyy") : null}
+                  status={getStatus(tbExpiration, settings?.tb_days)}
+                  onEdit={() => handleEditDate('tb_test_issued_at', 'TB Test Issued Date', client.tb_test_issued_at)}
+                />
+                <InfoRow
+                  icon={getStatus(licenseExpiration, settings?.drivers_license_days) !== 'ok' ? AlertTriangle : Calendar}
+                  label="License Expires"
+                  value={licenseExpiration ? format(licenseExpiration, "MMM d, yyyy") : null}
+                  status={getStatus(licenseExpiration, settings?.drivers_license_days)}
+                  onEdit={() => handleEditDate('drivers_license_expires_at', 'License Expiration Date', client.drivers_license_expires_at)}
+                />
+                <InfoRow
+                  icon={getStatus(trainingExpiration, settings?.training_days) !== 'ok' ? AlertTriangle : Calendar}
+                  label="Training Expires"
+                  value={trainingExpiration ? format(trainingExpiration, "MMM d, yyyy") : null}
+                  status={getStatus(trainingExpiration, settings?.training_days)}
+                  onEdit={() => handleEditDate('training_or_care_start_date', 'Training / Start of Care Date', client.training_or_care_start_date)}
+                />
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Edit Date Modal */}
+      {editingDate && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setEditingDate(null)}
+          />
+          <div className="relative w-full max-w-sm mx-4 rounded-3xl border border-[rgba(147,165,197,0.25)] bg-hero-card shadow-[0_25px_60px_-30px_rgba(0,0,0,0.85)]">
+            <div className="p-6 border-b border-white/5">
+              <h2 className="text-lg font-semibold text-heading-primary">Update Date</h2>
+              <p className="text-sm text-heading-subdued mt-2">
+                Enter the new {editingDate.label.toLowerCase()}.
+              </p>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <Label className="text-xs uppercase tracking-[0.3em] text-heading-subdued">
+                  {editingDate.label}
+                </Label>
+                <Input
+                  type="date"
+                  value={editingDate.value}
+                  onChange={(e) => setEditingDate(prev => ({ ...prev, value: e.target.value }))}
+                  className="mt-2"
+                />
+                <p className="text-[10px] text-heading-subdued mt-2">
+                  Updating this date will automatically recalculate the expiration.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingDate(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={saveDateEdit}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deactivateConfirmOpen && activeCaregiver && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center">
@@ -594,28 +764,25 @@ export default function CaregiverProfile({
                 {sortedCaregivers.map((cg) => (
                   <div
                     key={cg.id}
-                    className={`rounded-2xl border p-4 space-y-2 ${
-                      cg.status === "active"
-                        ? "border-[rgba(147,165,197,0.2)] bg-client-check"
-                        : "border-[rgba(20,24,33,0.9)] bg-[rgba(4,7,15,0.85)] text-heading-subdued"
-                    }`}
+                    className={`rounded-2xl border p-4 space-y-2 ${cg.status === "active"
+                      ? "border-[rgba(147,165,197,0.2)] bg-client-check"
+                      : "border-[rgba(20,24,33,0.9)] bg-[rgba(4,7,15,0.85)] text-heading-subdued"
+                      }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div>
                         <p
-                          className={`font-semibold ${
-                            cg.status === "active" ? "text-heading-primary" : "text-heading-subdued"
-                          }`}
+                          className={`font-semibold ${cg.status === "active" ? "text-heading-primary" : "text-heading-subdued"
+                            }`}
                         >
                           {cg.full_name}
                         </p>
                         {cg.relationship && (
                           <p
-                            className={`text-xs uppercase tracking-[0.3em] mt-1 ${
-                              cg.status === "active"
-                                ? "text-heading-subdued"
-                                : "text-heading-subdued/70"
-                            }`}
+                            className={`text-xs uppercase tracking-[0.3em] mt-1 ${cg.status === "active"
+                              ? "text-heading-subdued"
+                              : "text-heading-subdued/70"
+                              }`}
                           >
                             {cg.relationship}
                           </p>
@@ -632,16 +799,14 @@ export default function CaregiverProfile({
                       </Badge>
                     </div>
                     <p
-                      className={`text-xs uppercase tracking-[0.3em] ${
-                        cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
-                      }`}
+                      className={`text-xs uppercase tracking-[0.3em] ${cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
+                        }`}
                     >
                       {formatRange(cg.started_at, cg.ended_at)}
                     </p>
                     <div
-                      className={`grid sm:grid-cols-2 gap-2 text-sm ${
-                        cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
-                      }`}
+                      className={`grid sm:grid-cols-2 gap-2 text-sm ${cg.status === "active" ? "text-heading-subdued" : "text-heading-subdued/70"
+                        }`}
                     >
                       {cg.phone && (
                         <span className="inline-flex items-center gap-2">
@@ -658,11 +823,10 @@ export default function CaregiverProfile({
                     </div>
                     {cg.notes && (
                       <p
-                        className={`text-sm whitespace-pre-wrap ${
-                          cg.status === "active"
-                            ? "text-heading-subdued/80"
-                            : "text-heading-subdued/60"
-                        }`}
+                        className={`text-sm whitespace-pre-wrap ${cg.status === "active"
+                          ? "text-heading-subdued/80"
+                          : "text-heading-subdued/60"
+                          }`}
                       >
                         {cg.notes}
                       </p>
@@ -705,25 +869,43 @@ export default function CaregiverProfile({
             {caregiverPhase.items.map((item) => {
               const checked = Boolean(client[item.field]);
               return (
-                <div key={item.field} className="flex items-center gap-3 rounded-2xl border border-[rgba(147,165,197,0.25)] bg-black/10 px-4 py-3">
-                  <Checkbox
-                    checked={checked}
-                    disabled={!canEdit}
-                    onCheckedChange={async (val) => {
-                      if (!canEdit) return;
-                      await onUpdate({ [item.field]: Boolean(val) });
-                      const allComplete = caregiverPhase.items.every((it) =>
-                        it.field === item.field ? Boolean(val) : client[it.field]
-                      );
-                      if (allComplete) {
-                        push({ title: "All caregiver onboarding tasks are complete. Submit to finalize." });
-                      }
-                    }}
-                    className={`rounded-lg ${checked ? "data-[state=checked]:bg-brand data-[state=checked]:border-brand shadow-[0_0_0_3px_rgba(96,255,168,0.12)]" : ""}`}
-                  />
-                  <span className={`text-sm ${checked ? "text-heading-primary font-semibold" : "text-heading-subdued"}`}>
-                    {item.label}
-                  </span>
+                <div key={item.field} className={`${item.dateField ? 'flex flex-col gap-2 bg-black/10 p-4' : 'flex items-center gap-3 bg-black/10 px-4 py-3'} rounded-2xl border border-[rgba(147,165,197,0.25)]`}>
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      checked={checked}
+                      disabled={!canEdit}
+                      onCheckedChange={async (val) => {
+                        if (!canEdit) return;
+                        await onUpdate({ [item.field]: Boolean(val) });
+                        const allComplete = caregiverPhase.items.every((it) =>
+                          it.field === item.field ? Boolean(val) : client[it.field]
+                        );
+                        if (allComplete) {
+                          push({ title: "All caregiver onboarding tasks are complete. Submit to finalize." });
+                        }
+                      }}
+                      className={`rounded-lg ${checked ? "data-[state=checked]:bg-brand data-[state=checked]:border-brand shadow-[0_0_0_3px_rgba(96,255,168,0.12)]" : ""}`}
+                    />
+                    <span className={`text-sm ${checked ? "text-heading-primary font-semibold" : "text-heading-subdued"}`}>
+                      {item.label}
+                    </span>
+                  </div>
+
+                  {item.dateField && (
+                    <div className="ml-8 mt-1">
+                      <Input
+                        type="date"
+                        value={client[item.dateField] || ''}
+                        onChange={async (e) => {
+                          if (!canEdit) return;
+                          await onUpdate({ [item.dateField]: e.target.value });
+                        }}
+                        disabled={!canEdit}
+                        className="h-9 text-xs rounded-lg w-full max-w-[200px]"
+                      />
+                      <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{item.dateLabel || 'Date'}</p>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -742,4 +924,3 @@ export default function CaregiverProfile({
     </div>
   );
 }
-

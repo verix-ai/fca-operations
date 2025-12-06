@@ -31,20 +31,20 @@ function buildNavigationSections(user) {
   const isMarketer = user?.role === 'marketer'
   const managementItems = isMarketer
     ? [
-        { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
-        { id: 'clients', title: 'Clients', icon: Users, url: createPageUrl('ClientList') },
-        { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
-        { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
-        { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
-      ]
+      { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
+      { id: 'clients', title: 'Clients', icon: Users, url: createPageUrl('ClientList') },
+      { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
+      { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
+      { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
+    ]
     : [
-        { id: 'dashboard', title: 'Operation Board', icon: BarChart3, url: createPageUrl('Dashboard') },
-        { id: 'clients', title: 'All Clients', icon: Users, url: createPageUrl('ClientList') },
-        { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
-        { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
-        { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
-        { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
-      ]
+      { id: 'dashboard', title: 'Operation Board', icon: BarChart3, url: createPageUrl('Dashboard') },
+      { id: 'clients', title: 'All Clients', icon: Users, url: createPageUrl('ClientList') },
+      { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
+      { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
+      { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
+      { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
+    ]
 
   const base = [
     {
@@ -103,24 +103,24 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
           if (item.isCustom && item.id === 'notifications') {
             return <NotificationNavItem key={item.id} variant="rail" />
           }
-          
+
           return (
-          <NavLink
-            key={item.id}
-            to={item.url}
-            className={({ isActive }) =>
-              classNames(
-                'group flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300',
-                'border-transparent text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.22)] hover:text-[rgb(var(--text))]',
-                isActive &&
+            <NavLink
+              key={item.id}
+              to={item.url}
+              className={({ isActive }) =>
+                classNames(
+                  'group flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300',
+                  'border-transparent text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.22)] hover:text-[rgb(var(--text))]',
+                  isActive &&
                   'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.35)] text-[rgb(var(--text))] shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)]',
-              )
-            }
-            title={item.title}
-          >
-            <item.icon className="h-5 w-5" aria-hidden="true" />
-            <span className="sr-only">{item.title}</span>
-          </NavLink>
+                )
+              }
+              title={item.title}
+            >
+              <item.icon className="h-5 w-5" aria-hidden="true" />
+              <span className="sr-only">{item.title}</span>
+            </NavLink>
           )
         })}
       </nav>
@@ -135,7 +135,7 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
                 'group flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300',
                 'border-transparent text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.22)] hover:text-[rgb(var(--text))]',
                 isActive &&
-                  'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.35)] text-[rgb(var(--text))] shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)]',
+                'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.35)] text-[rgb(var(--text))] shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)]',
               )
             }
             title={item.title}
@@ -237,32 +237,32 @@ function DetailSidebar({ sections, currentPageName, onCollapse }) {
                 if (item.isCustom && item.id === 'notifications') {
                   return <NotificationNavItem key={item.id} variant="detail" />
                 }
-                
+
                 return (
-                <NavLink
-                  key={item.id}
-                  to={item.url}
-                  className={({ isActive }) =>
-                    classNames(
-                      'group flex items-center gap-3 rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition-all motion-safe:duration-300',
-                      'text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.18)] hover:text-[rgb(var(--text))]',
-                      isActive &&
+                  <NavLink
+                    key={item.id}
+                    to={item.url}
+                    className={({ isActive }) =>
+                      classNames(
+                        'group flex items-center gap-3 rounded-xl border border-transparent px-4 py-2 text-sm font-medium transition-all motion-safe:duration-300',
+                        'text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.18)] hover:text-[rgb(var(--text))]',
+                        isActive &&
                         'border-[rgba(var(--brand),0.45)] bg-[rgba(255,255,255,0.12)] text-[rgb(var(--text))] shadow-[0_18px_40px_-30px_rgba(0,0,0,0.7)]',
-                    )
-                  }
-                  title={item.title}
-                >
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.8)] text-[rgba(var(--muted),0.8)] shadow-[0_12px_24px_-20px_rgba(0,0,0,0.65)] transition-colors group-hover:border-[rgba(var(--border),0.55)] group-hover:text-[rgb(var(--text))]">
-                    <item.icon className="h-4 w-4" aria-hidden="true" />
-                  </span>
-                  <span className="flex flex-1 flex-col text-left">
-                    <span>{item.title}</span>
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-xs text-[rgba(var(--muted),0.55)] opacity-0 transition-opacity group-hover:opacity-100">
-                    <LinkIcon className="h-3 w-3" aria-hidden="true" />
-                    Open
-                  </span>
-                </NavLink>
+                      )
+                    }
+                    title={item.title}
+                  >
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.8)] text-[rgba(var(--muted),0.8)] shadow-[0_12px_24px_-20px_rgba(0,0,0,0.65)] transition-colors group-hover:border-[rgba(var(--border),0.55)] group-hover:text-[rgb(var(--text))]">
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
+                    </span>
+                    <span className="flex flex-1 flex-col text-left">
+                      <span>{item.title}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-[rgba(var(--muted),0.55)] opacity-0 transition-opacity group-hover:opacity-100">
+                      <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                      Open
+                    </span>
+                  </NavLink>
                 )
               })}
             </div>
@@ -335,22 +335,22 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
                   if (item.isCustom && item.id === 'notifications') {
                     return <NotificationNavItem key={item.id} variant="mobile" />
                   }
-                  
+
                   return (
-                  <NavLink
-                    key={item.id}
-                    to={item.url}
-                    className={({ isActive }) =>
-                      classNames(
-                        'flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-[rgba(var(--muted),0.75)] transition-colors',
-                        'hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.12)] hover:text-[rgb(var(--text))]',
-                        isActive && 'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.2)] text-[rgb(var(--text))]',
-                      )
-                    }
-                  >
-                    <item.icon className="h-4 w-4" aria-hidden="true" />
-                    <span className="flex-1 text-left">{item.title}</span>
-                  </NavLink>
+                    <NavLink
+                      key={item.id}
+                      to={item.url}
+                      className={({ isActive }) =>
+                        classNames(
+                          'flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-[rgba(var(--muted),0.75)] transition-colors',
+                          'hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.12)] hover:text-[rgb(var(--text))]',
+                          isActive && 'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.2)] text-[rgb(var(--text))]',
+                        )
+                      }
+                    >
+                      <item.icon className="h-4 w-4" aria-hidden="true" />
+                      <span className="flex-1 text-left">{item.title}</span>
+                    </NavLink>
                   )
                 })}
               </div>

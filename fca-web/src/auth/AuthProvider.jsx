@@ -44,24 +44,24 @@ export default function AuthProvider({ children }) {
         navigate('/login', { replace: true })
       }
     }
-    
+
     // Set up auth state change listener FIRST - this fires immediately with INITIAL_SESSION
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return
-      
+
       console.log('🔐 [Auth] onAuthStateChange:', event, 'hasSession=', !!session, 'user=', session?.user?.email)
-      
+
       // Always update session state
       setSession(session)
-      
+
       // Handle INITIAL_SESSION event - this is the source of truth for initial state
       if (event === 'INITIAL_SESSION') {
         sessionRestored = true
         setLoading(false)
         setInitialized(true)
-        
+
         if (session?.user) {
           console.log('🔐 [Auth] INITIAL_SESSION: Restoring user session')
           profileLoadInProgress = true
@@ -83,15 +83,15 @@ export default function AuthProvider({ children }) {
           console.log('🔐 [Auth] SIGNED_IN: Skipping (waiting for INITIAL_SESSION)')
           return
         }
-        
+
         // Skip if a profile load is already in progress
         if (profileLoadInProgress) {
           console.log('🔐 [Auth] SIGNED_IN: Skipping (profile load in progress)')
           return
         }
-        
+
         sessionRestored = true
-        
+
         if (session?.user) {
           console.log('🔐 [Auth] SIGNED_IN: Loading user profile')
           profileLoadInProgress = true
@@ -108,7 +108,7 @@ export default function AuthProvider({ children }) {
             setLoading(false)
             setInitialized(true)
           }
-          
+
           // Only navigate if we're not already on a protected route (avoid navigation on refresh)
           // IMPORTANT: Don't navigate away from /signup - user might be filling out the form
           const currentPath = window.location.pathname
@@ -171,11 +171,11 @@ export default function AuthProvider({ children }) {
         try {
           const { data: { session }, error } = await supabase.auth.getSession()
           console.log('🔐 [Auth] Fallback getSession():', !!session, error ? 'error=' + error.message : '')
-          
+
           setSession(session)
           setLoading(false)
           setInitialized(true)
-          
+
           if (session?.user) {
             try {
               await loadUserProfile(session.user.id, session.user)
@@ -208,22 +208,22 @@ export default function AuthProvider({ children }) {
     let timeoutId
     try {
       console.log('🔐 [Auth] loadUserProfile: Loading profile for userId:', userId)
-      
+
       // Wrap query in timeout to prevent hanging forever
       const queryPromise = supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single()
-      
+
       const timeoutWrapper = new Promise((_, reject) => {
         timeoutId = setTimeout(() => {
           reject(new Error('Profile load timeout after 10 seconds'))
         }, 10000)
       })
-      
+
       const { data, error } = await Promise.race([queryPromise, timeoutWrapper])
-      
+
       if (timeoutId) clearTimeout(timeoutId)
 
       if (error) {
@@ -354,15 +354,15 @@ export default function AuthProvider({ children }) {
    */
   const logout = async () => {
     console.log('🔓 AuthProvider logout() called')
-    
+
     // Try to sign out from Supabase with timeout, but don't wait forever
     try {
       console.log('📡 Calling Supabase signOut...')
       const signOutPromise = supabase.auth.signOut()
-      const timeoutPromise = new Promise((_, reject) => 
+      const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('SignOut timeout')), 3000)
       )
-      
+
       await Promise.race([signOutPromise, timeoutPromise])
       console.log('✅ Supabase signOut succeeded')
     } catch (signOutError) {
@@ -449,14 +449,14 @@ export default function AuthProvider({ children }) {
       let inviteMarked = false
       let markUsedAttempts = 0
       const maxMarkAttempts = 3
-      
+
       while (!inviteMarked && markUsedAttempts < maxMarkAttempts) {
         markUsedAttempts++
         const { error: markUsedError, data: markUsedData } = await supabase
           .from('invites')
-          .update({ 
-            used: true, 
-            used_at: new Date().toISOString() 
+          .update({
+            used: true,
+            used_at: new Date().toISOString()
           })
           .eq('token', token)
           .select()
@@ -469,7 +469,7 @@ export default function AuthProvider({ children }) {
             details: markUsedError.details,
             hint: markUsedError.hint
           })
-          
+
           if (markUsedAttempts < maxMarkAttempts) {
             await new Promise(resolve => setTimeout(resolve, 500))
           }
@@ -483,7 +483,7 @@ export default function AuthProvider({ children }) {
           }
         }
       }
-      
+
       if (!inviteMarked) {
         console.error('❌ Failed to mark invite as used after multiple attempts - will retry after profile update')
       }
@@ -495,13 +495,13 @@ export default function AuthProvider({ children }) {
       // Retry logic: Check if user profile exists and update it with invite details
       let profileUpdated = false
       let retries = 3
-      
+
       console.log('📝 Invite details:', {
         organization_id: invite.organization_id,
         email: invite.email,
         role: invite.role
       })
-      
+
       while (!profileUpdated && retries > 0) {
         console.log(`🔄 Checking user profile (attempt ${4 - retries}/3)...`)
         const { data: existingProfile, error: profileCheckError } = await supabase
@@ -522,7 +522,7 @@ export default function AuthProvider({ children }) {
             role: existingProfile.role,
             is_active: existingProfile.is_active
           })
-          
+
           // Profile exists - update it with invite details
           console.log('✏️ Updating profile with invite details...')
           const { error: updateError } = await supabase
@@ -552,16 +552,16 @@ export default function AuthProvider({ children }) {
             }
             throw updateError
           }
-          
+
           // Verify the update worked
           const { data: verifyProfile } = await supabase
             .from('users')
             .select('organization_id, role, email, name, is_active')
             .eq('id', authData.user.id)
             .single()
-          
+
           console.log('✅ Profile update response:', verifyProfile)
-          
+
           if (verifyProfile?.organization_id === invite.organization_id && verifyProfile?.role === invite.role) {
             profileUpdated = true
             console.log('✅ User profile updated successfully with invite details')
@@ -614,7 +614,7 @@ export default function AuthProvider({ children }) {
             }
             throw profileError
           }
-          
+
           profileUpdated = true
           console.log('✅ User profile created successfully with invite details')
         }
@@ -630,19 +630,19 @@ export default function AuthProvider({ children }) {
         .select('used, used_at')
         .eq('token', token)
         .single()
-      
+
       if (verifyError) {
         console.error('❌ Error verifying invite status:', verifyError)
       }
-      
+
       if (!verifyInvite?.used) {
         console.warn('⚠️ Invite not marked as used yet, retrying...')
         // Retry marking as used now that profile is updated
         const { error: markUsedErrorRetry } = await supabase
           .from('invites')
-          .update({ 
-            used: true, 
-            used_at: new Date().toISOString() 
+          .update({
+            used: true,
+            used_at: new Date().toISOString()
           })
           .eq('token', token)
 
@@ -654,14 +654,14 @@ export default function AuthProvider({ children }) {
       } else {
         console.log('✅ Invite already marked as used:', verifyInvite)
       }
-      
+
       // Verify the user profile was created correctly
       const { data: verifyUser } = await supabase
         .from('users')
         .select('id, email, name, role, organization_id, is_active')
         .eq('id', authData.user.id)
         .single()
-      
+
       console.log('✅ Verified user profile:', verifyUser)
 
       return { data: authData, error: null }
@@ -709,24 +709,24 @@ export default function AuthProvider({ children }) {
         loading,
         initialized,
         isAuthenticated: isAuth,
-      
-      // Auth methods
-      signUp,
-      loginWithPassword,
-      loginWithProvider,
-      logout,
-      
-      // Password reset
-      resetPasswordRequest,
-      updatePassword,
-      
-      // Profile
-      updateProfile,
-      
-      // Team/Organization
-      acceptInvite,
-      getOrganization,
-      
+
+        // Auth methods
+        signUp,
+        loginWithPassword,
+        loginWithProvider,
+        logout,
+
+        // Password reset
+        resetPasswordRequest,
+        updatePassword,
+
+        // Profile
+        updateProfile,
+
+        // Team/Organization
+        acceptInvite,
+        getOrganization,
+
         // Supabase client access (for advanced use cases)
         supabase
       }
