@@ -12,6 +12,33 @@ export const ClientCaregiver = {
     });
   },
 
+  async listAll() {
+    const { data, error } = await supabase
+      .from('client_caregivers')
+      .select(`
+        *,
+        client:clients(id, client_name)
+      `)
+      .order('started_at', { ascending: false });
+
+    if (error) throw error;
+    return data;
+  },
+
+  async get(id) {
+    const { data, error } = await supabase
+      .from('client_caregivers')
+      .select(`
+        *,
+        client:clients(*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
   async addCaregiver(clientId, payload) {
     if (!clientId) throw new Error("clientId is required");
 

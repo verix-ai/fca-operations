@@ -6,6 +6,10 @@ export function createPageUrl(name, params = {}) {
       return '/reports';
     case 'ClientList':
       return '/clients';
+    case 'CaregiverList':
+      return '/caregivers';
+    case 'CaregiverDetail':
+      return params.id ? `/caregiver/${params.id}` : '/caregiver';
     case 'MarketerIntake':
       return '/marketer-intake';
     case 'ClientIntake':
@@ -30,9 +34,9 @@ export default { createPageUrl };
 // Format a US phone string as (XXX) XXX-XXXX as the user types
 export function formatPhone(value) {
   const digits = (value || '').replace(/\D/g, '').slice(0, 10)
-  const part1 = digits.slice(0,3)
-  const part2 = digits.slice(3,6)
-  const part3 = digits.slice(6,10)
+  const part1 = digits.slice(0, 3)
+  const part2 = digits.slice(3, 6)
+  const part3 = digits.slice(6, 10)
   if (digits.length > 6) return `(${part1}) ${part2}-${part3}`
   if (digits.length > 3) return `(${part1}) ${part2}`
   if (digits.length > 0) return `(${part1}`
@@ -72,7 +76,7 @@ export function formatDateInTimezone(isoString, fallbackTz = 'UTC') {
     const min = get('minute')
     return `${yyyy}-${mm}-${dd} ${hh}:${min}`
   } catch {
-    return (s || '').replace('T',' ').slice(0,16)
+    return (s || '').replace('T', ' ').slice(0, 16)
   }
 }
 

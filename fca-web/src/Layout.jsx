@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  HeartHandshake,
   Headphones,
   Link as LinkIcon,
   MessageSquare,
@@ -40,6 +41,7 @@ function buildNavigationSections(user) {
     : [
       { id: 'dashboard', title: 'Operation Board', icon: BarChart3, url: createPageUrl('Dashboard') },
       { id: 'clients', title: 'All Clients', icon: Users, url: createPageUrl('ClientList') },
+      { id: 'caregivers', title: 'All Caregivers', icon: HeartHandshake, url: createPageUrl('CaregiverList') },
       { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
       { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
       { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
