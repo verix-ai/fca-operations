@@ -59,8 +59,6 @@ export default function AuthProvider({ children }) {
       // Handle INITIAL_SESSION event - this is the source of truth for initial state
       if (event === 'INITIAL_SESSION') {
         sessionRestored = true
-        setLoading(false)
-        setInitialized(true)
 
         if (session?.user) {
           console.log('🔐 [Auth] INITIAL_SESSION: Restoring user session')
@@ -73,9 +71,15 @@ export default function AuthProvider({ children }) {
             return
           }
           profileLoadInProgress = false
+          // Only set loading=false AFTER profile is successfully loaded
+          setLoading(false)
+          setInitialized(true)
         } else {
           console.log('🔐 [Auth] INITIAL_SESSION: No session found')
           setUser(null)
+          // No session means we're done loading
+          setLoading(false)
+          setInitialized(true)
         }
       } else if (event === 'SIGNED_IN') {
         // Skip if INITIAL_SESSION hasn't fired yet (prevent double-load)
