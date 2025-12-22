@@ -225,12 +225,11 @@ export default function Signup() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             {invite ? 'Accept Invitation' : 'Signup Requires Invitation'}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            {invite
-              ? `Join ${invite.organization_id} as a ${invite.role}`
-              : 'Signups are invite-only. Please use the invitation link sent to your email.'
-            }
-          </p>
+          {!invite && (
+            <p className="text-gray-600 dark:text-gray-400">
+              Signups are invite-only. Please use the invitation link sent to your email.
+            </p>
+          )}
         </div>
 
         {!inviteToken && (
