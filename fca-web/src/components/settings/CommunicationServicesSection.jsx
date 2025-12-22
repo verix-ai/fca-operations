@@ -121,6 +121,11 @@ function PaidFeatureModal({ isOpen, onClose, onContinue, serviceName }) {
                     <div className="w-16 h-16 rounded-2xl bg-brand/20 flex items-center justify-center mx-auto mb-4">
                         <Sparkles className="w-8 h-8 text-brand" />
                     </div>
+                    <div className="mb-2 flex justify-center">
+                        <Badge className="bg-brand/10 text-brand hover:bg-brand/20 border-brand/20">
+                            FEATURE COMING SOON
+                        </Badge>
+                    </div>
                     <h2 className="text-xl font-semibold text-heading-primary mb-2">
                         This Is A Paid Feature
                     </h2>
@@ -136,8 +141,8 @@ function PaidFeatureModal({ isOpen, onClose, onContinue, serviceName }) {
                             Cancel
                         </Button>
                         <Button
-                            onClick={onContinue}
-                            className="gap-2 px-6"
+                            disabled
+                            className="gap-2 px-6 opacity-50"
                         >
                             Continue to see plans
                             <ArrowRight className="w-4 h-4" />
