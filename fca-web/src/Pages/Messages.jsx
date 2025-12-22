@@ -11,6 +11,8 @@ import { User } from '@/entities/User.supabase'
 import { useAuth } from '@/auth/AuthProvider'
 import { format } from 'date-fns'
 
+import BlastEmailModal from '@/components/BlastEmailModal'
+
 export default function Messages() {
   const { user } = useAuth()
   const [search, setSearch] = useState('')
@@ -21,6 +23,7 @@ export default function Messages() {
   const [isLoading, setIsLoading] = useState(true)
   const [isSending, setIsSending] = useState(false)
   const [isLoadingMessages, setIsLoadingMessages] = useState(false)
+  const [isBlastModalOpen, setIsBlastModalOpen] = useState(false)
 
   // Load conversation list
   useEffect(() => {
@@ -38,16 +41,16 @@ export default function Messages() {
     try {
       setIsLoading(true)
       const conversationList = await Message.getConversationList()
-      
+
       // Also get all users in organization for starting new conversations
       const allUsers = await User.getActive()
-      
+
       // Filter out current user from the list
       const otherUsers = allUsers.filter(u => u.id !== user?.id)
-      
+
       // Create a Set of user IDs we already have conversations with
       const existingUserIds = new Set(conversationList.map(c => c.user.id))
-      
+
       // Add users we don't have conversations with yet
       const newConversations = otherUsers
         .filter(u => !existingUserIds.has(u.id))
@@ -56,9 +59,9 @@ export default function Messages() {
           lastMessage: null,
           unreadCount: 0
         }))
-      
+
       setConversations([...conversationList, ...newConversations])
-      
+
       // Set first user as active if none selected
       if (!activeUserId && (conversationList.length > 0 || newConversations.length > 0)) {
         const firstUser = conversationList[0]?.user || newConversations[0]?.user
@@ -78,7 +81,7 @@ export default function Messages() {
       setIsLoadingMessages(true)
       const conversationMessages = await Message.getConversation(userId)
       setMessages(conversationMessages)
-      
+
       // Mark unread messages as read
       const unreadMessages = conversationMessages.filter(
         m => !m.is_read && m.recipient_id === user?.id
@@ -97,8 +100,8 @@ export default function Messages() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return conversations.filter(c => 
-      c.user.name?.toLowerCase().includes(q) || 
+    return conversations.filter(c =>
+      c.user.name?.toLowerCase().includes(q) ||
       c.user.email?.toLowerCase().includes(q)
     )
   }, [search, conversations])
@@ -106,7 +109,7 @@ export default function Messages() {
   const handleSend = async () => {
     const text = draft.trim()
     if (!text || !activeUserId) return
-    
+
     try {
       setIsSending(true)
       await Message.send({
@@ -114,8 +117,8 @@ export default function Messages() {
         subject: 'Direct Message',
         content: text
       })
-      
-    setDraft('')
+
+      setDraft('')
       // Reload messages to show the new one
       await loadMessages(activeUserId)
       // Refresh conversation list
@@ -140,8 +143,19 @@ export default function Messages() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Threads list */}
         <Card className="lg:col-span-4 bg-hero-card border rounded-2xl surface-main">
-          <CardHeader className="p-5">
+          <CardHeader className="p-5 flex flex-row items-center justify-between">
             <CardTitle className="text-heading-primary text-lg">Direct Messages</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs gap-1.5 border-brand/20 bg-brand/5 hover:bg-brand/10 hover:text-brand"
+                onClick={() => setIsBlastModalOpen(true)}
+              >
+                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                Broadcast
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-5 pt-0 space-y-4">
             <div className="relative mt-4">
@@ -160,13 +174,12 @@ export default function Messages() {
                 </div>
               ) : (
                 filtered.map(conversation => (
-                <button
+                  <button
                     key={conversation.user.id}
                     onClick={() => setActiveUserId(conversation.user.id)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors ${
-                      activeUserId === conversation.user.id ? 'chat-list-item chat-list-item--active' : 'chat-list-item'
-                  }`}
-                >
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors ${activeUserId === conversation.user.id ? 'chat-list-item chat-list-item--active' : 'chat-list-item'
+                      }`}
+                  >
                     <div className="flex-1 text-left min-w-0">
                       <div className="truncate text-heading-primary font-medium">{conversation.user.name}</div>
                       {conversation.lastMessage && (
@@ -179,8 +192,8 @@ export default function Messages() {
                       <Badge className="bg-brand/20 text-button-contrast border-brand/30 px-2 py-0.5 ml-2">
                         {conversation.unreadCount}
                       </Badge>
-                  )}
-                </button>
+                    )}
+                  </button>
                 ))
               )}
             </div>
@@ -231,10 +244,10 @@ export default function Messages() {
               )}
             </div>
             <div className="flex items-end gap-3">
-              <TextareaLike 
-                value={draft} 
-                onChange={setDraft} 
-                placeholder="Write a message" 
+              <TextareaLike
+                value={draft}
+                onChange={setDraft}
+                placeholder="Write a message"
                 disabled={!activeUserId}
               />
               <Button
@@ -251,8 +264,8 @@ export default function Messages() {
                   </>
                 ) : (
                   <>
-                <Send className="w-4 h-4 mr-2" />
-                Send
+                    <Send className="w-4 h-4 mr-2" />
+                    Send
                   </>
                 )}
               </Button>
@@ -260,6 +273,11 @@ export default function Messages() {
           </CardContent>
         </Card>
       </div>
+
+      <BlastEmailModal
+        isOpen={isBlastModalOpen}
+        onClose={() => setIsBlastModalOpen(false)}
+      />
     </div>
   )
 }

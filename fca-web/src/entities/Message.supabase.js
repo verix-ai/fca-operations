@@ -125,7 +125,7 @@ export const Message = {
     }
 
     const result = await messageService.create(messageData)
-    
+
     // Fetch the full message with sender/recipient details
     return this.get(result.id)
   },
@@ -242,6 +242,61 @@ export const Message = {
     })
 
     return Array.from(conversationMap.values())
+  },
+
+  /**
+   * Broadcast a message to multiple users
+   * @param {Object} data - message data
+   * @param {string} data.subject - Subject
+   * @param {string} data.content - Content
+   * @param {Array<string>} data.recipientIds - Specific recipient IDs (optional)
+   * @param {boolean} data.allUsers - If true, send to all active users in organization
+   */
+  async broadcast({ subject, content, recipientIds = [], allUsers = false }) {
+    const { userId, organizationId } = await getUserOrganization()
+
+    // Determine recipients
+    let targets = []
+
+    if (allUsers) {
+      // Import User dynamically to avoid circular dependency if possible, 
+      // or assume we need to fetch users manually here to be safe and efficient
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('id')
+        .eq('organization_id', organizationId)
+        .eq('is_active', true)
+        .neq('id', userId) // Don't send to self
+
+      if (error) throw error
+      targets = users.map(u => u.id)
+    } else {
+      targets = recipientIds.filter(id => id !== userId)
+    }
+
+    if (targets.length === 0) {
+      return { sentCount: 0 }
+    }
+
+    // Prepare batch insert
+    const messages = targets.map(targetId => ({
+      organization_id: organizationId,
+      sender_id: userId,
+      recipient_id: targetId,
+      subject: subject,
+      content: content,
+      is_read: false,
+      created_at: new Date().toISOString()
+    }))
+
+    // Perform batch insert
+    const { error: insertError } = await supabase
+      .from('messages')
+      .insert(messages)
+
+    if (insertError) throw insertError
+
+    return { sentCount: targets.length }
   },
 
   /**

@@ -121,6 +121,20 @@ export const CommunicationService = {
     },
 
     /**
+     * Send blast email via Edge Function
+     */
+    async sendBlastEmail({ subject, body, allUsers, recipientIds }) {
+        const { data, error } = await supabase.functions.invoke('send-blast-email', {
+            body: { subject, body, allUsers, recipientIds }
+        })
+
+        if (error) throw error
+        if (data?.error) throw new Error(data.error)
+
+        return data
+    },
+
+    /**
      * Send SMS via Edge Function
      */
     async sendSMS({ to, body, recipientType, recipientId, recipientName }) {
