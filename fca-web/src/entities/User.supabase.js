@@ -9,12 +9,12 @@ const userService = new SupabaseService('users')
 async function getUserOrganization() {
   // First try to get session - more reliable than getUser()
   const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-  
+
   if (sessionError) {
     console.error('❌ Session error:', sessionError)
     throw new Error(`Authentication error: ${sessionError.message}`)
   }
-  
+
   if (!session?.user) {
     console.error('❌ No session found')
     throw new Error('Not authenticated. Please sign in again.')
@@ -32,7 +32,7 @@ async function getUserOrganization() {
     console.error('❌ Error fetching user profile:', error)
     throw error
   }
-  
+
   if (!userProfile?.organization_id) {
     throw new Error('User not assigned to an organization')
   }
@@ -47,21 +47,21 @@ export const User = {
    */
   async list() {
     const { organizationId } = await getUserOrganization()
-    
+
     console.log('🔍 User.list() - Filtering by organization_id:', organizationId)
-    
+
     // Explicitly filter by organization_id to ensure RLS works correctly
     const { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('organization_id', organizationId)
       .order('name', { ascending: true })
-    
+
     if (error) {
       console.error('❌ Error fetching users:', error)
       throw error
     }
-    
+
     console.log('👥 User.list() - Found users:', data?.length || 0, 'users in organization', organizationId)
     if (data && data.length > 0) {
       console.log('👥 User list details:', data.map(u => ({
@@ -73,7 +73,7 @@ export const User = {
         is_active: u.is_active
       })))
     }
-    
+
     return data || []
   },
 
@@ -105,7 +105,7 @@ export const User = {
    */
   async update(id, updates) {
     const { role } = await getUserOrganization()
-    
+
     // Only admins can update other users
     if (role !== 'admin') {
       throw new Error('Only admins can update user information')
@@ -121,7 +121,7 @@ export const User = {
    */
   async deactivate(id) {
     const { userId, role } = await getUserOrganization()
-    
+
     // Only admins can deactivate users
     if (role !== 'admin') {
       throw new Error('Only admins can deactivate users')
@@ -142,7 +142,7 @@ export const User = {
    */
   async reactivate(id) {
     const { role } = await getUserOrganization()
-    
+
     // Only admins can reactivate users
     if (role !== 'admin') {
       throw new Error('Only admins can reactivate users')
@@ -159,7 +159,7 @@ export const User = {
    */
   async changeRole(id, newRole) {
     const { userId, role } = await getUserOrganization()
-    
+
     // Only admins can change roles
     if (role !== 'admin') {
       throw new Error('Only admins can change user roles')
@@ -176,6 +176,35 @@ export const User = {
     }
 
     return userService.update(id, { role: newRole })
+  },
+
+  /**
+   * Delete a user permanently
+   * @param {string} id - User ID
+   * @returns {Promise<void>}
+   */
+  async delete(id) {
+    const { role, userId } = await getUserOrganization()
+
+    // Only admins can delete users
+    if (role !== 'admin') {
+      throw new Error('Only admins can delete users')
+    }
+
+    if (id === userId) {
+      throw new Error('Cannot delete your own account')
+    }
+
+    const { error } = await supabase.rpc('delete_user_by_admin', {
+      target_user_id: id
+    })
+
+    if (error) {
+      console.error('Error calling delete_user_by_admin:', error)
+      throw new Error(error.message || 'Failed to delete user')
+    }
+
+    return true
   },
 
   /**
