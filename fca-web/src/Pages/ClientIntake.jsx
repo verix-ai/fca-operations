@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import Referral from "@/entities/Referral.supabase";
+import ClientCaregiver from "@/entities/ClientCaregiver.supabase";
 
 import IntakeForm from "@/components/intake/IntakeForm";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
@@ -118,7 +119,25 @@ export default function ClientIntake() {
 
       console.log('📋 Final Client Data to Save:', clientData);
 
-      await Client.create(clientData);
+      const newClient = await Client.create(clientData);
+
+      // Create linked Caregiver record if caregiver info is present
+      const cName = formData.caregiver_name || prefill?.caregiver_name;
+      if (cName && newClient?.id) {
+        try {
+          await ClientCaregiver.addCaregiver(newClient.id, {
+            full_name: cName,
+            relationship: formData.caregiver_relationship || prefill?.caregiver_relationship,
+            phone: formData.caregiver_phone || prefill?.caregiver_phone,
+            email: formData.caregiver_email || prefill?.caregiver_email,
+            lives_in_home: prefill?.caregiver_lives_in_home || false,
+            status: 'active'
+          });
+        } catch (err) {
+          console.error("Error creating associated caregiver record:", err);
+          // Don't block the flow if this fails, but log it
+        }
+      }
 
       // If this intake originated from a referral, remove it from prospects
       if (prefill?.id) {
