@@ -614,16 +614,23 @@ function EmployeeManagementSection() {
 
 function CmCompaniesSection() {
   const [list, setList] = useState([])
-  const [editingId, setEditingId] = useState(null)
-  const [editingName, setEditingName] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
-  const [newName, setNewName] = useState('')
+  const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    id: null,
+    name: '',
+    contact_name: '',
+    contact_email: '',
+    contact_phone: '',
+    contact_fax: ''
+  })
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
   const load = async () => {
     const companies = await CmCompany.list()
     setList(companies.sort((a, b) => a.name.localeCompare(b.name)))
   }
+
   useEffect(() => {
     (async () => {
       let companies = await CmCompany.list()
@@ -646,99 +653,217 @@ function CmCompaniesSection() {
     })()
   }, [])
 
-  const addItem = async () => {
-    const name = newName.trim()
-    if (!name) return
+  const handleOpenDialog = (company = null) => {
+    setError(null)
+    if (company) {
+      setFormData({
+        id: company.id,
+        name: company.name || '',
+        contact_name: company.contact_name || '',
+        contact_email: company.contact_email || '',
+        contact_phone: company.contact_phone || '',
+        contact_fax: company.contact_fax || ''
+      })
+    } else {
+      setFormData({
+        id: null,
+        name: '',
+        contact_name: '',
+        contact_email: '',
+        contact_phone: '',
+        contact_fax: ''
+      })
+    }
+    setIsDialogOpen(true)
+  }
+
+  const handleSave = async () => {
     try {
+      setLoading(true)
       setError(null)
-      await CmCompany.create({ name })
-      setNewName('')
+
+      const data = {
+        name: formData.name.trim(),
+        contact_name: formData.contact_name?.trim() || null,
+        contact_email: formData.contact_email?.trim() || null,
+        contact_phone: formData.contact_phone?.trim() || null,
+        contact_fax: formData.contact_fax?.trim() || null
+      }
+
+      if (!data.name) throw new Error('Company name is required')
+
+      if (formData.id) {
+        await CmCompany.update(formData.id, data)
+      } else {
+        await CmCompany.create(data)
+      }
+
       await load()
+      setIsDialogOpen(false)
     } catch (err) {
-      console.error('Error creating company:', err)
-      setError(err.message || 'Failed to create company. Please try again.')
+      console.error('Error saving company:', err)
+      setError(err.message || 'Failed to save company. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const startEdit = (m) => { setEditingId(m.id); setEditingName(m.name) }
-  const saveEdit = async () => {
-    if (!editingId) return
-    const name = editingName.trim()
-    if (!name) return
-    await CmCompany.update(editingId, { name })
-    setEditingId(null); setEditingName('')
-    load()
+  const remove = async (id) => {
+    if (!confirm('Are you sure you want to remove this company?')) return
+    try {
+      await CmCompany.remove(id)
+      load()
+    } catch (err) {
+      alert(err.message)
+    }
   }
-  const remove = async (id) => { await CmCompany.remove(id); load() }
 
   return (
     <>
       <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-heading-primary">Case Management Companies</CardTitle>
-          <Button onClick={() => setIsAdding(true)} variant="default" borderRadius="999px" className="h-9 gap-2 px-4">
+          <Button onClick={() => handleOpenDialog()} variant="default" borderRadius="999px" className="h-9 gap-2 px-4 shadow-lg shadow-brand-primary/20">
             <Plus className="w-4 h-4 mr-2" />
             Add
           </Button>
         </CardHeader>
         <CardContent className="p-0">
-          {error && (
-            <div className="px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm">
-              {error}
-            </div>
-          )}
           <Table>
             <TableHeader>
-              <TableRow className="border-b border-[rgba(147,165,197,0.2)]">
+              <TableRow className="border-b border-[rgba(147,165,197,0.2)] hover:bg-transparent">
                 <TableHead className="text-heading-subdued p-4">Name</TableHead>
-                <TableHead className="text-heading-subdued p-4 w-40">Actions</TableHead>
+                <TableHead className="text-heading-subdued p-4 w-40 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {list.map(m => (
-                <TableRow key={m.id} className="border-b border-[rgba(147,165,197,0.2)]">
+                <TableRow key={m.id} className="border-b border-[rgba(147,165,197,0.2)] hover:bg-[rgba(147,165,197,0.05)] transition-colors">
                   <TableCell className="p-4">
-                    {editingId === m.id ? (
-                      <Input value={editingName} onChange={(e) => setEditingName(e.target.value)} className="rounded-xl" />
-                    ) : (
-                      <span className="text-heading-primary">{m.name}</span>
-                    )}
-                  </TableCell>
-                  <TableCell className="p-4">
-                    {editingId === m.id ? (
-                      <Button onClick={saveEdit} variant="default" borderRadius="1rem" className="gap-2 px-5">
-                        <Save className="w-4 h-4 mr-2" />
-                        Save
-                      </Button>
-                    ) : (
-                      <div className="flex gap-2">
-                        <Button onClick={() => startEdit(m)} variant="outline" borderRadius="1rem" className="px-4">Edit</Button>
-                        <Button onClick={() => remove(m.id)} variant="outline" borderRadius="1rem" className="px-4"><Trash2 className="w-4 h-4" /></Button>
+                    <span className="text-heading-primary font-medium">{m.name}</span>
+                    {(m.contact_name || m.contact_phone) && (
+                      <div className="text-xs text-heading-subdued mt-1 flex gap-3">
+                        {m.contact_name && <span>{m.contact_name}</span>}
+                        {m.contact_phone && <span>{m.contact_phone}</span>}
                       </div>
                     )}
                   </TableCell>
+                  <TableCell className="p-4 text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button onClick={() => handleOpenDialog(m)} variant="outline" borderRadius="1rem" className="h-8 px-3 text-sm">Edit</Button>
+                      <Button onClick={() => remove(m.id)} variant="ghost" borderRadius="1rem" className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 className="w-4 h-4" /></Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
+              {list.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={2} className="p-8 text-center text-heading-subdued">
+                    No companies found. Click "Add" to create one.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
 
-      {isAdding && (
-        <div className="fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/30" onClick={() => setIsAdding(false)} />
-          <div className="absolute inset-0 flex items-center justify-center p-4">
-            <div className="w-full max-w-sm bg-[rgb(var(--card))] rounded-2xl border surface-top">
-              <div className="p-4 border-b border-[rgba(147,165,197,0.2)] flex items-center justify-between">
-                <h3 className="text-heading-primary font-semibold">Add Case Management Company</h3>
+      {isDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsDialogOpen(false)} />
+          <div className="w-full max-w-lg bg-[rgb(var(--card))] rounded-2xl border surface-top shadow-2xl relative z-10 flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-[rgba(147,165,197,0.2)] flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-heading-primary">
+                {formData.id ? 'Edit Company Profile' : 'New Company Profile'}
+              </h3>
+              <Button variant="ghost" size="sm" onClick={() => setIsDialogOpen(false)} className="h-8 w-8 p-0 rounded-full">
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+              {error && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-sm rounded-lg mb-4">
+                  {error}
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-heading-primary">Company Name <span className="text-red-500">*</span></label>
+                <Input
+                  autoFocus
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g. HealthBridge Services"
+                  className="rounded-xl"
+                />
               </div>
-              <div className="p-4 space-y-3">
-                <Input autoFocus value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Company name" className="rounded-xl" />
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" borderRadius="1rem" className="px-4" onClick={() => { setIsAdding(false); setNewName('') }}>Cancel</Button>
-                  <Button variant="default" borderRadius="1rem" className="gap-2 px-5" onClick={async () => { await addItem(); setIsAdding(false) }}>Save</Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-heading-primary flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-heading-subdued" />
+                    Point of Contact
+                  </label>
+                  <Input
+                    value={formData.contact_name}
+                    onChange={(e) => setFormData({ ...formData, contact_name: e.target.value })}
+                    placeholder="Name"
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-heading-primary flex items-center gap-2">
+                    <Mail className="w-4 h-4 text-heading-subdued" />
+                    Email
+                  </label>
+                  <Input
+                    type="email"
+                    value={formData.contact_email}
+                    onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                    placeholder="email@company.com"
+                    className="rounded-xl"
+                  />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-heading-primary">Phone</label>
+                  <Input
+                    type="tel"
+                    value={formData.contact_phone}
+                    onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                    placeholder="(555) 123-4567"
+                    className="rounded-xl"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-heading-primary">Fax</label>
+                  <Input
+                    type="tel"
+                    value={formData.contact_fax}
+                    onChange={(e) => setFormData({ ...formData, contact_fax: e.target.value })}
+                    placeholder="(555) 987-6543"
+                    className="rounded-xl"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-[rgba(147,165,197,0.2)] flex justify-end gap-3 bg-[rgba(147,165,197,0.02)] rounded-b-2xl">
+              <Button variant="outline" borderRadius="1rem" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button
+                variant="default"
+                borderRadius="1rem"
+                className="gap-2 px-6 shadow-md shadow-brand-primary/20"
+                onClick={handleSave}
+                disabled={loading || !formData.name}
+              >
+                {loading ? 'Saving...' : 'Save Profile'}
+              </Button>
             </div>
           </div>
         </div>

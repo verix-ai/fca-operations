@@ -69,6 +69,7 @@ export const CmCompany = {
       contact_name: data.contact_name || null,
       contact_email: data.contact_email || null,
       contact_phone: data.contact_phone || null,
+      contact_fax: data.contact_fax || null,
     }
 
     return cmCompanyService.create(companyData)
