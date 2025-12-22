@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Plus, Trash2, Save, UserPlus, Mail, Copy, X, RefreshCw, Shield, UserCheck, UserX, Wrench } from 'lucide-react'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
+import CommunicationServicesSection from '@/components/settings/CommunicationServicesSection'
 import { usePermissions } from '@/utils/permissions.jsx'
 import { useAuth } from '@/auth/AuthProvider'
 
@@ -34,6 +35,13 @@ export default function Settings() {
         <CaregiverAlertsSection />
         <CountiesSection />
       </div>
+
+      {/* Communication Services - Full Width */}
+      {isAdmin && (
+        <div className="mt-6">
+          <CommunicationServicesSection />
+        </div>
+      )}
     </div>
   )
 }
@@ -250,7 +258,7 @@ function EmployeeManagementSection() {
 
   return (
     <>
-      <Card className="bg-hero-card border rounded-2xl surface-main lg:col-span-2">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main lg:col-span-2">
         <CardHeader className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="text-heading-primary">Team Members</CardTitle>
@@ -657,7 +665,7 @@ function CmCompaniesSection() {
     if (!editingId) return
     const name = editingName.trim()
     if (!name) return
-    await CmCompany.update(editingId, { id: name, name })
+    await CmCompany.update(editingId, { name })
     setEditingId(null); setEditingName('')
     load()
   }
@@ -665,7 +673,7 @@ function CmCompaniesSection() {
 
   return (
     <>
-      <Card className="bg-hero-card border rounded-2xl surface-main">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-heading-primary">Case Management Companies</CardTitle>
           <Button onClick={() => setIsAdding(true)} variant="default" borderRadius="999px" className="h-9 gap-2 px-4">
@@ -765,7 +773,7 @@ function ProgramsSection() {
     if (!editingId) return
     const name = editingName.trim()
     if (!name) return
-    await Program.update(editingId, { id: name, name })
+    await Program.update(editingId, { name })
     setEditingId(null); setEditingName('')
     load()
   }
@@ -773,7 +781,7 @@ function ProgramsSection() {
 
   return (
     <>
-      <Card className="bg-hero-card border rounded-2xl surface-main">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-heading-primary">Programs</CardTitle>
           <Button
@@ -1004,7 +1012,7 @@ function CountiesSection() {
 
   return (
     <>
-      <Card className="bg-hero-card border rounded-2xl surface-main">
+      <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
         <CardHeader className="p-4 flex flex-row items-center justify-between">
           <CardTitle className="text-heading-primary">Counties</CardTitle>
           <Button
@@ -1146,7 +1154,7 @@ function CaregiverAlertsSection() {
   }
 
   return (
-    <Card className="bg-hero-card border rounded-2xl surface-main">
+    <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
       <CardHeader className="p-4 flex flex-row items-center justify-between">
         <CardTitle className="text-heading-primary">Caregiver Expiration Alerts</CardTitle>
       </CardHeader>

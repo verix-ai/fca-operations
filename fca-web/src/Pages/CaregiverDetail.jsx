@@ -5,8 +5,9 @@ import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle, MessageSquare } from "lucide-react";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
+import ContactModal from "@/components/client/ContactModal";
 import { createPageUrl } from "@/utils";
 import { format, isBefore, addDays, addYears } from "date-fns";
 import SettingsStore from '@/entities/Settings.supabase';
@@ -50,6 +51,7 @@ export default function CaregiverDetail() {
     const { user } = useAuth();
     const [caregiver, setCaregiver] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [contactModal, setContactModal] = useState({ open: false, channel: 'email' });
 
     const loadCaregiver = useCallback(async () => {
         setIsLoading(true);
@@ -150,6 +152,30 @@ export default function CaregiverDetail() {
                             <span className="flex items-center gap-2 uppercase tracking-[0.3em] text-xs">
                                 Assigned to: {caregiver.client?.client_name || 'Unknown'}
                             </span>
+                            <div className="flex gap-2 ml-auto">
+                                {caregiver.email && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1 text-brand border-brand/40 hover:bg-brand/10"
+                                        onClick={() => setContactModal({ open: true, channel: 'email' })}
+                                    >
+                                        <Mail className="w-4 h-4" />
+                                        Email
+                                    </Button>
+                                )}
+                                {caregiver.phone && (
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="gap-1 text-brand border-brand/40 hover:bg-brand/10"
+                                        onClick={() => setContactModal({ open: true, channel: 'sms' })}
+                                    >
+                                        <MessageSquare className="w-4 h-4" />
+                                        Text
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </SectionHeader>
                 </div>
@@ -259,6 +285,16 @@ export default function CaregiverDetail() {
                 </div>
 
             </div>
+
+            {/* Contact Modal */}
+            <ContactModal
+                isOpen={contactModal.open}
+                onClose={() => setContactModal({ ...contactModal, open: false })}
+                recipient={{ name: caregiver?.full_name, email: caregiver?.email, phone: caregiver?.phone }}
+                recipientType="caregiver"
+                recipientId={caregiver?.id}
+                defaultChannel={contactModal.channel}
+            />
         </div>
     );
 }

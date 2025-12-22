@@ -32,8 +32,13 @@ export default function AuthProvider({ children }) {
       if (forcedLogout) return
       forcedLogout = true
 
+      // Try to sign out with timeout to prevent hanging
       try {
-        await supabase.auth.signOut()
+        const signOutPromise = supabase.auth.signOut()
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('SignOut timeout')), 2000)
+        )
+        await Promise.race([signOutPromise, timeoutPromise])
       } catch (signOutError) {
         console.warn('🔐 [Auth] Force logout signOut error:', signOutError?.message || signOutError)
       } finally {
@@ -150,6 +155,18 @@ export default function AuthProvider({ children }) {
         } else {
           console.log('🔐 [Auth] TOKEN_REFRESHED: Same user, skipping profile reload')
         }
+
+        // Ensure we mark session as restored and stop loading
+        if (!sessionRestored) {
+          console.log('🔐 [Auth] TOKEN_REFRESHED: Marking session as restored')
+          sessionRestored = true
+        }
+
+        // Always ensure we're not stuck in loading state if we have a valid session+user
+        if (loading || !initialized) {
+          setLoading(false)
+          setInitialized(true)
+        }
       } else if (session?.user) {
         // Other events with session - ensure user profile is loaded
         if (!profileLoadInProgress && !user) {
@@ -177,11 +194,21 @@ export default function AuthProvider({ children }) {
           console.log('🔐 [Auth] Fallback getSession():', !!session, error ? 'error=' + error.message : '')
 
           setSession(session)
-          setLoading(false)
-          setInitialized(true)
 
-          if (session?.user) {
+          if (!session) {
+            setLoading(false)
+            setInitialized(true)
+            setUser(null)
+          } else if (session.user) {
+            // Check if we already started loading (via event listener)
+            if (profileLoadInProgress) {
+              console.log('🔐 [Auth] Fallback: Profile load already in progress, letting it finish')
+              return
+            }
+
             try {
+              // Mark restored so we don't try again
+              sessionRestored = true
               await loadUserProfile(session.user.id, session.user)
             } catch (err) {
               await handleProfileLoadFailure('FALLBACK_GET_SESSION', err)
