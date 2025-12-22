@@ -10,18 +10,6 @@ import { useToast } from "@/components/ui/toast.jsx";
 
 export const PHASES = [
   {
-    key: 'intake',
-    label: 'Client Intake',
-    items: [
-      { field: 'initial_assessment_required', label: 'Initial Assessment?' },
-      { field: 'clinical_dates_entered', label: 'Clinical Dates Entered?' },
-      { field: 'reassessment_date_entered', label: 'Re-Assessment Date Entered?' },
-      { field: 'initial_assessment_completed', label: 'Initial Assessment Completed?' },
-      { field: 'client_documents_populated', label: 'Client Documents Populated?' },
-    ],
-    gradient: 'from-blue-500 to-blue-600',
-  },
-  {
     key: 'onboarding',
     label: 'Caregiver Onboarding',
     items: [
@@ -35,6 +23,18 @@ export const PHASES = [
       { field: 'cpr_first_aid_completed', label: 'Completed CPR/First Aid?', dateField: 'cpr_issued_at', dateLabel: 'Issued Date' },
     ],
     gradient: 'from-blue-400 to-green-500',
+  },
+  {
+    key: 'intake',
+    label: 'Client Intake',
+    items: [
+      { field: 'initial_assessment_required', label: 'Initial Assessment?' },
+      { field: 'clinical_dates_entered', label: 'Clinical Dates Entered?' },
+      { field: 'reassessment_date_entered', label: 'Re-Assessment Date Entered?' },
+      { field: 'initial_assessment_completed', label: 'Initial Assessment Completed?' },
+      { field: 'client_documents_populated', label: 'Client Documents Populated?' },
+    ],
+    gradient: 'from-blue-500 to-blue-600',
   },
   {
     key: 'service_initiation',

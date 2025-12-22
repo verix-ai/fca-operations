@@ -71,15 +71,6 @@ export default function Dashboard() {
         {/* Operation Board */}
         <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-3">
           <PhaseColumn
-            title="Client Intake"
-            phase="intake"
-            clients={getClientsByPhase("intake")}
-            isLoading={isLoading}
-            onUpdatePhase={updateClientPhase}
-            onUpdateCheckbox={updateClientCheckbox}
-            color="from-brand/30 to-brand"
-          />
-          <PhaseColumn
             title="Caregiver Onboarding"
             phase="onboarding"
             clients={getClientsByPhase("onboarding")}
@@ -87,6 +78,15 @@ export default function Dashboard() {
             onUpdatePhase={updateClientPhase}
             onUpdateCheckbox={updateClientCheckbox}
             color="from-brand/20 to-brand"
+          />
+          <PhaseColumn
+            title="Client Intake"
+            phase="intake"
+            clients={getClientsByPhase("intake")}
+            isLoading={isLoading}
+            onUpdatePhase={updateClientPhase}
+            onUpdateCheckbox={updateClientCheckbox}
+            color="from-brand/30 to-brand"
           />
           <PhaseColumn
             title="Services Initiated"

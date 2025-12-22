@@ -5,12 +5,12 @@ import { useTheme } from '@/components/theme/ThemeProvider.jsx'
 
 export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
   const { theme } = useTheme()
-  
+
   // Calculate monthly intake counts
   const data = useMemo(() => {
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     const currentYear = new Date().getFullYear()
-    
+
     // Initialize all months
     const monthlyData = monthNames.map(month => ({
       month,
@@ -19,17 +19,17 @@ export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
       onboarding: 0,
       service: 0
     }))
-    
+
     // Count clients by month
     clients.forEach(client => {
       if (!client.created_at) return
-      
+
       const created = new Date(client.created_at)
       if (created.getFullYear() !== currentYear) return
-      
+
       const monthIndex = created.getMonth()
       monthlyData[monthIndex].count += 1
-      
+
       // Track current phase distribution
       if (client.current_phase === 'intake') {
         monthlyData[monthIndex].intake += 1
@@ -39,7 +39,7 @@ export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
         monthlyData[monthIndex].service += 1
       }
     })
-    
+
     return monthlyData
   }, [clients])
 
@@ -54,8 +54,8 @@ export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
       <div className="rounded-2xl border border-[rgba(147,165,197,0.25)] bg-[rgba(7,12,21,0.95)] px-4 py-3 text-xs shadow-[0_25px_60px_-30px_rgba(0,0,0,0.9)]">
         <p className="text-kpi-secondary uppercase tracking-[0.3em] mb-1">{data.month}</p>
         <p className="text-heading-primary font-semibold">Total: {data.count}</p>
-        <p className="text-brand/80">In Intake: {data.intake}</p>
         <p className="text-aqua-600/80">Caregiver Onboarding: {data.onboarding}</p>
+        <p className="text-brand/80">In Intake: {data.intake}</p>
         <p className="text-green-400/80">Services Initiated: {data.service}</p>
       </div>
     )
@@ -91,16 +91,16 @@ export default function ClientIntakeTrendChart({ clients = [], isLoading }) {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
-                <XAxis 
-                  dataKey="month" 
-                  tick={{ fill: axisTickColor, fontSize: 12 }} 
-                  axisLine={false} 
-                  tickLine={false} 
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: axisTickColor, fontSize: 12 }}
+                  axisLine={false}
+                  tickLine={false}
                 />
-                <YAxis 
+                <YAxis
                   allowDecimals={false}
-                  tick={{ fill: axisLabelColor, fontSize: 12 }} 
-                  axisLine={false} 
+                  tick={{ fill: axisLabelColor, fontSize: 12 }}
+                  axisLine={false}
                   tickLine={false}
                   label={{ value: 'Clients', angle: -90, position: 'insideLeft', fill: axisLabelColor, fontSize: 11 }}
                 />

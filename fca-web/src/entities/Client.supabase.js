@@ -110,7 +110,7 @@ export const Client = {
       organization_id: organizationId,
       created_by: userId,
       // Ensure defaults
-      current_phase: data.current_phase || 'intake',
+      current_phase: data.current_phase || 'onboarding',
       status: data.status || 'active',
       cost_share_amount: data.cost_share_amount || 0,
       // Clinical tracking defaults

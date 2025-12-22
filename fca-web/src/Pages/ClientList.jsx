@@ -95,7 +95,7 @@ export default function ClientList() {
       try {
         const list = await Program.list();
         setPrograms(list.map(p => p.name));
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -172,8 +172,8 @@ export default function ClientList() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Phases</SelectItem>
-                  <SelectItem value="intake">Client Intake</SelectItem>
                   <SelectItem value="onboarding">Caregiver Onboarding</SelectItem>
+                  <SelectItem value="intake">Client Intake</SelectItem>
                   <SelectItem value="service_initiation">Services Initiated</SelectItem>
                 </SelectContent>
               </Select>
@@ -206,7 +206,7 @@ export default function ClientList() {
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Location</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Frequency</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Intake Date</TableHead>
-                        <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Actions</TableHead>
+                    <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -332,8 +332,8 @@ export default function ClientList() {
             </Card>
           ) : (
             filteredClients.map((client) => (
-              <Card 
-                key={client.id} 
+              <Card
+                key={client.id}
                 className="border border-[rgba(96,255,168,0.16)] rounded-3xl hover:border-brand/40 transition-colors"
               >
                 <CardContent className="p-5 space-y-4">
@@ -373,12 +373,12 @@ export default function ClientList() {
                         )}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Location</span>
                       <span className="text-sm text-heading-primary">{client.location || '-'}</span>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Frequency</span>
                       <span className="text-sm text-heading-primary">{client.frequency || '-'}</span>
