@@ -79,6 +79,11 @@ export const ClientCaregiver = {
     return caregiverService.update(caregiverId, updates);
   },
 
+  async delete(caregiverId) {
+    if (!caregiverId) throw new Error("caregiverId is required");
+    return caregiverService.remove(caregiverId);
+  },
+
   /**
    * Create a standalone caregiver (not assigned to a client yet)
    * These caregivers can complete onboarding independently

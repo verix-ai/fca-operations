@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Eye, Edit, Trash2, Plus } from "lucide-react";
+import { Search, Filter, Eye, Edit, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -23,7 +23,12 @@ export default function CaregiverList() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+    // Delete state
+    const [deleteId, setDeleteId] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const loadCaregivers = async () => {
         setIsLoading(true);
@@ -34,6 +39,20 @@ export default function CaregiverList() {
             console.error("Error loading caregivers:", error);
         }
         setIsLoading(false);
+    };
+
+    const handleDelete = async () => {
+        if (!deleteId) return;
+        setIsDeleting(true);
+        try {
+            await ClientCaregiver.delete(deleteId);
+            setCaregivers(prev => prev.filter(c => c.id !== deleteId));
+            setDeleteId(null);
+        } catch (error) {
+            console.error('Error deleting caregiver:', error);
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const filterCaregivers = useCallback(() => {
@@ -194,15 +213,30 @@ export default function CaregiverList() {
                                                     }
                                                 </TableCell>
                                                 <TableCell className="text-heading-primary/70">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        borderRadius="1rem"
-                                                        className="rounded-2xl text-kpi-secondary hover:text-heading-primary"
-                                                        onClick={() => navigate(createPageUrl('CaregiverDetail', { id: bg.id }))}
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
+                                                    <div className="flex items-center gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-10 w-10 rounded-full border border-white/10 hover:bg-white/5 hover:border-brand/40 text-neutral-400 hover:text-brand transition-all duration-200"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                navigate(createPageUrl('CaregiverDetail', { id: bg.id }));
+                                                            }}
+                                                        >
+                                                            <Eye className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-10 w-10 rounded-full border border-white/10 hover:bg-white/5 hover:border-red-500/40 text-neutral-400 hover:text-red-500 transition-all duration-200"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setDeleteId(bg.id);
+                                                            }}
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
                                                 </TableCell>
                                             </TableRow>
                                         ))
@@ -280,7 +314,16 @@ export default function CaregiverList() {
                                             onClick={() => navigate(createPageUrl('CaregiverDetail', { id: bg.id }))}
                                         >
                                             <Eye className="w-4 h-4 mr-2" />
-                                            View Profile
+                                            View
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="flex-1 rounded-2xl text-red-400/70 hover:text-red-400 hover:bg-red-500/10"
+                                            onClick={() => setDeleteId(bg.id)}
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete
                                         </Button>
                                     </div>
                                 </CardContent>
@@ -296,6 +339,53 @@ export default function CaregiverList() {
                 onClose={() => setIsAddModalOpen(false)}
                 onSuccess={() => loadCaregivers()}
             />
+            {/* Delete Confirmation Modal */}
+            {deleteId && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => !isDeleting && setDeleteId(null)}
+                    />
+                    <div className="relative bg-[#0F1115] border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl">
+                        <div className="flex items-center gap-4 mb-4 text-amber-500">
+                            <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                                <AlertTriangle className="w-5 h-5" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-heading-primary">Delete Caregiver?</h3>
+                        </div>
+
+                        <p className="text-heading-subdued mb-6">
+                            Are you sure you want to delete this caregiver? This action cannot be undone.
+                        </p>
+
+                        <div className="flex gap-3 justify-end">
+                            <Button
+                                variant="outline"
+                                className="rounded-full"
+                                onClick={() => setDeleteId(null)}
+                                disabled={isDeleting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                className="rounded-full"
+                                onClick={handleDelete}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    'Delete'
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
