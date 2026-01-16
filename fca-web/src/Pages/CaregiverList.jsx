@@ -29,6 +29,14 @@ export default function CaregiverList() {
     // Delete state
     const [deleteId, setDeleteId] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
+    // Reset confirmation text when modal closes
+    useEffect(() => {
+        if (!deleteId) {
+            setDeleteConfirmText("");
+        }
+    }, [deleteId]);
 
     const loadCaregivers = async () => {
         setIsLoading(true);
@@ -354,9 +362,23 @@ export default function CaregiverList() {
                             <h3 className="text-lg font-semibold text-heading-primary">Delete Caregiver?</h3>
                         </div>
 
-                        <p className="text-heading-subdued mb-6">
-                            Are you sure you want to delete this caregiver? This action cannot be undone.
-                        </p>
+                        <div className="space-y-4 mb-6">
+                            <p className="text-heading-subdued">
+                                Are you sure you want to delete this caregiver? This action cannot be undone.
+                            </p>
+
+                            <div className="space-y-2">
+                                <label className="text-xs text-heading-subdued uppercase tracking-wider">
+                                    Type <span className="text-brand font-bold">DELETE</span> to confirm
+                                </label>
+                                <Input
+                                    value={deleteConfirmText}
+                                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                                    placeholder="Type DELETE"
+                                    className="rounded-xl border-white/10 bg-black/20 focus:border-red-500/50"
+                                />
+                            </div>
+                        </div>
 
                         <div className="flex gap-3 justify-end">
                             <Button
@@ -371,7 +393,7 @@ export default function CaregiverList() {
                                 variant="destructive"
                                 className="rounded-full"
                                 onClick={handleDelete}
-                                disabled={isDeleting}
+                                disabled={isDeleting || deleteConfirmText !== 'DELETE'}
                             >
                                 {isDeleting ? (
                                     <>
