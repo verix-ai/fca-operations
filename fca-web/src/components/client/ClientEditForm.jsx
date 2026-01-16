@@ -18,6 +18,14 @@ export default function ClientEditForm({ client, onUpdate }) {
   const { push } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Get active caregiver from linked caregivers (new) or fall back to legacy client fields
+  const activeCaregiver = client.caregivers?.find(c => c.status === 'active');
+  const caregiverName = activeCaregiver?.full_name || client.caregiver_name || '-';
+  const caregiverRelationship = activeCaregiver?.relationship || client.caregiver_relationship || '-';
+  const caregiverPhone = activeCaregiver?.phone || client.caregiver_phone || '-';
+  const caregiverLivesInHome = activeCaregiver?.lives_in_home ?? client.caregiver_lives_in_home ?? false;
+
   const [formData, setFormData] = useState({
     client_name: client.client_name || '',
     program: client.program || '',
@@ -65,7 +73,7 @@ export default function ClientEditForm({ client, onUpdate }) {
       try {
         const list = await Program.list();
         setPrograms(list.map(p => p.name));
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -74,7 +82,7 @@ export default function ClientEditForm({ client, onUpdate }) {
       try {
         const list = await Marketer.list();
         setMarketers(list.map(m => m.name));
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -87,7 +95,7 @@ export default function ClientEditForm({ client, onUpdate }) {
           (counties || []).map((c) => `${c}, ${state}`)
         );
         setCountyOptions(options);
-      } catch {}
+      } catch { }
     })();
   }, []);
 
@@ -201,7 +209,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Demographics */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Demographics</h3>
@@ -220,7 +228,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Contact Information */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Contact Information</h3>
@@ -235,7 +243,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Address */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Address</h3>
@@ -251,26 +259,30 @@ export default function ClientEditForm({ client, onUpdate }) {
                 <p className="text-heading-primary font-medium">-</p>
               )}
             </div>
-            
+
             {/* Caregiver Details */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Caregiver Details</h3>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <Label className="text-heading-subdued text-xs">Caregiver Name</Label>
-                  <p className="text-heading-primary font-medium mt-1">{client.caregiver_name || '-'}</p>
+                  <p className="text-heading-primary font-medium mt-1">{caregiverName}</p>
                 </div>
                 <div>
                   <Label className="text-heading-subdued text-xs">Relationship</Label>
-                  <p className="text-heading-primary font-medium mt-1">{client.caregiver_relationship || '-'}</p>
+                  <p className="text-heading-primary font-medium mt-1">{caregiverRelationship}</p>
+                </div>
+                <div>
+                  <Label className="text-heading-subdued text-xs">Caregiver Phone</Label>
+                  <p className="text-heading-primary font-medium mt-1">{caregiverPhone}</p>
                 </div>
                 <div>
                   <Label className="text-heading-subdued text-xs">Lives in Home</Label>
-                  <p className="text-heading-primary font-medium mt-1">{client.caregiver_lives_in_home ? 'Yes' : 'No'}</p>
+                  <p className="text-heading-primary font-medium mt-1">{caregiverLivesInHome ? 'Yes' : 'No'}</p>
                 </div>
               </div>
             </div>
-            
+
             {/* Medical Information */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Medical Information</h3>
@@ -285,7 +297,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Benefits Information */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Benefits Information</h3>
@@ -300,7 +312,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Referral Information */}
             <div className="border-t border-white/10 pt-6">
               <h3 className="text-heading-primary font-semibold mb-4 text-sm uppercase tracking-wider">Referral Information</h3>
@@ -319,7 +331,7 @@ export default function ClientEditForm({ client, onUpdate }) {
                 </div>
               </div>
             </div>
-            
+
             {/* Additional Information */}
             {(client.additional_info || client.notes) && (
               <div className="border-t border-white/10 pt-6">

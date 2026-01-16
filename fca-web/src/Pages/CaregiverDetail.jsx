@@ -1,17 +1,23 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle, MessageSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle, MessageSquare, Pencil, X } from "lucide-react";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 import ContactModal from "@/components/client/ContactModal";
-import { createPageUrl } from "@/utils";
+import { createPageUrl, formatPhone } from "@/utils";
 import { format, isBefore, addDays, addYears } from "date-fns";
 import SettingsStore from '@/entities/Settings.supabase';
 import { useAuth } from "@/auth/AuthProvider.jsx";
+import CaregiverOnboardingChecklist from "@/components/caregiver/CaregiverOnboardingChecklist.jsx";
+import AssignToClientModal from "@/components/caregiver/AssignToClientModal.jsx";
+import { CAREGIVER_RELATIONSHIPS } from "../constants/caregiver.js";
 
 const InfoRow = ({ icon: Icon, label, value, status }) => {
     if (!value) return null;
@@ -52,6 +58,10 @@ export default function CaregiverDetail() {
     const [caregiver, setCaregiver] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [contactModal, setContactModal] = useState({ open: false, channel: 'email' });
+    const [assignModalOpen, setAssignModalOpen] = useState(false);
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [saving, setSaving] = useState(false);
 
     const loadCaregiver = useCallback(async () => {
         setIsLoading(true);
@@ -114,11 +124,41 @@ export default function CaregiverDetail() {
         return 'ok';
     };
 
+    const openEditModal = () => {
+        setEditForm({
+            full_name: caregiver.full_name || '',
+            relationship: caregiver.relationship || undefined,
+            phone: caregiver.phone || '',
+            email: caregiver.email || '',
+            lives_in_home: Boolean(caregiver.lives_in_home),
+            notes: caregiver.notes || '',
+        });
+        setEditModalOpen(true);
+    };
+
+    const handleSaveEdit = async () => {
+        setSaving(true);
+        try {
+            await ClientCaregiver.updateCaregiver(caregiver.id, editForm);
+            setCaregiver(prev => ({ ...prev, ...editForm }));
+            setEditModalOpen(false);
+        } catch (error) {
+            console.error('Error updating caregiver:', error);
+        }
+        setSaving(false);
+    };
+
     const client = caregiver?.client || {};
-    const cprExpiration = client.cpr_issued_at ? addYears(new Date(client.cpr_issued_at), 2) : null;
-    const tbExpiration = client.tb_test_issued_at ? addYears(new Date(client.tb_test_issued_at), 1) : null;
-    const trainingExpiration = client.training_or_care_start_date ? addYears(new Date(client.training_or_care_start_date), 1) : null;
-    const licenseExpiration = client.drivers_license_expires_at ? new Date(client.drivers_license_expires_at) : null;
+    // Read expiration dates from caregiver record first (new), then fallback to client record (legacy)
+    const cprIssuedAt = caregiver.cpr_issued_at || client.cpr_issued_at;
+    const tbIssuedAt = caregiver.tb_test_issued_at || client.tb_test_issued_at;
+    const licenseExpiresAt = caregiver.drivers_license_expires_at || client.drivers_license_expires_at;
+    const trainingDate = client.training_or_care_start_date; // Training stays on client for now
+
+    const cprExpiration = cprIssuedAt ? addYears(new Date(cprIssuedAt), 2) : null;
+    const tbExpiration = tbIssuedAt ? addYears(new Date(tbIssuedAt), 1) : null;
+    const trainingExpiration = trainingDate ? addYears(new Date(trainingDate), 1) : null;
+    const licenseExpiration = licenseExpiresAt ? new Date(licenseExpiresAt) : null;
 
     return (
         <div className="space-y-10">
@@ -150,7 +190,17 @@ export default function CaregiverDetail() {
                                 {caregiver.status === 'active' ? 'Active' : 'Inactive'}
                             </Badge>
                             <span className="flex items-center gap-2 uppercase tracking-[0.3em] text-xs">
-                                Assigned to: {caregiver.client?.client_name || 'Unknown'}
+                                {caregiver.status === 'inactive' ? (
+                                    <Badge className="bg-neutral-500/20 text-neutral-300 border-neutral-500/30">
+                                        Deactivated
+                                    </Badge>
+                                ) : caregiver.client?.client_name ? (
+                                    <>Assigned to: {caregiver.client.client_name}</>
+                                ) : (
+                                    <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30">
+                                        Unassigned
+                                    </Badge>
+                                )}
                             </span>
                             <div className="flex gap-2 ml-auto">
                                 {caregiver.email && (
@@ -184,11 +234,15 @@ export default function CaregiverDetail() {
                     {/* Main Info */}
                     <div className="md:col-span-2 space-y-6">
                         <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
-                            <CardHeader className="border-b border-white/5 p-6">
+                            <CardHeader className="border-b border-white/5 p-6 flex flex-row items-center justify-between">
                                 <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
                                     <User className="w-5 h-5 text-brand/70" />
                                     Details
                                 </CardTitle>
+                                <Button variant="outline" size="sm" className="gap-2 rounded-xl" onClick={openEditModal}>
+                                    <Pencil className="w-4 h-4" />
+                                    Edit
+                                </Button>
                             </CardHeader>
                             <CardContent className="p-6 space-y-4">
                                 <div className="grid sm:grid-cols-2 gap-4">
@@ -210,6 +264,12 @@ export default function CaregiverDetail() {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Onboarding Checklist - for all caregivers */}
+                        <CaregiverOnboardingChecklist
+                            caregiver={caregiver}
+                            onUpdate={(updates) => setCaregiver(prev => ({ ...prev, ...updates }))}
+                        />
 
                         <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
                             <CardHeader className="border-b border-white/5 p-6">
@@ -259,7 +319,23 @@ export default function CaregiverDetail() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="p-6 space-y-6">
-                                {caregiver.client ? (
+                                {caregiver.status === 'inactive' ? (
+                                    <div className="space-y-4">
+                                        <p className="text-heading-subdued">This caregiver has been deactivated.</p>
+                                        {caregiver.client && (
+                                            <div className="text-sm text-heading-subdued">
+                                                Previously assigned to: <span className="text-heading-primary">{caregiver.client.client_name}</span>
+                                            </div>
+                                        )}
+                                        <Button
+                                            variant="default"
+                                            className="w-full gap-2 rounded-full"
+                                            onClick={() => setAssignModalOpen(true)}
+                                        >
+                                            Reassign to Client
+                                        </Button>
+                                    </div>
+                                ) : caregiver.client ? (
                                     <div className="space-y-4">
                                         <div>
                                             <div className="text-xs uppercase tracking-[0.3em] text-heading-subdued mb-1">Client Name</div>
@@ -277,7 +353,16 @@ export default function CaregiverDetail() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <p className="text-heading-subdued">No client assigned.</p>
+                                    <div className="space-y-4">
+                                        <p className="text-heading-subdued">No client assigned yet.</p>
+                                        <Button
+                                            variant="default"
+                                            className="w-full gap-2 rounded-full"
+                                            onClick={() => setAssignModalOpen(true)}
+                                        >
+                                            Assign to Client
+                                        </Button>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -295,6 +380,108 @@ export default function CaregiverDetail() {
                 recipientId={caregiver?.id}
                 defaultChannel={contactModal.channel}
             />
+
+            {/* Assign to Client Modal */}
+            <AssignToClientModal
+                isOpen={assignModalOpen}
+                onClose={() => setAssignModalOpen(false)}
+                caregiver={caregiver}
+                onSuccess={(client) => {
+                    // Navigate to the client detail page after successful assignment
+                    navigate(createPageUrl('ClientDetail', { id: client.id }));
+                }}
+            />
+
+            {/* Edit Caregiver Modal */}
+            {editModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditModalOpen(false)} />
+                    <div className="relative bg-[rgb(var(--card))] border border-[rgba(147,165,197,0.2)] rounded-3xl w-full max-w-lg mx-4 shadow-[0_35px_90px_-40px_rgba(0,0,0,0.95)]" onClick={(e) => e.stopPropagation()}>
+                        <div className="p-6 border-b border-white/5 flex items-center justify-between">
+                            <div>
+                                <h2 className="text-xl font-semibold text-heading-primary">Edit Caregiver</h2>
+                                <p className="text-sm text-heading-subdued mt-1">Update caregiver information</p>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => setEditModalOpen(false)} className="rounded-xl">
+                                <X className="w-5 h-5" />
+                            </Button>
+                        </div>
+                        <div className="p-6 space-y-4">
+                            <div className="space-y-2">
+                                <Label className="text-heading-primary">Full Name</Label>
+                                <Input
+                                    value={editForm.full_name}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, full_name: e.target.value }))}
+                                    className="rounded-xl"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-heading-primary">Relationship</Label>
+                                    <Select value={editForm.relationship || undefined} onValueChange={(val) => setEditForm(prev => ({ ...prev, relationship: val }))}>
+                                        <SelectTrigger className="rounded-xl">
+                                            <SelectValue placeholder="Select relationship" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {CAREGIVER_RELATIONSHIPS.map(r => (
+                                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-heading-primary">Phone</Label>
+                                    <Input
+                                        value={editForm.phone}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
+                                        placeholder="(555) 123-4567"
+                                        className="rounded-xl"
+                                    />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="text-heading-primary">Email</Label>
+                                    <Input
+                                        value={editForm.email}
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                                        type="email"
+                                        className="rounded-xl"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label className="text-heading-primary">Lives in Home</Label>
+                                    <Select value={editForm.lives_in_home ? "yes" : "no"} onValueChange={(val) => setEditForm(prev => ({ ...prev, lives_in_home: val === "yes" }))}>
+                                        <SelectTrigger className="rounded-xl">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="yes">Yes</SelectItem>
+                                            <SelectItem value="no">No</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <Label className="text-heading-primary">Notes</Label>
+                                <Textarea
+                                    value={editForm.notes}
+                                    onChange={(e) => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                                    className="rounded-xl min-h-[80px]"
+                                />
+                            </div>
+                            <div className="flex justify-end gap-3 pt-4">
+                                <Button type="button" variant="outline" className="rounded-full" onClick={() => setEditModalOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button type="button" className="rounded-full" onClick={handleSaveEdit} disabled={saving}>
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -8,12 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Program from "@/entities/Program.supabase";
-import { Search, Filter, Eye, Edit, Trash2 } from "lucide-react";
+import { Search, Filter, Eye, Edit, Trash2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 import { useAuth } from "@/auth/AuthProvider.jsx";
+import AddClientModal from "@/components/client/AddClientModal.jsx";
 
 const phaseColors = {
   intake: 'bg-[rgba(99,255,130,0.16)] text-neutral-50 border-brand/45',
@@ -42,6 +43,7 @@ export default function ClientList() {
   const [confirmText, setConfirmText] = useState("");
   const [confirmClient, setConfirmClient] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const loadClients = async () => {
     setIsLoading(true);
@@ -145,6 +147,17 @@ export default function ClientList() {
           eyebrow="Directory"
           title={user?.role === 'marketer' ? 'My Clients' : 'All Clients'}
           description={user?.role === 'marketer' ? 'View only the clients you referred.' : 'Manage and track operational data for every active client.'}
+          actions={user?.role !== 'marketer' && (
+            <Button
+              variant="default"
+              borderRadius="999px"
+              className="gap-2 px-5"
+              onClick={() => setIsAddModalOpen(true)}
+            >
+              <Plus className="w-4 h-4" />
+              Add Client
+            </Button>
+          )}
         />
 
         {/* Filters */}
@@ -468,6 +481,16 @@ export default function ClientList() {
           </div>
         )}
       </div>
+
+      {/* Add Client Modal */}
+      <AddClientModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSuccess={(client) => {
+          loadClients();
+          navigate(createPageUrl('ClientDetail', { id: client.id }));
+        }}
+      />
     </div>
   );
 }

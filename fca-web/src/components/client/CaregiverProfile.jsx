@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { confirm } from "@/components/ui";
 import { useToast } from "@/components/ui/toast.jsx";
-import { Heart, Phone, Mail, Home, MapPin, User as UserIcon, Calendar, AlertTriangle, Pencil } from "lucide-react";
+import { Heart, Phone, Mail, Home, MapPin, User as UserIcon, Calendar, AlertTriangle, Pencil, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { format, isBefore, addDays, addYears } from "date-fns";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { CAREGIVER_RELATIONSHIPS } from "../../constants/caregiver.js";
@@ -164,12 +165,12 @@ export default function CaregiverProfile({
   const phaseFinalized = caregiverPhase ? client?.[`${caregiverPhase.key}_finalized`] : false;
   const totalTasks = caregiverPhase?.items.length ?? 0;
   const completedTasks = useMemo(() => {
-    if (!caregiverPhase) return 0;
+    if (!caregiverPhase || !activeCaregiver) return 0;
     return caregiverPhase.items.reduce(
-      (total, item) => total + (client[item.field] ? 1 : 0),
+      (total, item) => total + (activeCaregiver[item.field] ? 1 : 0),
       0
     );
-  }, [client, caregiverPhase]);
+  }, [activeCaregiver, caregiverPhase]);
   const completionRate = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const canEdit = !readOnly;
 
@@ -418,11 +419,19 @@ export default function CaregiverProfile({
   return (
     <div className="space-y-8">
       <Card className="border border-[rgba(96,255,168,0.18)]">
-        <CardHeader className="border-b border-white/5">
+        <CardHeader className="border-b border-white/5 flex flex-row items-center justify-between">
           <CardTitle className="text-heading-primary text-xl flex items-center gap-3 tracking-tight">
             <Heart className="w-5 h-5 text-brand/70" />
             Caregiver Snapshot
           </CardTitle>
+          {activeCaregiver?.id && (
+            <Link to={`/caregiver/${activeCaregiver.id}`}>
+              <Button variant="outline" size="sm" className="gap-2 rounded-xl">
+                <ExternalLink className="w-4 h-4" />
+                View Profile
+              </Button>
+            </Link>
+          )}
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-col lg:flex-row gap-6">
@@ -867,18 +876,20 @@ export default function CaregiverProfile({
         <CardContent className="p-6 space-y-4">
           <div className="grid gap-4">
             {caregiverPhase.items.map((item) => {
-              const checked = Boolean(client[item.field]);
+              const checked = Boolean(activeCaregiver?.[item.field]);
               return (
                 <div key={item.field} className={`${item.dateField ? 'flex flex-col gap-2 bg-black/10 p-4' : 'flex items-center gap-3 bg-black/10 px-4 py-3'} rounded-2xl border border-[rgba(147,165,197,0.25)]`}>
                   <div className="flex items-center gap-3">
                     <Checkbox
                       checked={checked}
-                      disabled={!canEdit}
+                      disabled={!canEdit || !activeCaregiver?.id}
                       onCheckedChange={async (val) => {
-                        if (!canEdit) return;
-                        await onUpdate({ [item.field]: Boolean(val) });
+                        if (!canEdit || !activeCaregiver?.id) return;
+                        // Update the caregiver record directly
+                        await ClientCaregiver.update(activeCaregiver.id, { [item.field]: Boolean(val) });
+                        onRefresh?.();
                         const allComplete = caregiverPhase.items.every((it) =>
-                          it.field === item.field ? Boolean(val) : client[it.field]
+                          it.field === item.field ? Boolean(val) : activeCaregiver[it.field]
                         );
                         if (allComplete) {
                           push({ title: "All caregiver onboarding tasks are complete. Submit to finalize." });
@@ -895,10 +906,11 @@ export default function CaregiverProfile({
                     <div className="ml-8 mt-1">
                       <Input
                         type="date"
-                        value={client[item.dateField] || ''}
+                        value={activeCaregiver?.[item.dateField] || ''}
                         onChange={async (e) => {
-                          if (!canEdit) return;
-                          await onUpdate({ [item.dateField]: e.target.value });
+                          if (!canEdit || !activeCaregiver?.id) return;
+                          await ClientCaregiver.update(activeCaregiver.id, { [item.dateField]: e.target.value });
+                          onRefresh?.();
                         }}
                         disabled={!canEdit}
                         className="h-9 text-xs rounded-lg w-full max-w-[200px]"

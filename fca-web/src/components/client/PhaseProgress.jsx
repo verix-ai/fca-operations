@@ -23,6 +23,7 @@ export const PHASES = [
       { field: 'cpr_first_aid_completed', label: 'Completed CPR/First Aid?', dateField: 'cpr_issued_at', dateLabel: 'Issued Date' },
     ],
     gradient: 'from-blue-400 to-green-500',
+    useCaregiver: true, // Flag to indicate this phase reads from caregiver record
   },
   {
     key: 'intake',
@@ -50,17 +51,30 @@ export const PHASES = [
   },
 ];
 
+// Helper to get the data source for a phase (caregiver for onboarding, client otherwise)
+function getPhaseDataSource(client, phase) {
+  if (phase.useCaregiver) {
+    // Get active caregiver's onboarding data, fall back to client for legacy data
+    const activeCaregiver = client.caregivers?.find(c => c.status === 'active');
+    if (activeCaregiver) {
+      return activeCaregiver;
+    }
+  }
+  return client;
+}
+
 function computePhaseStatus(client) {
   return PHASES.map((phase) => {
+    const dataSource = getPhaseDataSource(client, phase);
     const total = phase.items.length;
-    const completed = phase.items.reduce((acc, item) => acc + (client[item.field] ? 1 : 0), 0);
+    const completed = phase.items.reduce((acc, item) => acc + (dataSource[item.field] ? 1 : 0), 0);
     const isCurrent = client.current_phase === phase.key;
     const isCompleted = completed === total;
     return { phase, total, completed, isCurrent, isCompleted };
   });
 }
 
-export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
+export default function PhaseProgress({ client, onUpdate, onCaregiverUpdate, readOnly = false }) {
   const { push } = useToast();
   const statuses = useMemo(() => computePhaseStatus(client), [client]);
   const nextPhaseKey = useMemo(() => {
@@ -76,9 +90,11 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
   const completedTasks = useMemo(
     () =>
       PHASES.reduce(
-        (sum, phase) =>
-          sum +
-          phase.items.reduce((acc, item) => acc + (client[item.field] ? 1 : 0), 0),
+        (sum, phase) => {
+          const dataSource = getPhaseDataSource(client, phase);
+          return sum +
+            phase.items.reduce((acc, item) => acc + (dataSource[item.field] ? 1 : 0), 0);
+        },
         0
       ),
     [client]
@@ -90,15 +106,17 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
     const phase = PHASES.find(p => p.key === phaseKey);
     if (!phase) return false;
 
+    const dataSource = getPhaseDataSource(client, phase);
+
     // Check if all checkboxes are checked
-    const allChecked = phase.items.every(it => Boolean(client[it.field]));
+    const allChecked = phase.items.every(it => Boolean(dataSource[it.field]));
 
     // Check if required dates are present for items that have dateField
     const allDatesPresent = phase.items.every(it => {
       if (!it.dateField) return true;
       // If the checkbox is checked, allow finalize only if date is also present
-      if (client[it.field]) {
-        return Boolean(client[it.dateField]);
+      if (dataSource[it.field]) {
+        return Boolean(dataSource[it.dateField]);
       }
       return true;
     });
@@ -144,7 +162,8 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
 
                 <div className="space-y-3">
                   {phase.items.map(item => {
-                    const checked = Boolean(client[item.field]);
+                    const dataSource = getPhaseDataSource(client, phase);
+                    const checked = Boolean(dataSource[item.field]);
                     return (
                       <div key={item.field} className={`flex flex-col gap-2 ${item.dateField ? 'bg-black/10 p-2 rounded-xl border border-white/5' : ''}`}>
                         <div className="flex items-center gap-3">
@@ -152,8 +171,13 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
                             checked={checked}
                             onCheckedChange={async (val) => {
                               if (!canEdit) return;
-                              await onUpdate({ [item.field]: val });
-                              const allNowComplete = phase.items.every(it => (it.field === item.field ? val : client[it.field]));
+                              // Use caregiver update for onboarding phase, client update for others
+                              if (phase.useCaregiver && onCaregiverUpdate) {
+                                await onCaregiverUpdate({ [item.field]: val });
+                              } else {
+                                await onUpdate({ [item.field]: val });
+                              }
+                              const allNowComplete = phase.items.every(it => (it.field === item.field ? val : dataSource[it.field]));
                               if (allNowComplete) {
                                 push({ title: 'All items complete. Click Submit to finalize this phase.' });
                               }
@@ -168,10 +192,15 @@ export default function PhaseProgress({ client, onUpdate, readOnly = false }) {
                           <div className="ml-8">
                             <Input
                               type="date"
-                              value={client[item.dateField] || ''}
+                              value={dataSource[item.dateField] || ''}
                               onChange={async (e) => {
                                 if (!canEdit) return;
-                                await onUpdate({ [item.dateField]: e.target.value });
+                                // Use caregiver update for onboarding phase, client update for others
+                                if (phase.useCaregiver && onCaregiverUpdate) {
+                                  await onCaregiverUpdate({ [item.dateField]: e.target.value });
+                                } else {
+                                  await onUpdate({ [item.dateField]: e.target.value });
+                                }
                               }}
                               disabled={!canEdit}
                               className="h-8 text-xs rounded-lg"

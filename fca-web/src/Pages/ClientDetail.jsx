@@ -141,7 +141,7 @@ export default function ClientDetail() {
             <div className="flex flex-wrap items-center gap-4 text-heading-subdued">
               <span className="flex items-center gap-2 uppercase tracking-[0.3em] text-xs">
                 <Heart className="w-4 h-4 text-brand/70" />
-                Caregiver: {client.caregiver_name}
+                Caregiver: {client.caregivers?.find(c => c.status === 'active')?.full_name || client.caregiver_name || 'Not assigned'}
               </span>
               <span className="uppercase tracking-[0.3em] text-xs">Program: {client.program}</span>
             </div>
@@ -195,7 +195,7 @@ export default function ClientDetail() {
           </div>
 
           <TabsContent value="overview">
-            <ClientOverview client={client} onUpdate={handleClientUpdate} readOnly={user?.role === 'marketer'} />
+            <ClientOverview client={client} onUpdate={handleClientUpdate} onRefresh={loadClient} readOnly={user?.role === 'marketer'} />
           </TabsContent>
           <TabsContent value="caregiver">
             <CaregiverProfile

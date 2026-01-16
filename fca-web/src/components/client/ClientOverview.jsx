@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { User, MapPin, Calendar, DollarSign, Phone, Mail, Heart, Clock, MessageS
 import PhaseProgress from "./PhaseProgress";
 import ContactModal from "./ContactModal";
 import { format } from "date-fns";
+import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 
 const programColors = {
   PSS: 'bg-[rgba(96,255,168,0.14)] text-heading-primary border-brand/35',
@@ -14,11 +15,28 @@ const programColors = {
   'Respite Care': 'bg-[rgba(51,241,255,0.16)] text-heading-primary border-[rgba(51,241,255,0.35)]'
 };
 
-export default function ClientOverview({ client, onUpdate, readOnly = false }) {
+export default function ClientOverview({ client, onUpdate, onRefresh, readOnly = false }) {
   const [contactModal, setContactModal] = useState({ open: false, recipient: null, type: 'client', channel: 'email' });
 
   const clientPhone = client.client_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[0] : null)
-  const caregiverPhone = client.caregiver_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[1] : null)
+
+  // Get active caregiver from linked caregivers (new) or fall back to legacy client fields
+  const activeCaregiver = client.caregivers?.find(c => c.status === 'active');
+  const caregiverName = activeCaregiver?.full_name || client.caregiver_name;
+  const caregiverRelationship = activeCaregiver?.relationship || client.caregiver_relationship || '-';
+  const caregiverEmail = activeCaregiver?.email || client.caregiver_email;
+  const caregiverPhone = activeCaregiver?.phone || client.caregiver_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[1] : null);
+
+  // Handler to update the active caregiver's onboarding fields
+  const handleCaregiverUpdate = useCallback(async (updatedData) => {
+    if (!activeCaregiver?.id) {
+      console.warn('No active caregiver to update');
+      return;
+    }
+    await ClientCaregiver.update(activeCaregiver.id, updatedData);
+    // Refresh client data to reflect the changes
+    onRefresh?.();
+  }, [activeCaregiver?.id, onRefresh]);
 
   return (
     <>
@@ -63,11 +81,19 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
                   </div>
                 )}
 
-                {client.cost_share_amount && (
+                {client.cost_share_amount != null && client.cost_share_amount !== '' && (
                   <div className="flex items-center gap-3 text-heading-subdued">
                     <DollarSign className="w-5 h-5 text-brand/60" />
                     <span className="font-semibold uppercase tracking-[0.2em] text-xs text-heading-subdued">Cost Share</span>
                     <span className="text-heading-primary">${client.cost_share_amount}</span>
+                  </div>
+                )}
+
+                {client.email && (
+                  <div className="flex items-center gap-3 text-heading-subdued">
+                    <Mail className="w-5 h-5 text-brand/60" />
+                    <span className="font-semibold uppercase tracking-[0.2em] text-xs text-heading-subdued">Email</span>
+                    <span className="text-heading-primary">{client.email}</span>
                   </div>
                 )}
 
@@ -107,12 +133,12 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
               Caregiver Information
             </CardTitle>
             <div className="flex gap-2">
-              {client.email && (
+              {caregiverEmail && (
                 <Button
                   variant="ghost"
                   size="sm"
                   className="gap-1 text-brand hover:bg-brand/10"
-                  onClick={() => setContactModal({ open: true, recipient: { name: client.caregiver_name, email: client.email, phone: caregiverPhone }, type: 'caregiver', channel: 'email' })}
+                  onClick={() => setContactModal({ open: true, recipient: { name: caregiverName, email: caregiverEmail, phone: caregiverPhone }, type: 'caregiver', channel: 'email' })}
                 >
                   <Mail className="w-4 h-4" />
                   Email
@@ -123,7 +149,7 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
                   variant="ghost"
                   size="sm"
                   className="gap-1 text-brand hover:bg-brand/10"
-                  onClick={() => setContactModal({ open: true, recipient: { name: client.caregiver_name, email: client.email, phone: caregiverPhone }, type: 'caregiver', channel: 'sms' })}
+                  onClick={() => setContactModal({ open: true, recipient: { name: caregiverName, email: caregiverEmail, phone: caregiverPhone }, type: 'caregiver', channel: 'sms' })}
                 >
                   <MessageSquare className="w-4 h-4" />
                   Text
@@ -139,17 +165,17 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
                   <Heart className="relative w-6 h-6 text-icon-primary" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-heading-primary tracking-tight">{client.caregiver_name}</h3>
-                  <p className="text-heading-subdued uppercase tracking-[0.3em] text-xs">{client.caregiver_relationship}</p>
+                  <h3 className="text-xl font-bold text-heading-primary tracking-tight">{caregiverName || 'Not assigned'}</h3>
+                  <p className="text-heading-subdued uppercase tracking-[0.3em] text-xs">{caregiverRelationship}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                {client.email && (
+                {caregiverEmail && (
                   <div className="flex items-center gap-3 text-heading-subdued">
                     <Mail className="w-5 h-5 text-brand/60" />
                     <span className="font-semibold uppercase tracking-[0.2em] text-xs text-heading-subdued">Email</span>
-                    <span className="text-heading-primary">{client.email}</span>
+                    <span className="text-heading-primary">{caregiverEmail}</span>
                   </div>
                 )}
 
@@ -169,7 +195,7 @@ export default function ClientOverview({ client, onUpdate, readOnly = false }) {
 
       {/* Full Journey Progress */}
       <div className="mt-8">
-        <PhaseProgress client={client} onUpdate={onUpdate} readOnly={readOnly} />
+        <PhaseProgress client={client} onUpdate={onUpdate} onCaregiverUpdate={handleCaregiverUpdate} readOnly={readOnly} />
       </div>
 
       {/* Contact Modal */}

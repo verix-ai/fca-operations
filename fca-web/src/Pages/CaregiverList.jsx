@@ -7,12 +7,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Filter, Eye, Edit, Trash2 } from "lucide-react";
+import { Search, Filter, Eye, Edit, Trash2, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 import { useAuth } from "@/auth/AuthProvider.jsx";
+import AddCaregiverModal from "@/components/caregiver/AddCaregiverModal.jsx";
 
 export default function CaregiverList() {
     const { user } = useAuth();
@@ -22,6 +23,7 @@ export default function CaregiverList() {
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     const loadCaregivers = async () => {
         setIsLoading(true);
@@ -68,6 +70,17 @@ export default function CaregiverList() {
                     eyebrow="Directory"
                     title="All Caregivers"
                     description="Manage and track all caregivers and their client assignments."
+                    actions={
+                        <Button
+                            variant="default"
+                            borderRadius="999px"
+                            className="gap-2 px-5"
+                            onClick={() => setIsAddModalOpen(true)}
+                        >
+                            <Plus className="w-4 h-4" />
+                            Add Caregiver
+                        </Button>
+                    }
                 />
 
                 {/* Filters */}
@@ -147,7 +160,17 @@ export default function CaregiverList() {
                                                     {bg.full_name}
                                                 </TableCell>
                                                 <TableCell className="text-heading-primary/70">
-                                                    {bg.client?.client_name || '-'}
+                                                    {bg.status === 'inactive' ? (
+                                                        <Badge className="bg-neutral-500/20 text-neutral-300 border-neutral-500/30 px-3 py-1 rounded-lg font-medium">
+                                                            Deactivated
+                                                        </Badge>
+                                                    ) : bg.client?.client_name ? (
+                                                        bg.client.client_name
+                                                    ) : (
+                                                        <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 px-3 py-1 rounded-lg font-medium">
+                                                            Unassigned
+                                                        </Badge>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell className="text-kpi-secondary">
                                                     {bg.relationship || '-'}
@@ -219,7 +242,15 @@ export default function CaregiverList() {
                                                 {bg.full_name}
                                             </h3>
                                             <p className="text-sm text-heading-primary/70 mt-1">
-                                                Client: {bg.client?.client_name || 'Unknown'}
+                                                Client: {bg.status === 'inactive' ? (
+                                                    <Badge className="bg-neutral-500/20 text-neutral-300 border-neutral-500/30 px-2 py-0.5 rounded text-xs font-medium">
+                                                        Deactivated
+                                                    </Badge>
+                                                ) : bg.client?.client_name || (
+                                                    <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 px-2 py-0.5 rounded text-xs font-medium">
+                                                        Unassigned
+                                                    </Badge>
+                                                )}
                                             </p>
                                         </div>
                                         <Badge className={`${bg.status === 'active' ? 'bg-[rgba(99,255,130,0.16)] text-neutral-50 border-brand/45' : 'bg-white/5 text-neutral-400 border-white/10'} px-3 py-1.5 rounded-lg font-medium text-xs whitespace-nowrap`}>
@@ -258,6 +289,13 @@ export default function CaregiverList() {
                     )}
                 </div>
             </div>
+
+            {/* Add Caregiver Modal */}
+            <AddCaregiverModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onSuccess={() => loadCaregivers()}
+            />
         </div>
     );
 }
