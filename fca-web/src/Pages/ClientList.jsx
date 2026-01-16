@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Program from "@/entities/Program.supabase";
-import { Search, Filter, Eye, Edit, Trash2, Plus } from "lucide-react";
+import { Search, Filter, Eye, Edit, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -439,43 +439,59 @@ export default function ClientList() {
         </div>
 
         {confirmOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => !isDeleting && setConfirmOpen(false)} />
-            <div className="relative bg-[rgba(7,12,21,0.95)] border border-[rgba(147,165,197,0.2)] rounded-3xl w-full max-w-md mx-4 shadow-[0_35px_90px_-40px_rgba(0,0,0,0.95)]">
-              <div className="p-6 border-b border-white/5">
-                <h2 className="text-lg font-semibold text-heading-primary">Delete Client</h2>
-              </div>
-              <div className="p-6 space-y-4">
-                <p className="text-heading-primary/70 text-sm">
-                  This action cannot be undone. To confirm, type <span className="font-semibold">DELETE</span> below.
-                </p>
-                <p className="text-heading-primary text-sm">
-                  Client: <span className="font-semibold">{confirmClient?.client_name}</span>
-                </p>
-                <input
-                  className="w-full rounded-2xl bg-[rgba(9,16,33,0.82)] border border-[rgba(147,165,197,0.25)] text-heading-primary placeholder-neutral-700 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-brand/60 focus:border-brand"
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder="Type DELETE to confirm"
-                  autoFocus
-                  disabled={isDeleting}
-                />
-                <div className="flex justify-end gap-2 pt-2">
-                  <button
-                    className="inline-flex items-center justify-center rounded-2xl border border-[rgba(147,165,197,0.25)] px-4 py-2 text-neutral-800 hover:border-brand/35 hover:bg-brand/10 transition-all"
-                    onClick={() => setConfirmOpen(false)}
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center rounded-2xl border px-4 py-2 text-heading-primary bg-red-500/90 border-red-500 hover:brightness-90 disabled:opacity-50"
-                    onClick={handleConfirmDelete}
-                    disabled={confirmText !== "DELETE" || isDeleting}
-                  >
-                    {isDeleting ? 'Deleting…' : 'Delete'}
-                  </button>
+            <div className="relative bg-[#0F1115] border border-white/10 rounded-3xl w-full max-w-md p-6 shadow-2xl">
+              <div className="flex items-center gap-4 mb-4 text-amber-500">
+                <div className="h-10 w-10 rounded-full bg-amber-500/10 flex items-center justify-center border border-amber-500/20">
+                  <AlertTriangle className="w-5 h-5" />
                 </div>
+                <h3 className="text-lg font-semibold text-heading-primary">Delete Client?</h3>
+              </div>
+
+              <div className="space-y-4 mb-6">
+                <p className="text-heading-subdued">
+                  Are you sure you want to delete <span className="font-medium text-heading-primary">{confirmClient?.client_name}</span>? This action cannot be undone.
+                </p>
+
+                <div className="space-y-2">
+                  <label className="text-xs text-heading-subdued uppercase tracking-wider">
+                    Type <span className="text-brand font-bold">DELETE</span> to confirm
+                  </label>
+                  <Input
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="Type DELETE"
+                    className="rounded-xl border-white/10 bg-black/20 focus:border-red-500/50"
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <Button
+                  variant="outline"
+                  className="rounded-full"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={isDeleting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-full"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting || confirmText !== 'DELETE'}
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </Button>
               </div>
             </div>
           </div>
@@ -491,6 +507,6 @@ export default function ClientList() {
           navigate(createPageUrl('ClientDetail', { id: client.id }));
         }}
       />
-    </div>
+    </div >
   );
 }
