@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Client } from "@/entities/Client.supabase";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, Save, MessageSquare, FileText, User, Heart, Trash2, AlertTriangle, Loader2 } from "lucide-react";
+import { ArrowLeft, Edit, Save, MessageSquare, FileText, User, Heart, Trash2, AlertTriangle, Loader2, ClipboardCheck } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
@@ -14,6 +14,7 @@ import ClientNotes from "@/components/client/ClientNotes";
 import ClientMessages from "@/components/client/ClientMessages";
 import ClientOverview from "@/components/client/ClientOverview";
 import CaregiverProfile from "@/components/client/CaregiverProfile";
+import ClientCompliance from "@/components/client/ClientCompliance";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 
 export default function ClientDetail() {
@@ -178,6 +179,13 @@ export default function ClientDetail() {
                 </TabsTrigger>
               )}
               <TabsTrigger
+                value="compliance"
+                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+              >
+                <ClipboardCheck className="w-4 h-4 mr-2" />
+                Compliance
+              </TabsTrigger>
+              <TabsTrigger
                 value="notes"
                 className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
               >
@@ -214,12 +222,20 @@ export default function ClientDetail() {
             </TabsContent>
           )}
 
+          <TabsContent value="compliance">
+            <ClientCompliance 
+              client={client} 
+              onUpdate={handleClientUpdate} 
+              readOnly={user?.role === 'marketer'} 
+            />
+          </TabsContent>
+
           <TabsContent value="notes">
             <ClientNotes clientId={client.id} />
           </TabsContent>
 
           <TabsContent value="messages">
-            <ClientMessages clientId={client.id} />
+            <ClientMessages clientId={client.id} clientName={client.client_name} />
           </TabsContent>
         </Tabs>
 
