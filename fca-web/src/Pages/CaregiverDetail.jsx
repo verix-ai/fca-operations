@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle, MessageSquare, Pencil, X } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTriangle, MessageSquare, Pencil, X, FileText, ClipboardCheck } from "lucide-react";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 import ContactModal from "@/components/client/ContactModal";
 import { createPageUrl, formatPhone } from "@/utils";
@@ -16,6 +17,7 @@ import { format, isBefore, addDays, addYears } from "date-fns";
 import SettingsStore from '@/entities/Settings.supabase';
 import { useAuth } from "@/auth/AuthProvider.jsx";
 import CaregiverOnboardingChecklist from "@/components/caregiver/CaregiverOnboardingChecklist.jsx";
+import CaregiverCompliance from "@/components/caregiver/CaregiverCompliance.jsx";
 import AssignToClientModal from "@/components/caregiver/AssignToClientModal.jsx";
 import { CAREGIVER_RELATIONSHIPS } from "../constants/caregiver.js";
 
@@ -62,6 +64,7 @@ export default function CaregiverDetail() {
     const [editModalOpen, setEditModalOpen] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [saving, setSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState("overview");
 
     const loadCaregiver = useCallback(async () => {
         setIsLoading(true);
@@ -230,7 +233,29 @@ export default function CaregiverDetail() {
                     </SectionHeader>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8">
+                {/* Tabs */}
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+                    <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+                        <TabsList className="bg-hero-card p-2 rounded-3xl border border-[rgba(147,165,197,0.25)] backdrop-blur-xl inline-flex w-auto min-w-full md:w-full">
+                            <TabsTrigger
+                                value="overview"
+                                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+                            >
+                                <FileText className="w-4 h-4 mr-2" />
+                                Overview
+                            </TabsTrigger>
+                            <TabsTrigger
+                                value="compliance"
+                                className="rounded-2xl px-4 py-2.5 md:px-6 md:py-3 text-sm whitespace-nowrap"
+                            >
+                                <ClipboardCheck className="w-4 h-4 mr-2" />
+                                Compliance
+                            </TabsTrigger>
+                        </TabsList>
+                    </div>
+
+                    <TabsContent value="overview">
+                        <div className="grid md:grid-cols-3 gap-8">
                     {/* Main Info */}
                     <div className="md:col-span-2 space-y-6">
                         <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
@@ -367,7 +392,20 @@ export default function CaregiverDetail() {
                             </CardContent>
                         </Card>
                     </div>
-                </div>
+                        </div>
+                    </TabsContent>
+
+                    <TabsContent value="compliance">
+                        <CaregiverCompliance
+                            caregiver={caregiver}
+                            onUpdate={async (updates) => {
+                                await ClientCaregiver.updateCaregiver(caregiver.id, updates);
+                                setCaregiver(prev => ({ ...prev, ...updates }));
+                            }}
+                            readOnly={user?.role === 'marketer'}
+                        />
+                    </TabsContent>
+                </Tabs>
 
             </div>
 
