@@ -16,6 +16,7 @@ import ClientOverview from "@/components/client/ClientOverview";
 import CaregiverProfile from "@/components/client/CaregiverProfile";
 import ClientCompliance from "@/components/client/ClientCompliance";
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
+import ProfileImageUpload from "@/components/ui/ProfileImageUpload";
 
 export default function ClientDetail() {
   const { user } = useAuth();
@@ -120,10 +121,16 @@ export default function ClientDetail() {
             eyebrow="Client Blueprint"
             title={client.client_name}
             media={(
-              <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-client-avatar shadow-[0_24px_45px_-28px_rgba(96,255,168,0.35)]">
-                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/40 via-transparent to-aqua-600/40 blur-xl" />
-                <User className="relative h-10 w-10 text-icon-primary" />
-              </div>
+              <ProfileImageUpload
+                imageUrl={client.profile_image_url}
+                entityId={client.id}
+                entityType="client"
+                onUpload={async (url) => {
+                  await handleClientUpdate({ profile_image_url: url });
+                }}
+                readOnly={user?.role === 'marketer'}
+                size="lg"
+              />
             )}
             actions={user?.role !== 'marketer' ? (
               <Button

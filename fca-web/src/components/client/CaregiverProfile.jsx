@@ -17,6 +17,7 @@ import { formatPhone } from "@/utils";
 import { Notification } from "@/entities/Notification.supabase";
 import { User } from "@/entities/User.supabase";
 import { Marketer } from "@/entities/Marketer.supabase";
+import ProfileImageUpload from "@/components/ui/ProfileImageUpload";
 import {
   Select,
   SelectContent,
@@ -435,10 +436,13 @@ export default function CaregiverProfile({
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-col lg:flex-row gap-6">
-            <div className="relative w-20 h-20 rounded-3xl bg-client-avatar border border-white/10 flex items-center justify-center shadow-[0_24px_45px_-28px_rgba(96,255,168,0.35)]">
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/35 via-transparent to-aqua-600/35 blur-xl" />
-              <Heart className="relative w-8 h-8 text-icon-primary" />
-            </div>
+            <ProfileImageUpload
+              imageUrl={activeCaregiver?.profile_image_url}
+              entityId={activeCaregiver?.id}
+              entityType="caregiver"
+              readOnly={true}
+              size="lg"
+            />
             <div className="space-y-3 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-2xl font-semibold text-heading-primary">

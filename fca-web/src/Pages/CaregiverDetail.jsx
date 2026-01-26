@@ -19,6 +19,7 @@ import { useAuth } from "@/auth/AuthProvider.jsx";
 import CaregiverOnboardingChecklist from "@/components/caregiver/CaregiverOnboardingChecklist.jsx";
 import CaregiverCompliance from "@/components/caregiver/CaregiverCompliance.jsx";
 import AssignToClientModal from "@/components/caregiver/AssignToClientModal.jsx";
+import ProfileImageUpload from "@/components/ui/ProfileImageUpload";
 import { CAREGIVER_RELATIONSHIPS } from "../constants/caregiver.js";
 
 const InfoRow = ({ icon: Icon, label, value, status }) => {
@@ -181,10 +182,17 @@ export default function CaregiverDetail() {
                         eyebrow="Caregiver Profile"
                         title={caregiver.full_name}
                         media={(
-                            <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl border border-white/10 bg-client-avatar shadow-[0_24px_45px_-28px_rgba(96,255,168,0.35)]">
-                                <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/40 via-transparent to-aqua-600/40 blur-xl" />
-                                <Heart className="relative h-10 w-10 text-icon-primary" />
-                            </div>
+                            <ProfileImageUpload
+                                imageUrl={caregiver.profile_image_url}
+                                entityId={caregiver.id}
+                                entityType="caregiver"
+                                onUpload={async (url) => {
+                                    await ClientCaregiver.updateCaregiver(caregiver.id, { profile_image_url: url });
+                                    setCaregiver(prev => ({ ...prev, profile_image_url: url }));
+                                }}
+                                readOnly={user?.role === 'marketer'}
+                                size="lg"
+                            />
                         )}
                         description={caregiver.started_at ? `Started ${format(new Date(caregiver.started_at), 'MMM d, yyyy')}` : undefined}
                     >

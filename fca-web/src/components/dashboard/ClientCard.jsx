@@ -6,6 +6,7 @@ import { User, MapPin, Calendar, DollarSign, Phone, Heart, Eye } from "lucide-re
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "@/utils";
+import ProfileImageUpload from "@/components/ui/ProfileImageUpload";
 
 // No phase checklist on Operations Board cards; profile view manages steps.
 
@@ -26,10 +27,13 @@ export default function ClientCard({
         {/* Client Header */}
         <div className="flex items-start justify-between gap-4 md:gap-6">
           <div className="flex min-w-0 flex-1 items-center gap-4">
-            <div className="relative w-14 h-14 rounded-3xl bg-client-avatar border border-white/10 flex items-center justify-center shadow-[0_24px_45px_-28px_rgba(96,255,168,0.65)]">
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/40 via-transparent to-aqua-600/40 blur-xl" />
-              <User className="relative w-6 h-6 text-icon-primary" />
-            </div>
+            <ProfileImageUpload
+              imageUrl={client.profile_image_url}
+              entityId={client.id}
+              entityType="client"
+              readOnly={true}
+              size="md"
+            />
             <div className="min-w-0">
               <h3 className="font-bold text-heading-primary text-xl tracking-tight leading-tight">
                 {client.client_name}

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { User, MapPin, Calendar, DollarSign, Phone, Mail, Heart, Clock, MessageSquare, Send } from "lucide-react";
 import PhaseProgress from "./PhaseProgress";
 import ContactModal from "./ContactModal";
+import ProfileImageUpload from "@/components/ui/ProfileImageUpload";
 import { format } from "date-fns";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 
@@ -52,10 +53,13 @@ export default function ClientOverview({ client, onUpdate, onRefresh, readOnly =
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="relative w-14 h-14 rounded-3xl bg-client-avatar border border-white/10 flex items-center justify-center shadow-[0_24px_45px_-28px_rgba(96,255,168,0.35)]">
-                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/35 via-transparent to-aqua-600/35 blur-xl" />
-                  <User className="relative w-6 h-6 text-icon-primary" />
-                </div>
+                <ProfileImageUpload
+                  imageUrl={client.profile_image_url}
+                  entityId={client.id}
+                  entityType="client"
+                  readOnly={true}
+                  size="md"
+                />
                 <div>
                   <h3 className="text-xl font-bold text-heading-primary tracking-tight">{client.client_name}</h3>
                   <Badge className={`${programColors[client.program]} px-3 py-1 rounded-xl font-medium mt-2`}>
@@ -160,10 +164,13 @@ export default function ClientOverview({ client, onUpdate, onRefresh, readOnly =
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="relative w-14 h-14 rounded-3xl bg-client-avatar border border-white/10 flex items-center justify-center shadow-[0_24px_45px_-28px_rgba(96,255,168,0.35)]">
-                  <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand/35 via-transparent to-aqua-600/35 blur-xl" />
-                  <Heart className="relative w-6 h-6 text-icon-primary" />
-                </div>
+                <ProfileImageUpload
+                  imageUrl={activeCaregiver?.profile_image_url}
+                  entityId={activeCaregiver?.id}
+                  entityType="caregiver"
+                  readOnly={true}
+                  size="md"
+                />
                 <div>
                   <h3 className="text-xl font-bold text-heading-primary tracking-tight">{caregiverName || 'Not assigned'}</h3>
                   <p className="text-heading-subdued uppercase tracking-[0.3em] text-xs">{caregiverRelationship}</p>
