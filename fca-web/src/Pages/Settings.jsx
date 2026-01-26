@@ -1306,32 +1306,28 @@ function CountiesSection() {
           </Button>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="px-4 pt-4 pb-4">
+          <div className="px-4 pb-4">
             {selectedStates.length === 0 ? (
               <p className="text-heading-subdued text-sm">No counties selected yet.</p>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {selectedStates.map(code => (
-                  <div key={code}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <div className="text-heading-subdued font-medium">{US_STATES.find(s => s.code === code)?.name || code}</div>
-                      <Button
-                        variant="outline"
-                        borderRadius="1rem"
-                        className="h-8 px-3"
-                        onClick={() => {
-                          setIsAdding(true)
-                          loadModalForState(code)
-                        }}
-                      >
-                        Edit
-                      </Button>
+                  <div key={code} className="flex items-center justify-between py-2 border-b border-[rgba(147,165,197,0.1)] last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className="text-heading-primary font-medium">{US_STATES.find(s => s.code === code)?.name || code}</span>
+                      <span className="text-heading-subdued text-sm">({(regions[code] || []).length} counties)</span>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(regions[code] || []).map(c => (
-                        <span key={c} className="county-chip">{c} County</span>
-                      ))}
-                    </div>
+                    <Button
+                      variant="outline"
+                      borderRadius="1rem"
+                      className="h-8 px-3"
+                      onClick={() => {
+                        setIsAdding(true)
+                        loadModalForState(code)
+                      }}
+                    >
+                      Edit
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -1361,6 +1357,22 @@ function CountiesSection() {
                 </div>
               </div>
               <div className="p-4 max-h-[60vh] overflow-auto space-y-2">
+                {/* Select All option */}
+                {modalCounties.length > 0 && (
+                  <label className="flex items-center gap-2 text-neutral-800 pb-2 mb-2 border-b border-[rgba(147,165,197,0.2)]">
+                    <Checkbox 
+                      checked={modalCounties.length > 0 && modalSelected.length === modalCounties.length} 
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setModalSelected([...modalCounties])
+                        } else {
+                          setModalSelected([])
+                        }
+                      }} 
+                    />
+                    <span className="font-medium">Select All ({modalCounties.length} counties)</span>
+                  </label>
+                )}
                 {modalCounties.map(c => (
                   <label key={c} className="flex items-center gap-2 text-neutral-800">
                     <Checkbox checked={modalSelected.includes(c)} onCheckedChange={() => toggleModalCounty(c)} />

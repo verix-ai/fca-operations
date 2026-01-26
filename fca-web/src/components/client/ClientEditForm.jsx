@@ -29,11 +29,11 @@ export default function ClientEditForm({ client, onUpdate }) {
   const [formData, setFormData] = useState({
     client_name: client.client_name || '',
     program: client.program || '',
-    caregiver_name: client.caregiver_name || '',
+    caregiver_name: activeCaregiver?.full_name || client.caregiver_name || '',
     client_phone: client.client_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[0] : ''),
-    caregiver_phone: client.caregiver_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[1] : ''),
-    caregiver_relationship: client.caregiver_relationship || '',
-    caregiver_lives_in_home: client.caregiver_lives_in_home || false,
+    caregiver_phone: activeCaregiver?.phone || client.caregiver_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[1] : ''),
+    caregiver_relationship: activeCaregiver?.relationship || client.caregiver_relationship || '',
+    caregiver_lives_in_home: activeCaregiver?.lives_in_home ?? client.caregiver_lives_in_home ?? false,
     email: client.email || '',
     location: client.location || '',
     frequency: client.frequency || '',
@@ -107,6 +107,45 @@ export default function ClientEditForm({ client, onUpdate }) {
       setFreqDays(match[2]);
     }
   }, [client.frequency]);
+
+  // Sync formData when client data changes (e.g., after async load)
+  useEffect(() => {
+    const activeCg = client.caregivers?.find(c => c.status === 'active');
+    setFormData({
+      client_name: client.client_name || '',
+      program: client.program || '',
+      caregiver_name: activeCg?.full_name || client.caregiver_name || '',
+      client_phone: client.client_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[0] : ''),
+      caregiver_phone: activeCg?.phone || client.caregiver_phone || (Array.isArray(client.phone_numbers) ? client.phone_numbers[1] : ''),
+      caregiver_relationship: activeCg?.relationship || client.caregiver_relationship || '',
+      caregiver_lives_in_home: activeCg?.lives_in_home ?? client.caregiver_lives_in_home ?? false,
+      email: client.email || '',
+      location: client.location || '',
+      frequency: client.frequency || '',
+      cost_share_amount: client.cost_share_amount || '',
+      director_of_marketing: client.director_of_marketing || '',
+      notes: client.notes || '',
+      // Demographics
+      sex: client.sex || '',
+      date_of_birth: client.date_of_birth || '',
+      medicaid_or_ssn: client.medicaid_or_ssn || '',
+      // Address
+      address_line1: client.address_line1 || '',
+      address_line2: client.address_line2 || '',
+      city: client.city || '',
+      state: client.state || 'GA',
+      zip: client.zip || '',
+      // Medical
+      physician: client.physician || '',
+      diagnosis: client.diagnosis || '',
+      // Services & Benefits
+      receives_benefits: client.receives_benefits || '',
+      benefits_pay_date: client.benefits_pay_date || '',
+      // Referral source
+      heard_about_us: client.heard_about_us || '',
+      referral_date: client.referral_date || ''
+    });
+  }, [client.id, client.program, client.location, client.director_of_marketing, client.caregivers]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -367,11 +406,21 @@ export default function ClientEditForm({ client, onUpdate }) {
 
               <div className="space-y-3">
                 <Label htmlFor="program" className="text-heading-subdued font-medium">Program</Label>
-                <Select value={formData.program} onValueChange={(value) => handleInputChange('program', value)}>
+                <Select 
+                  key={`program-select-${programs.length}-${formData.program}`}
+                  value={formData.program || undefined} 
+                  onValueChange={(value) => handleInputChange('program', value)}
+                >
                   <SelectTrigger className="rounded-xl py-3">
                     <SelectValue placeholder="Select program" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Include current value if not in list */}
+                    {formData.program && !programs.includes(formData.program) && (
+                      <SelectItem key={formData.program} value={formData.program}>
+                        {formData.program}
+                      </SelectItem>
+                    )}
                     {programs.map((program) => (
                       <SelectItem key={program} value={program}>
                         {program}
@@ -415,15 +464,44 @@ export default function ClientEditForm({ client, onUpdate }) {
 
               <div className="space-y-3">
                 <Label htmlFor="location" className="text-heading-subdued font-medium">Location</Label>
-                {countyOptions.length > 0 ? (
-                  <Select value={formData.location} onValueChange={(v) => handleInputChange('location', v)}>
+                {countyOptions.length > 0 || formData.location ? (
+                  <Select 
+                    key={`location-select-${countyOptions.length}-${formData.location}`}
+                    value={formData.location || undefined} 
+                    onValueChange={(v) => handleInputChange('location', v)}
+                  >
                     <SelectTrigger className="rounded-xl py-3">
                       <SelectValue placeholder="Select county" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {countyOptions.map((opt) => (
-                        <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                      ))}
+                    <SelectContent className="p-0 overflow-hidden">
+                      <div className="bg-[#1a1a1a] border-b border-white/10">
+                        <Input
+                          placeholder="Search counties..."
+                          className="h-10 rounded-none border-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-3 bg-transparent"
+                          onChange={(e) => {
+                            const search = e.target.value.toLowerCase()
+                            const parent = e.target.parentElement?.parentElement
+                            const items = parent?.querySelectorAll('[data-value]')
+                            items?.forEach(item => {
+                              const text = item.textContent?.toLowerCase() || ''
+                              item.style.display = text.includes(search) ? '' : 'none'
+                            })
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div className="select-content-wrapper overflow-auto p-1" style={{ maxHeight: '200px' }}>
+                        {/* Include current value if not in list */}
+                        {formData.location && !countyOptions.includes(formData.location) && (
+                          <SelectItem key={formData.location} value={formData.location}>
+                            {formData.location}
+                          </SelectItem>
+                        )}
+                        {countyOptions.map((opt) => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                      </div>
                     </SelectContent>
                   </Select>
                 ) : (
@@ -508,12 +586,22 @@ export default function ClientEditForm({ client, onUpdate }) {
 
             <div className="space-y-3">
               <Label htmlFor="director_of_marketing" className="text-heading-subdued font-medium">Marketer</Label>
-              {marketers.length > 0 ? (
-                <Select value={formData.director_of_marketing} onValueChange={(v) => handleInputChange('director_of_marketing', v)}>
+              {marketers.length > 0 || formData.director_of_marketing ? (
+                <Select 
+                  key={`marketer-select-${marketers.length}-${formData.director_of_marketing}`}
+                  value={formData.director_of_marketing || undefined} 
+                  onValueChange={(v) => handleInputChange('director_of_marketing', v)}
+                >
                   <SelectTrigger className="rounded-xl py-3">
                     <SelectValue placeholder="Select marketer" />
                   </SelectTrigger>
                   <SelectContent>
+                    {/* Include current value if not in list */}
+                    {formData.director_of_marketing && !marketers.includes(formData.director_of_marketing) && (
+                      <SelectItem key={formData.director_of_marketing} value={formData.director_of_marketing}>
+                        {formData.director_of_marketing}
+                      </SelectItem>
+                    )}
                     {marketers.map((name) => (
                       <SelectItem key={name} value={name}>{name}</SelectItem>
                     ))}

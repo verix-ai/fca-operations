@@ -82,12 +82,14 @@ export default function MarketerIntake() {
       try {
         const all = await SettingsStore.get()
         const regions = all?.regions || {}
-        const stateCode = (String(form.state||'').trim() || 'GA')
-        const current = regions[stateCode] || []
-        setCountyOptions(Array.isArray(current) ? current : [])
+        // Load ALL counties from ALL configured states
+        const options = Object.entries(regions).flatMap(([state, counties]) =>
+          (counties || []).map((c) => ({ value: `${c}, ${state}`, label: `${c}, ${state}` }))
+        )
+        setCountyOptions(options)
       } catch {}
     })()
-  }, [form.state])
+  }, [])
 
   const requiredErrors = useMemo(()=>{
     const e = {}
@@ -350,10 +352,29 @@ export default function MarketerIntake() {
                       <SelectTrigger className={`rounded-xl py-3 ${attempted && requiredErrors.county ? 'border-red-500' : ''}`}>
                         <SelectValue placeholder="Select county & state" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {countyOptions.map((opt) => (
-                          <SelectItem key={opt} value={opt}>{`${opt}, ${form.state || 'GA'}`}</SelectItem>
-                        ))}
+                      <SelectContent className="p-0 overflow-hidden">
+                        <div className="bg-[#1a1a1a] border-b border-white/10">
+                          <Input
+                            placeholder="Search counties..."
+                            className="h-10 rounded-none border-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-3 bg-transparent"
+                            onChange={(e) => {
+                              const search = e.target.value.toLowerCase()
+                              const parent = e.target.parentElement?.parentElement
+                              const items = parent?.querySelectorAll('[data-value]')
+                              items?.forEach(item => {
+                                const text = item.textContent?.toLowerCase() || ''
+                                item.style.display = text.includes(search) ? '' : 'none'
+                              })
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        <div className="select-content-wrapper overflow-auto p-1" style={{ maxHeight: '200px' }}>
+                          {countyOptions.map((opt) => (
+                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                          ))}
+                        </div>
                       </SelectContent>
                     </Select>
                     {attempted && requiredErrors.county && <div className="text-red-600 text-sm mt-1">Required</div>}

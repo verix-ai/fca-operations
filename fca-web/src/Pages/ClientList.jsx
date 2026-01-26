@@ -271,7 +271,11 @@ export default function ClientList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-kpi-secondary">
-                          {client.location || '-'}
+                          {client.location 
+                            ? (client.location.includes(',') 
+                                ? client.location 
+                                : `${client.location}, ${client.state || 'GA'}`)
+                            : '-'}
                         </TableCell>
                         <TableCell className="text-kpi-secondary">
                           {client.frequency || '-'}
@@ -389,7 +393,13 @@ export default function ClientList() {
 
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Location</span>
-                      <span className="text-sm text-heading-primary">{client.location || '-'}</span>
+                      <span className="text-sm text-heading-primary">
+                        {client.location 
+                          ? (client.location.includes(',') 
+                              ? client.location 
+                              : `${client.location}, ${client.state || 'GA'}`)
+                          : '-'}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-2">

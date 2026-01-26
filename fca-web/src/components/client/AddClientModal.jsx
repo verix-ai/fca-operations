@@ -162,10 +162,29 @@ export default function AddClientModal({ isOpen, onClose, onSuccess }) {
                                 <SelectTrigger className="rounded-xl">
                                     <SelectValue placeholder="Select county" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                    {counties.map(c => (
-                                        <SelectItem key={c} value={c}>{c}</SelectItem>
-                                    ))}
+                                <SelectContent className="p-0 overflow-hidden">
+                                    <div className="bg-[#1a1a1a] border-b border-white/10">
+                                        <Input
+                                            placeholder="Search counties..."
+                                            className="h-10 rounded-none border-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 px-3 bg-transparent"
+                                            onChange={(e) => {
+                                                const search = e.target.value.toLowerCase()
+                                                const parent = e.target.parentElement?.parentElement
+                                                const items = parent?.querySelectorAll('[data-value]')
+                                                items?.forEach(item => {
+                                                    const text = item.textContent?.toLowerCase() || ''
+                                                    item.style.display = text.includes(search) ? '' : 'none'
+                                                })
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                        />
+                                    </div>
+                                    <div className="select-content-wrapper overflow-auto p-1" style={{ maxHeight: '200px' }}>
+                                        {counties.map(c => (
+                                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                                        ))}
+                                    </div>
                                 </SelectContent>
                             </Select>
                         </div>
