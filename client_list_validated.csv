@@ -1,0 +1,143 @@
+first_name,last_name,address,city,state,zip,county,email,client_phone,phone_numbers,program,current_phase,status,organization_id
+Henrietta,Asberry,3535 Case St,Macon,GA,31024,Jasper County,,(754) 246-2204,"{""(754) 246-2204""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Robert,Bailey,2224 Lowe St,Macon,GA,31204,Bibb County,,(478) 335-6112,"{""(478) 335-6112""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Linda,Bailey,612 A Jordan St,East Dublin,GA,31027,Laurens County,,(478) 290-8858,"{""(478) 290-8858""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Jencia,Baldwin,1212 Gray Hwy Apt 401,Macon,GA,31211,Jones County,,(478) 398-6144,"{""(478) 398-6144""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Brandon,Baldwin,35 N. Greenfield Circle,Covington,GA,30016,Newton County,,(404) 573-8461,"{""(404) 573-8461""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Janice,Balkcom,3044 Bloomfield Dr Apt E2,Macon,GA,31206,Bibb County,,(478) 318-0883,"{""(478) 318-0883""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+William,Balkcom,1895 Clinton Rd Apt 206,Macon,GA,31211,Bibb County,,(478) 370-7363,"{""(478) 370-7363""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Jewell,Barber,857 Fort Hill St,Macon,GA,31217,Bibb County,,(912) 755-7790,"{""(912) 755-7790""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Chris,Battle,237 Parsons St Apt B,Forsyth,GA,31029,Monroe County,,(478) 357-5554,"{""(478) 357-5554""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Frank,Black,4793 Elkan Ave,Macon,GA,31206,Bibb County,,(478) 212-5769,"{""(478) 212-5769""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Malik,Blocker,3839 Saint Charles Pl,Macon,GA,31206,Bibb County,,(478) 772-1173,"{""(478) 772-1173""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Ginger,Booth,107 Greenview Avenue,Gordon,GA,31031,Wilkinson County,,(478) 233-1536,"{""(478) 233-1536""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Linda,Boyd,3767 Tinsley Drive,Macon,GA,31204,Bibb County,,(478) 841-6658,"{""(478) 841-6658""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Eva,Brooks,1200 Whitesville St. Apt. 105,Lagrange,GA,30240,Troup County,,(706) 461-5025,"{""(706) 461-5025""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Adell,Bryant,3111 Baldwin St.,Columbus,GA,31906,Muscogee County,,(706) 332-3971,"{""(706) 332-3971""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Shenita,Burley,6724 Beck Blvd #93,Columbus,GA,31904,Muscogee County,,(817) 751-5862,"{""(817) 751-5862""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Bonita,Causey,2009 Vineville Avenue Building A Apt. 202,Macon,GA,31201,Bibb County,,(478) 578-4629,"{""(478) 578-4629""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Jeffery,Clark,4435 Pharr Ave,Macon,GA,31204,Bibb County,,(478) 367-1916,"{""(478) 367-1916""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Takashimaier,Cooper,3068 Jeffersonville Rd Apt 4A,Macon,GA,31217,Jones County,,(478) 382-8849,"{""(478) 382-8849""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Lelia,Crump,3871 Northside Dr. Apt R5,Macon,GA,31210,Bibb County,,(478) 318-9866,"{""(478) 318-9866""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Alfred,Deloach,2394 Vineville Avenue Apt. 704,Macon,GA,31204,Bibb County,,(478) 416-6878,"{""(478) 416-6878""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Christine,Denmark,102 Kingsway Drive,Warner Robins,GA,31088,Houston County,,(478) 318-2850,"{""(478) 318-2850""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Patricia,Dixon,4977 Pinefield Dr.,Macon,GA,31206,Bibb County,,(217) 597-6247,"{""(217) 597-6247""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Fontella,Duncan,1482 Bailey Ave,Macon,GA,31204,Bibb County,,(478) 259-8335,"{""(478) 259-8335""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Sandra,Edmond,204 Kingsby St Apt 3,Dublin,GA,31021,Laurens County,,(478) 998-4209,"{""(478) 998-4209""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Phillip,Evans,4335 Jones Rd,Macon,GA,31216,Bibb County,,(478) 841-6639,"{""(478) 841-6639""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+James,Everett,1016 Ell St,Macon,GA,31206,Bibb County,,(478) 256-5141,"{""(478) 256-5141""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Renee,Fambro-Purnell,4708 Pine Valley Dr,Macon,GA,31210,Monroe County,,(470) 456-3452,"{""(470) 456-3452""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Anita,Franklin,2498 Quebtin Dr,Jonesboro,GA,30236,Clayton County,,(404) 483-2858,"{""(404) 483-2858""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Kenny,Freeman,1212 Gray Hwy Apt 906,Macon,GA,31211,Jones County,,(478) 233-0813,"{""(478) 233-0813""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Carrie,French,1505 East Houze Rd,Fort Valley,GA,31030,Crawford County,,(478) 508-8280,"{""(478) 508-8280""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Elizabeth,Gibson,201 Love St,Fort Valley,GA,31030,Peach County,,(478) 391-3167,"{""(478) 391-3167""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Marie,Green,565 Green Pl,Macon,GA,31217,Jones County,,(478) 973-3925,"{""(478) 973-3925""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+George,Griffin,2416 Groveland Cir S,Macon,GA,31206,Bibb County,,(478) 978-4498,"{""(478) 978-4498""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Harrell,Hall,4116 Ayers Rd,Macon,GA,31210,Bibb County,,(478) 787-9461,"{""(478) 787-9461""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Mattie,Hall,4116 Ayers Rd,Macon,GA,31210,Bibb County,,(478) 787-9461,"{""(478) 787-9461""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Larry,Haywood,1930 Thomas Drive,Macon,GA,31217,Bibb County,,(478) 336-0099,"{""(478) 336-0099""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Dorothy,Heard,16 Southside Ct Apt A,Columbus,GA,31903,Muscogee County,,(706) 761-3192,"{""(706) 761-3192""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Lula,Heard,176 Tucker Circle,Lagrange,GA,30240,Troup County,,(706) 594-3463,"{""(706) 594-3463""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Lillian,Henderson,4580 Sylvester Circ N,Macon,GA,31217,Jones County,,(714) 302-9243,"{""(714) 302-9243""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Karol,Holevinski,901 Buckeye Road,Byron,GA,31030,Crawford County,,(419) 571-6735,"{""(419) 571-6735""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Harry,Hopkins,251 Ward St,Macon,GA,31201,Bibb County,,(478) 733-1885,"{""(478) 733-1885""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Suzzette,Howard,3325 Mildred Dr,Macon,GA,31217,Bibb County,,(478) 212-2487,"{""(478) 212-2487""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Kathy,Howard,1745 Rocky Creek Rd Apt C4,Macon,GA,31206,Bibb County,,(404) 665-0758,"{""(404) 665-0758""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Lee,Howard,3884 Atwood Drive,Macon,GA,31204,Bibb County,,(478) 757-8287,"{""(478) 757-8287""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Tony,Huff,857 Little Short St,Macon,GA,31217,Bibb County,,(478) 335-7470,"{""(478) 335-7470""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Debra,Hughes,105 Holiday Dr North Room 234,Macon,GA,31210,Bibb County,,(478) 978-6150,"{""(478) 978-6150""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Eddie,Ivory,834 Drummond St,Atlanta,GA,30314,Fulton County,,(404) 732-3221,"{""(404) 732-3221""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Latasia,Jackson,211 Forest Ave,Macon,GA,31204,Bibb County,,(478) 841-6541,"{""(478) 841-6541""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Patrina,Jackson,655 Bowman Street,Macon,GA,31217,Bibb County,,(478) 398-6552,"{""(478) 398-6552""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Phyllis,Jackson,224 Leaf Drive,Macon,GA,31217,Jones County,,(478) 972-5302,"{""(478) 972-5302""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Hildred,Jennings,2965 Forrest Park Rd SE,Atlanta,GA,30354,Clayton County,,(678) 330-3544,"{""(678) 330-3544""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Justine,Johnson,2320 Kingsley Dr,Macon,GA,31204,Bibb County,,(478) 722-4218,"{""(478) 722-4218""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Vonda,Johnson,139 Whitaker Rd,McDonough,GA,30252,Henry County,,(770) 356-4669,"{""(770) 356-4669""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Stacy,Johnson,628 Bowman St,Macon,GA,31217,Bibb County,,(478) 321-2651,"{""(478) 321-2651""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Steven,Johnson,2394 Vineville Ave Apt 408,Macon,GA,31204,Bibb County,,(478) 663-0983,"{""(478) 663-0983""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Thelma,Jones,102 Catskill Lane,Bonaire,GA,31005,Houston County,,(478) 951-9198,"{""(478) 951-9198""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Forrest,Kendrick,2111 Felton Avenue Apt. E8,Macon,GA,31201,Bibb County,,(478) 336-6802,"{""(478) 336-6802""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Jewell,Kimbrough,111 Auburn Avenue,Lagrange,GA,30240,Troup County,,(706) 415-2493,"{""(706) 415-2493""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Patrick,Kimbrough,111 Auburn Ave,LaGrange,GA,30240,Troup County,,(706) 594-3757,"{""(706) 594-3757""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Eddie,Lane,875 Perry Drive,Macon,GA,31217,Jones County,,(478) 367-2647,"{""(478) 367-2647""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Johnny,Lee,715 Anderson St.,Macon,GA,31201,Bibb County,,(478) 262-4336,"{""(478) 262-4336""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Sylvina,Louisius,276 Upper Riverdale Rd Apt 17F,Jonesboro,GA,30236,Clayton County,,(678) 793-8034,"{""(678) 793-8034""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Tony,Lowe,330 Oak Park Sq,College Park,GA,30349,Clayton County,,(478) 444-3092,"{""(478) 444-3092""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Medru,Marcus,115 Westwood Cir.,Macon,GA,31206,Bibb County,,(478) 284-2199,"{""(478) 284-2199""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Ruthie,Marcus,161 S Hampton Rd,Macon,GA,31217,Bibb County,,(478) 731-3856,"{""(478) 731-3856""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Yackadeashia,Martin,1137 Brentwood Ave,Macon,GA,31204,Bibb County,,(478) 703-3547,"{""(478) 703-3547""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Angela,Martin,363 Bragg Smith St,Columbus,GA,31903,Muscogee County,,(706) 573-5288,"{""(706) 573-5288""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Annette,Maxwell,4212 Roy Avenue,Macon,GA,31206,Bibb County,,(478) 832-0307,"{""(478) 832-0307""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Maria,Mayorquin Cervantes,411 Hardeman Ave,Fort Valley,GA,31030,Peach County,,(478) 955-3734,"{""(478) 955-3734""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Deborah,McCants,604 Revis Str Apt B,LaGrange,GA,30240,Troup County,,(706) 518-5125,"{""(706) 518-5125""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Terri,McClain,1849 Tindall Ave Apt 202A,Macon,GA,31201,Bibb County,,(478) 578-0478,"{""(478) 578-0478""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Torah,McCowan,2000 Bowman Rd Room 331,Macon,GA,31210,Bibb County,,(478) 719-7888,"{""(478) 719-7888""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Ellen,McGee,2704 West Green Street,Macon,GA,31204,Bibb County,,(757) 726-3774,"{""(757) 726-3774""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Stacy,Melvin,504 Shurling Drive Apt F,Macon,GA,31211,Bibb County,,(478) 297-9234,"{""(478) 297-9234""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Shannon,Moreland,2034 Cambridge Ave,Atlanta,GA,30337,Clayton County,,(678) 789-9002,"{""(678) 789-9002""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Elizabeth,Morgan,2371 Willis Court,Macon,GA,31217,Jones County,,(478) 229-8817,"{""(478) 229-8817""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Annie,Moss,2394 Vineville Avenue UNIT 1001,Macon,GA,31204,Bibb County,cmoss9701@gmail.com,(478) 336-0772,"{""(478) 336-0772""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Amy,Nelson,1109 Park Ave,LaGrange,GA,30240,Troup County,,(706) 881-4054,"{""(706) 881-4054""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Mary,Nixon-Waller,304 Orchid Dr,McDonough,GA,30253,Henry County,,(478) 719-5633,"{""(478) 719-5633""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Willie,Nottingham,2383 Millerfield Rd,Macon,GA,31217,Jones County,,(478) 361-7036,"{""(478) 361-7036""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Asbell,Odom,685 Saint John St,Macon,GA,31217,Jones County,,(478) 284-6334,"{""(478) 284-6334""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Mary,Patrick,1315 Pou Street,Columbus,GA,31901,Muscogee County,,(706) 587-4970,"{""(706) 587-4970""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Joanne,Pauldo,279 South Hampton Road,Macon,GA,31217,Jones County,,(478) 305-0093,"{""(478) 305-0093""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Charlie,Person,2049 Fairway Dr,Macon,GA,31217,Bibb County,,(478) 719-6319,"{""(478) 719-6319""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Shirley,Person,3737 Kings Park Circle,Macon,GA,31217,Jones County,,(478) 212-9159,"{""(478) 212-9159""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Carolyn,Persons,3430 Marathon Drive Apt G,Columbus,GA,31903,Muscogee County,,(762) 332-2859,"{""(762) 332-2859""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Pearline,Phillips,604 Borton St Apt A,Lagrange,GA,30240,Troup County,,(706) 415-7884,"{""(706) 415-7884""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Audrey,Pinkard,1015 Haywood Rd.,Macon,GA,31211,Jones County,,(478) 262-4632,"{""(478) 262-4632""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Dorothy,Pittman,1007 Avenue K,West Point,GA,31833,Troup County,,(706) 643-8621,"{""(706) 643-8621""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Carolyn,Ponder,2900 Walmar Dr,Macon,GA,31206,Bibb County,,(478) 832-3065,"{""(478) 832-3065""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Patricia,Reynolds,478 Monroe Hill Apt 107,Macon,GA,31204,Bibb County,,(478) 973-0892,"{""(478) 973-0892""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+William,Robinson,1932 Lawton Avenue,Macon,GA,31201,Bibb County,,(478) 447-1109,"{""(478) 447-1109""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Frank,Ross,2512 Bedford Place,Macon,GA,31211,Jones County,,(478) 254-8277,"{""(478) 254-8277""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Patricia,Ryans,1107 Macon Ave,Macon,GA,31204,Bibb County,,(478) 420-2363,"{""(478) 420-2363""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Carina,Scott,3329 Thunderbird Rd,Macon,GA,31217,Jones County,,(478) 508-4805,"{""(478) 508-4805""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Linda,Scott,4049 Lindwood Dr,Macon,GA,31206,Bibb County,,(478) 318-8043,"{""(478) 318-8043""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Latonia,Seals,3321 Club Dr,Macon,GA,31217,Jones County,,(478) 233-4931,"{""(478) 233-4931""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Troy,Singleton,130 Tucker Rd Apt 5D,Macon,GA,31210,Bibb County,,(478) 260-6229,"{""(478) 260-6229""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Kenneth,Sluder,800 Buckeye Rd,East Dublin,GA,31027,Laurens County,,(478) 278-9936,"{""(478) 278-9936""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Terri,Smith,1501 Hall Rd,Macon,GA,31210,Bibb County,,(470) 817-1884,"{""(470) 817-1884""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Jerry,Smith,2058 Napier Ave,Macon,GA,31204,Bibb County,,(478) 297-7971,"{""(478) 297-7971""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Clara,Smith,202 Love St,Fort Valley,GA,31030,Crawford County,,(478) 447-1966,"{""(478) 447-1966""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Carl,Sneid,141 Martin Luther King Jr. Blvd,Gray,GA,31032,Jones County,,(404) 386-0311,"{""(404) 386-0311""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Cecil,Spradley,168 Spradley Dr,Macon,GA,31211,Bibb County,,(478) 718-2797,"{""(478) 718-2797""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Betty,Stanely,3667 Log Cabin Drive,Macon,GA,31204,Bibb County,,(478) 841-2341,"{""(478) 841-2341""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Grover,Stephens,420 Jones Ave,Macon,GA,31217,Jones County,,(478) 342-2227,"{""(478) 342-2227""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Melissa,Stewart,4709 Elkan Avenue,Macon,GA,31206,Bibb County,,(478) 353-2915,"{""(478) 353-2915""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Kiara,Stokes,930 North Ave,Macon,GA,31211,Bibb County,,(478) 336-6847,"{""(478) 336-6847""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Tiffany,Stroud,1665 Wesylan Dr Apt 301,Macon,GA,31210,Bibb County,,(478) 259-5178,"{""(478) 259-5178""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Bridget,Swain,2637 Cherokee Ave,Macon,GA,31204,Bibb County,,(478) 320-4776,"{""(478) 320-4776""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Warren,Tabor,214 Chestnut St,Fort Valley,GA,31030,Crawford County,,(478) 391-8552,"{""(478) 391-8552""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Essie,Tagger,4416 Mumford Rd Apt L1,Macon,GA,31204,Bibb County,,(478) 841-6783,"{""(478) 841-6783""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Harriet,Taylor,3370 Roff Ave,Macon,GA,31204,Bibb County,,(404) 201-3932,"{""(404) 201-3932""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Bernadine,Taylor,1279 Patterson St,Macon,GA,31204,Bibb County,,(478) 320-4528,"{""(478) 320-4528""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Jermaine,Thomas,2588 Saratoga Drive,Macon,GA,31211,Bibb County,jermaine.thomas20@gmail.com,(478) 228-6116,"{""(478) 228-6116""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Sophia,Thomas,3401 Houston Ave Apt H14,Macon,GA,31206,Bibb County,,(478) 663-1123,"{""(478) 663-1123""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Malcom,Thomas,112 Arlethia Drive,Macon,GA,31211,Jones County,,(478) 303-6471,"{""(478) 303-6471""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+James,Thomas,856 Richmond St,Macon,GA,31206,Bibb County,,(478) 718-5163,"{""(478) 718-5163""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Joniett,Thomas,1110 Macon Ave,Macon,GA,31204,Bibb County,,(478) 260-9433,"{""(478) 260-9433""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Irene,Thornton,2009 Vineville Ave Apt C403,Macon,GA,31204,Bibb County,,(254) 366-6354,"{""(254) 366-6354""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Jamekia,Towles,104 Riegel Court,Macon,GA,31217,Bibb County,,(478) 250-5345,"{""(478) 250-5345""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Michael,Towns,815 N. Greenwood Street Apt. 417,Lagrange,GA,30240,Troup County,,(404) 304-5349,"{""(404) 304-5349""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Annie,Truitt,9 Barnard Ave Apt 103,LaGrange,GA,30241,Meriwether County,,(706) 881-6506,"{""(706) 881-6506""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Gwendolyn,Turner,575 Baxter Avenue APT 204,Macon,GA,31201,Bibb County,,(478) 870-4686,"{""(478) 870-4686""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Ned,Turner,818 Short Street E,Macon,GA,31217,Bibb County,,(404) 989-8321,"{""(404) 989-8321""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Minnie,Vaughn,2548 Bedford Place,Macon,GA,31211,Bibb County,,(470) 359-8311,"{""(470) 359-8311""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Esquilla,Watts,523 Cherry St Apt 501,Macon,GA,31201,Bibb County,,(478) 464-4365,"{""(478) 464-4365""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Carrie,Westbrooks,3940 Spencer Circle,Macon,GA,31206,Bibb County,,(478) 305-5701,"{""(478) 305-5701""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Christopher,Whitaker,645 Rutherford Avenue,Macon,GA,31206,Bibb County,,(478) 550-5863,"{""(478) 550-5863""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Melvin,White,108 Country Oaks Dr,Macon,GA,31220,Monroe County,,(478) 978-6675,"{""(478) 978-6675""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Taybria,Wilburn,116 Dasher St,Dublin,GA,31021,Laurens County,,(478) 353-6025,"{""(478) 353-6025""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Daphne,Williams,800 Leisure Lake Dr Apt R2,Warner Robins,GA,31087,Houston County,,(478) 342-3020,"{""(478) 342-3020""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Collie,Williams,3321 Napier Ave,Macon,GA,31204,Bibb County,,(478) 390-3171,"{""(478) 390-3171""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Thomas,Williams,2432 Darden Dr,Macon,GA,31204,Bibb County,,(478) 203-5945,"{""(478) 203-5945""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Shirley,Wilson,224 Anita Ave,East Dublin,GA,31027,Laurens County,,(478) 410-2811,"{""(478) 410-2811""}",SOURCE,intake,active,00000000-0000-0000-0000-000000000001
+Hilbert,Wimberly,756 Main Street,Macon,GA,31216,Jones County,,(478) 201-0316,"{""(478) 201-0316""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Ernest,Womack,1339 Briarcliff Road,Macon,GA,31211,Bibb County,,(478) 284-4863,"{""(478) 284-4863""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Mary,Womble,3401 Houston Avenue Apt. N7,Macon,GA,31206,Bibb County,,(478) 293-0882,"{""(478) 293-0882""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Gregory,Woodard,2009 Vineville Avenue Apt. B303,Macon,GA,31204,Bibb County,,(478) 305-1960,"{""(478) 305-1960""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Gloria,Woodford,1895 Clinton Rd Apt 315,Macon,GA,31211,Bibb County,,(478) 719-3406,"{""(478) 719-3406""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001
+Lavern,Yarbrough,7081 Peake Rd N Apt 109,Macon,GA,31210,Monroe County,,(478) 737-2785,"{""(478) 737-2785""}",CCSP,intake,active,00000000-0000-0000-0000-000000000001

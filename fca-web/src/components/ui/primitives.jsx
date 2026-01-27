@@ -256,7 +256,10 @@ export function SelectTrigger({ className = '', children }) {
 
 export function SelectValue({ placeholder }) {
   const ctx = useContext(SelectCtx)
-  return <span className="text-heading-primary">{ctx.label ?? placeholder}</span>
+  // Display: label (if set from click), or current value (if non-empty), or placeholder
+  // Using || instead of ?? so empty strings fall through to placeholder
+  const display = ctx.label || ctx.value || placeholder
+  return <span className="text-heading-primary">{display}</span>
 }
 
 export function SelectContent({ className = '', children }) {

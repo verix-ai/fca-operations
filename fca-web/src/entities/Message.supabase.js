@@ -40,7 +40,8 @@ export const Message = {
       .select(`
         *,
         sender:users!messages_sender_id_fkey(id, name, email, avatar_url),
-        recipient:users!messages_recipient_id_fkey(id, name, email, avatar_url)
+        recipient:users!messages_recipient_id_fkey(id, name, email, avatar_url),
+        client:clients(id, client_name, caregivers:client_caregivers(id, full_name, status))
       `)
       .eq('organization_id', organizationId)
       .order('created_at', { ascending: false })
@@ -74,7 +75,8 @@ export const Message = {
       .select(`
         *,
         sender:users!messages_sender_id_fkey(id, name, email, avatar_url),
-        recipient:users!messages_recipient_id_fkey(id, name, email, avatar_url)
+        recipient:users!messages_recipient_id_fkey(id, name, email, avatar_url),
+        client:clients(id, client_name, caregivers:client_caregivers(id, full_name, status))
       `)
       .eq('organization_id', organizationId)
       .or(`and(sender_id.eq.${userId},recipient_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},recipient_id.eq.${userId})`)
@@ -110,6 +112,7 @@ export const Message = {
    * @param {string} data.recipient_id - Recipient user ID
    * @param {string} data.subject - Message subject
    * @param {string} data.content - Message content
+   * @param {string} data.client_id - Optional client ID if message is about a specific client
    * @returns {Promise<Object>} Created message
    */
   async send(data) {
@@ -121,6 +124,7 @@ export const Message = {
       recipient_id: data.recipient_id,
       subject: data.subject,
       content: data.content,
+      client_id: data.client_id || null,
       is_read: false
     }
 
@@ -128,6 +132,30 @@ export const Message = {
 
     // Fetch the full message with sender/recipient details
     return this.get(result.id)
+  },
+
+  /**
+   * List messages for a specific client
+   * @param {string} clientId - Client ID
+   * @returns {Promise<Array>} Array of messages about this client
+   */
+  async listByClient(clientId) {
+    const { organizationId } = await getUserOrganization()
+
+    const { data, error } = await supabase
+      .from('messages')
+      .select(`
+        *,
+        sender:users!messages_sender_id_fkey(id, name, email, avatar_url),
+        recipient:users!messages_recipient_id_fkey(id, name, email, avatar_url),
+        client:clients(id, client_name, caregivers:client_caregivers(id, full_name, status))
+      `)
+      .eq('organization_id', organizationId)
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    return data || []
   },
 
   /**

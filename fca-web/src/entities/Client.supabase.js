@@ -30,6 +30,18 @@ async function getUserOrganization() {
 function coerceClientRecord(input) {
   const record = { ...input }
 
+  // Date fields that need null instead of empty string
+  const dateFields = ['date_of_birth', 'referral_date', 'intake_date']
+  
+  for (const field of dateFields) {
+    if (field in record) {
+      // Convert empty strings to null for date fields
+      if (record[field] === '' || record[field] === null || record[field] === undefined) {
+        record[field] = null
+      }
+    }
+  }
+
   // Normalize cost_share_amount to number
   if ('cost_share_amount' in record) {
     if (typeof record.cost_share_amount === 'string' && record.cost_share_amount.trim() !== '') {
@@ -84,7 +96,7 @@ export const Client = {
           user:users(*)
         ),
         cm_company:cm_companies(*),
-        notes:client_notes(
+        client_notes(
           *,
           user:users(id, name, email)
         ),

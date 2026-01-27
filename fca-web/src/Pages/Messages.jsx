@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Send, Loader2, User as UserIcon } from 'lucide-react'
+import { Search, Send, Loader2, User as UserIcon, UserCircle, Heart } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { Message } from '@/entities/Message.supabase'
 import { User } from '@/entities/User.supabase'
@@ -230,9 +231,27 @@ export default function Messages() {
               ) : (
                 messages.map(m => {
                   const isFromMe = m.sender_id === user?.id
+                  const activeCaregiver = m.client?.caregivers?.find(c => c.status === 'active')
                   return (
                     <div key={m.id} className={`flex ${isFromMe ? 'justify-end' : 'justify-start'}`}>
                       <div className={`${isFromMe ? 'bg-green-700/80 text-white' : 'chat-bubble'} max-w-[75%] px-4 py-2 rounded-2xl shadow-sm`}>
+                        {/* Client/Caregiver Tags */}
+                        {m.client && (
+                          <div className="flex flex-wrap gap-1.5 mb-2">
+                            <Link to={`/client/${m.client.id}`}>
+                              <Badge className={`text-xs px-2 py-0.5 gap-1 cursor-pointer ${isFromMe ? 'bg-white/20 text-white border-white/30 hover:bg-white/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30 hover:bg-blue-500/30'}`}>
+                                <UserCircle className="w-3 h-3" />
+                                {m.client.client_name}
+                              </Badge>
+                            </Link>
+                            {activeCaregiver && (
+                              <Badge className={`text-xs px-2 py-0.5 gap-1 ${isFromMe ? 'bg-white/20 text-white border-white/30' : 'bg-pink-500/20 text-pink-400 border-pink-500/30'}`}>
+                                <Heart className="w-3 h-3" />
+                                {activeCaregiver.full_name}
+                              </Badge>
+                            )}
+                          </div>
+                        )}
                         <div className="whitespace-pre-wrap">{m.content}</div>
                         <div className={`text-xs mt-1 ${isFromMe ? 'text-white/70' : 'text-heading-subdued'}`}>
                           {format(new Date(m.created_at), 'MMM d, h:mm a')}
