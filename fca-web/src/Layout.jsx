@@ -7,16 +7,15 @@ import {
   ChevronRight,
   ClipboardList,
   HeartHandshake,
-  Headphones,
   Link as LinkIcon,
   MessageSquare,
   PieChart,
   Plus,
   Search,
   Settings,
+  User,
   Users,
 } from 'lucide-react'
-import ThemeToggle from '@/components/theme/ThemeToggle.jsx'
 import { useAuth } from '@/auth/AuthProvider.jsx'
 import { createPageUrl } from '@/utils'
 import { Button } from '@/components/ui/button'
@@ -70,7 +69,7 @@ function buildNavigationSections(user) {
 const railLogoShadeClass =
   'relative flex items-center justify-center rounded-2xl border border-[rgba(var(--border),0.55)] bg-[rgba(var(--bg),0.9)] shadow-[0_12px_28px_-18px_rgba(0,0,0,0.65)]'
 
-function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail }) {
+function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail, user }) {
   return (
     <aside
       data-sidebar
@@ -127,7 +126,6 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
         })}
       </nav>
       <div className="flex w-full flex-col items-center gap-2">
-        <ThemeToggle className="h-11 w-11 border border-[rgba(var(--border),0.45)] bg-[rgba(var(--bg),0.82)] text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.65)]" />
         {footerItems.map((item) => (
           <NavLink
             key={item.id}
@@ -146,17 +144,32 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail 
             <span className="sr-only">{item.title}</span>
           </NavLink>
         ))}
-        <div className="mt-2">
-          <div className={classNames(railLogoShadeClass, 'h-12 w-12 text-[rgb(var(--text))]')}>
-            <span className="text-sm font-semibold">FC</span>
-          </div>
-        </div>
+        {/* Profile Link */}
+        <NavLink
+          to={createPageUrl('Profile')}
+          className={({ isActive }) =>
+            classNames(
+              'group flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300 overflow-hidden',
+              'border-transparent text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.22)] hover:text-[rgb(var(--text))]',
+              isActive &&
+              'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.35)] text-[rgb(var(--text))] shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)]',
+            )
+          }
+          title="Profile"
+        >
+          {user?.avatar_url ? (
+            <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-5 w-5" aria-hidden="true" />
+          )}
+          <span className="sr-only">Profile</span>
+        </NavLink>
       </div>
     </aside>
   )
 }
 
-function DetailSidebar({ sections, currentPageName, onCollapse }) {
+function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
   const [searchValue, setSearchValue] = useState('')
   const filteredSections = useMemo(() => {
     const query = searchValue.trim().toLowerCase()
@@ -226,14 +239,6 @@ function DetailSidebar({ sections, currentPageName, onCollapse }) {
               {section.title}
             </h3>
             <div className="flex flex-col gap-2">
-              {section.id === 'workspace' && (
-                <div className="flex items-center gap-3 rounded-xl bg-[rgba(var(--bg),0.78)] px-4 py-2 text-sm font-medium text-[rgba(var(--muted),0.75)] shadow-[0_12px_24px_-20px_rgba(0,0,0,0.45)]">
-                  <ThemeToggle className="h-9 w-9 border border-[rgba(var(--border),0.45)] bg-[rgba(var(--bg),0.88)] text-[rgba(var(--muted),0.8)] hover:border-[rgba(var(--border),0.65)] hover:text-[rgb(var(--text))]" />
-                  <span className="flex flex-col text-left">
-                    <span className="text-sm font-semibold text-[rgb(var(--text))]">Display theme</span>
-                  </span>
-                </div>
-              )}
               {section.items.map((item) => {
                 // Render custom NotificationNavItem for notifications
                 if (item.isCustom && item.id === 'notifications') {
@@ -272,23 +277,30 @@ function DetailSidebar({ sections, currentPageName, onCollapse }) {
         ))}
       </nav>
 
-      <div className="w-full rounded-2xl border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.82)] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[rgba(var(--border),0.45)] bg-[rgba(var(--bg),0.8)] text-[rgb(var(--text))] shadow-[0_14px_30px_-28px_rgba(0,0,0,0.75)]">
-            <Headphones className="h-5 w-5" aria-hidden="true" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold text-[rgb(var(--text))]">Need a hand?</span>
-            <span className="text-xs text-[rgba(var(--muted),0.65)]">Support is one click away.</span>
-          </div>
-          <NavLink
-            to={createPageUrl('Messages')}
-            className="ml-auto inline-flex items-center justify-center rounded-lg border border-[rgba(var(--border),0.4)] bg-[rgba(var(--bg),0.75)] px-3 py-1 text-xs font-medium text-[rgba(var(--muted),0.75)] transition-colors hover:border-[rgba(var(--border),0.55)] hover:text-[rgb(var(--text))]"
-          >
-            Contact
-          </NavLink>
+      {/* Profile Link */}
+      <NavLink
+        to={createPageUrl('Profile')}
+        className={({ isActive }) =>
+          classNames(
+            'w-full rounded-2xl border px-4 py-3 flex items-center gap-3 transition-all',
+            isActive
+              ? 'border-[rgba(var(--brand),0.45)] bg-[rgba(255,255,255,0.12)] shadow-[0_18px_40px_-30px_rgba(0,0,0,0.7)]'
+              : 'border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.82)] hover:border-[rgba(var(--border),0.55)] hover:bg-[rgba(var(--border),0.18)]'
+          )
+        }
+      >
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-[rgba(var(--border),0.45)] bg-[rgba(var(--bg),0.8)] shadow-[0_14px_30px_-28px_rgba(0,0,0,0.75)] overflow-hidden">
+          {user?.avatar_url ? (
+            <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-5 w-5 text-[rgb(var(--text))]" aria-hidden="true" />
+          )}
         </div>
-      </div>
+        <div className="flex flex-col flex-1 min-w-0">
+          <span className="text-sm font-semibold text-[rgb(var(--text))] truncate">{user?.name || 'Profile'}</span>
+          <span className="text-xs text-[rgba(var(--muted),0.65)] truncate">{user?.email || 'Manage your account'}</span>
+        </div>
+      </NavLink>
     </aside>
   )
 }
@@ -319,9 +331,6 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
             </span>
             <span className="text-sm font-semibold text-[rgb(var(--text))]">Navigation</span>
           </div>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <ThemeToggle />
         </div>
       </div>
       {isOpen && (
@@ -404,12 +413,14 @@ export default function Layout({ children, currentPageName }) {
             footerItems={footerItems}
             isDetailCollapsed={isDetailCollapsed}
             onToggleDetail={() => setDetailCollapsed(false)}
+            user={user}
           />
         ) : (
           <DetailSidebar
             sections={sections}
             currentPageName={currentPageName}
             onCollapse={() => setDetailCollapsed(true)}
+            user={user}
           />
         )}
         <main className="flex w-full flex-1 flex-col overflow-hidden">

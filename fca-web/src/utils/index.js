@@ -24,6 +24,8 @@ export function createPageUrl(name, params = {}) {
       return '/prospects';
     case 'Settings':
       return '/settings';
+    case 'Profile':
+      return '/profile';
     default:
       return '/';
   }

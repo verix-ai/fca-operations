@@ -80,6 +80,7 @@ export const Notification = {
 
   /**
    * Create a new notification (typically used by system/admins)
+   * Respects user notification preferences - won't create if user has disabled that type
    * @param {Object} data - Notification data
    * @param {string} data.user_id - Target user ID (if not current user)
    * @param {string} data.type - Notification type
@@ -87,15 +88,35 @@ export const Notification = {
    * @param {string} data.message - Notification message
    * @param {string} data.related_entity_type - Related entity type (optional)
    * @param {string} data.related_entity_id - Related entity ID (optional)
-   * @returns {Promise<Object>} Created notification
+   * @param {boolean} data.force - If true, bypasses user preferences (optional)
+   * @returns {Promise<Object|null>} Created notification, or null if user has disabled this type
    */
   async create(data) {
     const { organizationId } = await getUserOrganization()
+    const notificationType = data.type || 'general'
+
+    // Check user's notification preferences (unless force is true)
+    if (!data.force && data.user_id) {
+      const { data: targetUser, error: userError } = await supabase
+        .from('users')
+        .select('notification_preferences')
+        .eq('id', data.user_id)
+        .single()
+
+      if (!userError && targetUser?.notification_preferences) {
+        const prefs = targetUser.notification_preferences
+        // Check if in-app notifications are disabled for this type
+        if (prefs.in_app && prefs.in_app[notificationType] === false) {
+          console.log(`📵 Skipping notification for user ${data.user_id}: ${notificationType} is disabled`)
+          return null
+        }
+      }
+    }
 
     const notificationData = {
       organization_id: organizationId,
       user_id: data.user_id,
-      type: data.type || 'general',
+      type: notificationType,
       title: data.title,
       message: data.message,
       related_entity_type: data.related_entity_type || null,
@@ -303,6 +324,48 @@ export const Notification = {
 
     if (error) throw error
     return data || []
+  },
+
+  /**
+   * Check if a user has a specific notification type enabled
+   * @param {string} userId - User ID to check
+   * @param {string} type - Notification type
+   * @returns {Promise<boolean>} True if enabled, false if disabled
+   */
+  async isTypeEnabledForUser(userId, type) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('notification_preferences')
+      .eq('id', userId)
+      .single()
+
+    if (error || !user?.notification_preferences) {
+      // Default to enabled if preferences not set
+      return true
+    }
+
+    const prefs = user.notification_preferences
+    return prefs.in_app?.[type] !== false
+  },
+
+  /**
+   * Create notifications for multiple users, respecting each user's preferences
+   * @param {Array<string>} userIds - Array of user IDs
+   * @param {Object} data - Notification data (type, title, message, etc.)
+   * @returns {Promise<Array>} Array of created notifications (excludes users who have disabled this type)
+   */
+  async createForMultipleUsers(userIds, data) {
+    const results = []
+    for (const userId of userIds) {
+      const notification = await this.create({
+        ...data,
+        user_id: userId
+      })
+      if (notification) {
+        results.push(notification)
+      }
+    }
+    return results
   },
 
   /**

@@ -17,6 +17,7 @@ import MarketerIntake from '@/Pages/MarketerIntake.jsx'
 import Prospects from '@/Pages/Prospects.jsx'
 import ReferralProfile from '@/Pages/ReferralProfile.jsx'
 import Settings from '@/Pages/Settings.jsx'
+import Profile from '@/Pages/Profile.jsx'
 import Login from '@/Pages/Login.jsx'
 import Signup from '@/Pages/Signup.jsx'
 import ResetPassword from '@/Pages/ResetPassword.jsx'
@@ -177,6 +178,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedPage currentPageName="Settings">
             <Settings />
+          </ProtectedPage>
+        ),
+      },
+      {
+        path: createPageUrl('Profile'),
+        element: (
+          <ProtectedPage currentPageName="Profile">
+            <Profile />
           </ProtectedPage>
         ),
       },
