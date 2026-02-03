@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import Program from "@/entities/Program.supabase";
 import { Search, Filter, Eye, Edit, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
@@ -44,6 +47,7 @@ export default function ClientList() {
   const [confirmClient, setConfirmClient] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [deleteCaregiver, setDeleteCaregiver] = useState(false);
 
   const loadClients = async () => {
     setIsLoading(true);
@@ -121,6 +125,7 @@ export default function ClientList() {
   const openDeleteConfirm = (client) => {
     setConfirmClient(client);
     setConfirmText("");
+    setDeleteCaregiver(false);
     setConfirmOpen(true);
   };
 
@@ -128,11 +133,20 @@ export default function ClientList() {
     if (!confirmClient || confirmText !== "DELETE") return;
     setIsDeleting(true);
     try {
+      // If user chose to delete caregiver too and we have caregiver info
+      if (deleteCaregiver && confirmClient.caregiver_name) {
+        // Find and delete the caregiver by looking them up
+        const caregivers = await ClientCaregiver.listByClient(confirmClient.id);
+        for (const cg of caregivers) {
+          await ClientCaregiver.delete(cg.id);
+        }
+      }
       await Client.remove(confirmClient.id);
       await loadClients();
       setConfirmOpen(false);
       setConfirmClient(null);
       setConfirmText("");
+      setDeleteCaregiver(false);
     } catch (e) {
       console.error("Failed to delete client", e);
     }
@@ -271,10 +285,10 @@ export default function ClientList() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-kpi-secondary">
-                          {client.location 
-                            ? (client.location.includes(',') 
-                                ? client.location 
-                                : `${client.location}, ${client.state || 'GA'}`)
+                          {client.location
+                            ? (client.location.includes(',')
+                              ? client.location
+                              : `${client.location}, ${client.state || 'GA'}`)
                             : '-'}
                         </TableCell>
                         <TableCell className="text-kpi-secondary">
@@ -394,10 +408,10 @@ export default function ClientList() {
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Location</span>
                       <span className="text-sm text-heading-primary">
-                        {client.location 
-                          ? (client.location.includes(',') 
-                              ? client.location 
-                              : `${client.location}, ${client.state || 'GA'}`)
+                        {client.location
+                          ? (client.location.includes(',')
+                            ? client.location
+                            : `${client.location}, ${client.state || 'GA'}`)
                           : '-'}
                       </span>
                     </div>
@@ -463,6 +477,32 @@ export default function ClientList() {
                 <p className="text-heading-subdued">
                   Are you sure you want to delete <span className="font-medium text-heading-primary">{confirmClient?.client_name}</span>? This action cannot be undone.
                 </p>
+
+                {confirmClient?.caregiver_name && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                    <p className="text-sm text-amber-400">
+                      <span className="font-medium">{confirmClient.client_name}</span> has an assigned caregiver: <span className="font-medium">{confirmClient.caregiver_name}</span>
+                      {confirmClient.caregiver_relationship && ` (${confirmClient.caregiver_relationship})`}
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="deleteCaregiverList"
+                        checked={deleteCaregiver}
+                        onCheckedChange={(checked) => setDeleteCaregiver(checked)}
+                        className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                      />
+                      <Label htmlFor="deleteCaregiverList" className="text-sm text-heading-primary cursor-pointer">
+                        Also delete caregiver <span className="font-medium">{confirmClient.caregiver_name}</span>
+                      </Label>
+                    </div>
+                    <p className="text-xs text-heading-subdued">
+                      {deleteCaregiver
+                        ? "Both client and caregiver will be permanently deleted."
+                        : "Caregiver will be unlinked and remain in the system."
+                      }
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs text-heading-subdued uppercase tracking-wider">

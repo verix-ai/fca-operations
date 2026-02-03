@@ -8,6 +8,9 @@ import { createPageUrl } from "@/utils";
 import { format } from "date-fns";
 import { useAuth } from "@/auth/AuthProvider.jsx";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 
 import ClientEditForm from "@/components/client/ClientEditForm";
 import ClientNotes from "@/components/client/ClientNotes";
@@ -28,6 +31,7 @@ export default function ClientDetail() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteCaregiver, setDeleteCaregiver] = useState(false);
 
   const loadClient = useCallback(async () => {
     setIsLoading(true);
@@ -66,6 +70,10 @@ export default function ClientDetail() {
     if (confirmText !== 'DELETE' || !client) return
     setIsDeleting(true)
     try {
+      // If user chose to delete caregiver too, delete them first
+      if (deleteCaregiver && activeCaregiver) {
+        await ClientCaregiver.delete(activeCaregiver.id)
+      }
       await Client.remove(client.id)
       navigate(createPageUrl('ClientList'))
     } catch (e) {
@@ -73,6 +81,15 @@ export default function ClientDetail() {
     }
     setIsDeleting(false)
   }
+
+  // Get active caregiver for delete confirmation
+  // Check caregivers array first, then fallback to caregiver_name on client
+  const activeCaregiver = client?.caregivers?.find(c => c.status === 'active')
+    || (client?.caregiver_name ? {
+      full_name: client.caregiver_name,
+      relationship: client.caregiver_relationship,
+      id: client?.caregivers?.[0]?.id // Try to get ID from first caregiver if available
+    } : null);
 
   if (isLoading) {
     return (
@@ -139,7 +156,7 @@ export default function ClientDetail() {
                 background="rgba(239,68,68,0.1)"
                 textColor="rgb(239,68,68)"
                 style={{ borderColor: 'rgba(239,68,68,0.4)' }}
-                onClick={() => { setConfirmText(''); setConfirmOpen(true) }}
+                onClick={() => { setConfirmText(''); setDeleteCaregiver(false); setConfirmOpen(true) }}
                 className="gap-2 px-5 hover:bg-red-500/15"
               >
                 <Trash2 className="w-4 h-4 mr-2" /> Delete
@@ -230,10 +247,10 @@ export default function ClientDetail() {
           )}
 
           <TabsContent value="compliance">
-            <ClientCompliance 
-              client={client} 
-              onUpdate={handleClientUpdate} 
-              readOnly={user?.role === 'marketer'} 
+            <ClientCompliance
+              client={client}
+              onUpdate={handleClientUpdate}
+              readOnly={user?.role === 'marketer'}
             />
           </TabsContent>
 
@@ -261,6 +278,32 @@ export default function ClientDetail() {
                 <p className="text-heading-subdued">
                   Are you sure you want to delete <span className="font-medium text-heading-primary">{client?.client_name}</span>? This action cannot be undone.
                 </p>
+
+                {activeCaregiver && (
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                    <p className="text-sm text-amber-400">
+                      <span className="font-medium">{client?.client_name}</span> has an assigned caregiver: <span className="font-medium">{activeCaregiver.full_name}</span>
+                      {activeCaregiver.relationship && ` (${activeCaregiver.relationship})`}
+                    </p>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="deleteCaregiver"
+                        checked={deleteCaregiver}
+                        onCheckedChange={(checked) => setDeleteCaregiver(checked)}
+                        className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                      />
+                      <Label htmlFor="deleteCaregiver" className="text-sm text-heading-primary cursor-pointer">
+                        Also delete caregiver <span className="font-medium">{activeCaregiver.full_name}</span>
+                      </Label>
+                    </div>
+                    <p className="text-xs text-heading-subdued">
+                      {deleteCaregiver
+                        ? "Both client and caregiver will be permanently deleted."
+                        : "Caregiver will be unlinked and remain in the system."
+                      }
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   <label className="text-xs text-heading-subdued uppercase tracking-wider">

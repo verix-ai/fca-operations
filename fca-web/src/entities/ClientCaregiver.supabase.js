@@ -42,6 +42,16 @@ export const ClientCaregiver = {
   async addCaregiver(clientId, payload) {
     if (!clientId) throw new Error("clientId is required");
 
+    // Get organization_id from the client to ensure caregiver remains visible if client is deleted
+    const { data: client, error: clientError } = await supabase
+      .from('clients')
+      .select('organization_id')
+      .eq('id', clientId)
+      .single();
+
+    if (clientError) throw clientError;
+    if (!client?.organization_id) throw new Error("Client not found or has no organization");
+
     // Ensure only one active caregiver at a time
     await supabase
       .from("client_caregivers")
@@ -53,6 +63,7 @@ export const ClientCaregiver = {
       .eq("status", "active");
 
     return caregiverService.create({
+      organization_id: client.organization_id,
       client_id: clientId,
       full_name: payload.full_name,
       relationship: payload.relationship || null,

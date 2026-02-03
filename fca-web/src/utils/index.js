@@ -22,6 +22,8 @@ export function createPageUrl(name, params = {}) {
       return '/notifications';
     case 'Prospects':
       return '/prospects';
+    case 'ClientConnectList':
+      return '/client-connect';
     case 'Settings':
       return '/settings';
     case 'Profile':

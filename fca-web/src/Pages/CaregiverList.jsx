@@ -6,6 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Client } from "@/entities/Client.supabase";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Filter, Eye, Edit, Trash2, Plus, AlertTriangle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -30,13 +33,18 @@ export default function CaregiverList() {
     const [deleteId, setDeleteId] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteConfirmText, setDeleteConfirmText] = useState("");
+    const [clearClientInfo, setClearClientInfo] = useState(false);
 
     // Reset confirmation text when modal closes
     useEffect(() => {
         if (!deleteId) {
             setDeleteConfirmText("");
+            setClearClientInfo(false);
         }
     }, [deleteId]);
+
+    // Get the caregiver being deleted for the confirmation modal
+    const caregiverToDelete = deleteId ? caregivers.find(c => c.id === deleteId) : null;
 
     const loadCaregivers = async () => {
         setIsLoading(true);
@@ -53,6 +61,15 @@ export default function CaregiverList() {
         if (!deleteId) return;
         setIsDeleting(true);
         try {
+            // If user chose to clear client caregiver info, do that first
+            if (clearClientInfo && caregiverToDelete?.client?.id) {
+                await Client.update(caregiverToDelete.client.id, {
+                    caregiver_name: null,
+                    caregiver_relationship: null,
+                    caregiver_phone: null,
+                    caregiver_email: null
+                });
+            }
             await ClientCaregiver.delete(deleteId);
             setCaregivers(prev => prev.filter(c => c.id !== deleteId));
             setDeleteId(null);
@@ -200,7 +217,7 @@ export default function CaregiverList() {
                                                     )}
                                                 </TableCell>
                                                 <TableCell className="text-kpi-secondary">
-                                                    {bg.relationship || '-'}
+                                                    {bg.client?.client_name ? (bg.relationship || '-') : '-'}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge className={`${bg.status === 'active' ? 'bg-[rgba(99,255,130,0.16)] text-neutral-50 border-brand/45' : 'bg-white/5 text-neutral-400 border-white/10'} px-3 py-1 rounded-lg font-medium`}>
@@ -303,7 +320,7 @@ export default function CaregiverList() {
                                     <div className="space-y-3 pt-2 border-t border-white/5">
                                         <div className="flex items-center gap-2">
                                             <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Relation</span>
-                                            <span className="text-sm text-heading-primary">{bg.relationship || '-'}</span>
+                                            <span className="text-sm text-heading-primary">{bg.client?.client_name ? (bg.relationship || '-') : '-'}</span>
                                         </div>
                                         {(bg.phone || bg.email) && (
                                             <div className="flex flex-col gap-1">
@@ -364,8 +381,33 @@ export default function CaregiverList() {
 
                         <div className="space-y-4 mb-6">
                             <p className="text-heading-subdued">
-                                Are you sure you want to delete this caregiver? This action cannot be undone.
+                                Are you sure you want to delete <span className="font-medium text-heading-primary">{caregiverToDelete?.full_name}</span>? This action cannot be undone.
                             </p>
+
+                            {caregiverToDelete?.client && (
+                                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-3">
+                                    <p className="text-sm text-amber-400">
+                                        <span className="font-medium">{caregiverToDelete.full_name}</span> is assigned to: <span className="font-medium">{caregiverToDelete.client.client_name}</span>
+                                    </p>
+                                    <div className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id="clearClientInfo"
+                                            checked={clearClientInfo}
+                                            onCheckedChange={(checked) => setClearClientInfo(checked)}
+                                            className="border-amber-500/50 data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
+                                        />
+                                        <Label htmlFor="clearClientInfo" className="text-sm text-heading-primary cursor-pointer">
+                                            Also clear caregiver info from <span className="font-medium">{caregiverToDelete.client.client_name}</span>'s record
+                                        </Label>
+                                    </div>
+                                    <p className="text-xs text-heading-subdued">
+                                        {clearClientInfo
+                                            ? "Caregiver info will be cleared from the client's record."
+                                            : "Client's caregiver info fields will remain (may show outdated data)."
+                                        }
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <label className="text-xs text-heading-subdued uppercase tracking-wider">

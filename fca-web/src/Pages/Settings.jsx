@@ -35,6 +35,7 @@ export default function Settings() {
         <ProgramsSection />
         <CmCompaniesSection />
         <CaregiverAlertsSection />
+        <ClientConnectAlertsSection />
         <CountiesSection />
       </div>
 
@@ -1360,15 +1361,15 @@ function CountiesSection() {
                 {/* Select All option */}
                 {modalCounties.length > 0 && (
                   <label className="flex items-center gap-2 text-neutral-800 pb-2 mb-2 border-b border-[rgba(147,165,197,0.2)]">
-                    <Checkbox 
-                      checked={modalCounties.length > 0 && modalSelected.length === modalCounties.length} 
+                    <Checkbox
+                      checked={modalCounties.length > 0 && modalSelected.length === modalCounties.length}
                       onCheckedChange={(checked) => {
                         if (checked) {
                           setModalSelected([...modalCounties])
                         } else {
                           setModalSelected([])
                         }
-                      }} 
+                      }}
                     />
                     <span className="font-medium">Select All ({modalCounties.length} counties)</span>
                   </label>
@@ -1512,3 +1513,78 @@ function CaregiverAlertsSection() {
     </Card>
   )
 }
+
+function ClientConnectAlertsSection() {
+  const [settings, setSettings] = useState({
+    stale_days: 7
+  })
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const s = await SettingsStore.get()
+        if (s.client_connect_alerts) {
+          setSettings(prev => ({ ...prev, ...s.client_connect_alerts }))
+        }
+      } catch (e) {
+        console.error("Failed to load client connect alert settings", e)
+      }
+    })()
+  }, [])
+
+  const handleChange = (key, val) => {
+    setSettings(prev => ({ ...prev, [key]: parseInt(val) || 0 }))
+  }
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await SettingsStore.update({ client_connect_alerts: settings })
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2000)
+    } catch (e) {
+      console.error("Failed to save settings", e)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
+      <CardHeader className="p-4 flex flex-row items-center justify-between">
+        <CardTitle className="text-heading-primary">Client Connect Alerts</CardTitle>
+      </CardHeader>
+      <CardContent className="p-4 space-y-4">
+        <p className="text-sm text-heading-subdued">
+          Set the number of days before pending Client Connect entries are flagged as stale and administrators are notified.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label className="text-xs uppercase tracking-wider text-heading-subdued">Stale Entry Threshold</label>
+            <div className="relative">
+              <Input
+                type="number"
+                value={settings.stale_days}
+                onChange={e => handleChange('stale_days', e.target.value)}
+                className="rounded-xl pr-12"
+                min={1}
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-heading-subdued">Days</span>
+            </div>
+            <p className="text-xs text-heading-subdued">
+              Entries pending longer than this will trigger admin notifications.
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end pt-2">
+          <Button onClick={handleSave} disabled={saving} variant="default" className="w-full sm:w-auto">
+            {saving ? 'Saving...' : saved ? '✓ Saved' : 'Save Settings'}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+

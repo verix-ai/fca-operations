@@ -15,6 +15,7 @@ import Messages from '@/Pages/Messages.jsx'
 import Notifications from '@/Pages/Notifications.jsx'
 import MarketerIntake from '@/Pages/MarketerIntake.jsx'
 import Prospects from '@/Pages/Prospects.jsx'
+import ClientConnectList from '@/Pages/ClientConnectList.jsx'
 import ReferralProfile from '@/Pages/ReferralProfile.jsx'
 import Settings from '@/Pages/Settings.jsx'
 import Profile from '@/Pages/Profile.jsx'
@@ -122,6 +123,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedPage currentPageName="ClientList">
             <ClientList />
+          </ProtectedPage>
+        ),
+      },
+      {
+        path: createPageUrl('ClientConnectList'),
+        element: (
+          <ProtectedPage currentPageName="Client Connect">
+            <ClientConnectList />
           </ProtectedPage>
         ),
       },
