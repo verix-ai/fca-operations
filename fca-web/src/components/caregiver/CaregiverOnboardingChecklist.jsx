@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ClipboardCheck, Check, Loader2 } from 'lucide-react';
 import { ClientCaregiver } from '@/entities/ClientCaregiver.supabase';
+import { COMPLIANCE_ONBOARDING_MAP } from "@/constants/caregiver";
 
 // Define the onboarding checklist items
 const ONBOARDING_ITEMS = [
@@ -17,6 +18,7 @@ const ONBOARDING_ITEMS = [
     { field: 'drivers_license_submitted', label: 'Driver\'s License Submitted', dateField: 'drivers_license_expires_at', dateLabel: 'Expires' },
     { field: 'tb_test_completed', label: 'TB Test Completed', dateField: 'tb_test_issued_at', dateLabel: 'Issued' },
     { field: 'cpr_first_aid_completed', label: 'CPR/First Aid Completed', dateField: 'cpr_issued_at', dateLabel: 'Issued' },
+    { field: 'caregiver_training_completed', label: 'Caregiver Training Completed', dateField: 'caregiver_training_date', dateLabel: 'Date' },
 ];
 
 export default function CaregiverOnboardingChecklist({ caregiver, onUpdate }) {
@@ -28,11 +30,37 @@ export default function CaregiverOnboardingChecklist({ caregiver, onUpdate }) {
     const progress = Math.round((completedCount / ONBOARDING_ITEMS.length) * 100);
     const isFinalized = caregiver.onboarding_finalized;
 
+
+
+    // ...
+
     const handleToggle = async (field, value) => {
         setUpdating(field);
+
+        let updates = { [field]: value };
+
+        // Sync with Compliance Data
+        // Find if this field maps to a compliance item
+        const complianceId = Object.keys(COMPLIANCE_ONBOARDING_MAP).find(
+            key => COMPLIANCE_ONBOARDING_MAP[key] === field
+        );
+
+        if (complianceId) {
+            const currentComplianceData = caregiver.compliance_data || {};
+            const itemData = currentComplianceData[complianceId] || {};
+
+            updates.compliance_data = {
+                ...currentComplianceData,
+                [complianceId]: {
+                    ...itemData,
+                    checked: value
+                }
+            };
+        }
+
         try {
-            await ClientCaregiver.updateCaregiver(caregiver.id, { [field]: value });
-            onUpdate?.({ [field]: value });
+            await ClientCaregiver.updateCaregiver(caregiver.id, updates);
+            onUpdate?.(updates);
         } catch (err) {
             console.error('Failed to update:', err);
         } finally {

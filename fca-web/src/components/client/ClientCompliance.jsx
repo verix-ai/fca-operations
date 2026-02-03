@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, FileText, Download, Printer, X, Check } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Printer, X, Check, Eye } from "lucide-react";
+import FilePreviewModal from "@/components/ui/FilePreviewModal";
 import { supabase } from "@/lib/supabase";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
@@ -41,6 +42,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
   const fileInputRef = useRef(null);
   const currentUploadItem = useRef(null);
   const currentUploadSide = useRef(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   useEffect(() => {
     if (client?.compliance_data) {
@@ -84,7 +86,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
 
     const itemId = currentUploadItem.current;
     const side = currentUploadSide.current;
-    
+
     // Validate file type
     const validTypes = ["application/pdf", "image/jpeg", "image/jpg"];
     if (!validTypes.includes(file.type)) {
@@ -93,12 +95,12 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
     }
 
     setUploadingItem(itemId);
-    
+
     try {
       // Get file extension
       const ext = file.name.split(".").pop().toLowerCase();
       const filePath = `${client.id}/compliance/${side}/${itemId}.${ext}`;
-      
+
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
         .from("client-documents")
@@ -119,12 +121,12 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
       };
       setComplianceData(newData);
       saveComplianceData(newData);
-      
+
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Failed to upload file. Please try again.");
     }
-    
+
     setUploadingItem(null);
     currentUploadItem.current = null;
     currentUploadSide.current = null;
@@ -134,7 +136,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
 
   const removeFile = async (itemId) => {
     if (readOnly) return;
-    
+
     const itemData = complianceData[itemId];
     if (!itemData?.filePath) return;
 
@@ -184,12 +186,12 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
       }
 
       const zip = new JSZip();
-      
+
       for (const file of files) {
         const { data, error } = await supabase.storage
           .from("client-documents")
           .download(file.filePath);
-        
+
         if (error) {
           console.error(`Error downloading ${file.fileName}:`, error);
           continue;
@@ -202,7 +204,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
       const content = await zip.generateAsync({ type: "blob" });
       const sideName = side === "left" ? "Clinical" : "Service_Documents";
       saveAs(content, `${client.client_name}_${sideName}_Compliance.zip`);
-      
+
     } catch (error) {
       console.error("Error creating download:", error);
       alert("Failed to create download. Please try again.");
@@ -225,19 +227,19 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
 
       // Build HTML content with embedded images
       let pagesHtml = "";
-      
+
       for (const file of files) {
         const { data, error } = await supabase.storage
           .from("client-documents")
           .download(file.filePath);
-        
+
         if (error) {
           console.error(`Error downloading ${file.fileName}:`, error);
           continue;
         }
 
         const ext = file.filePath.split(".").pop().toLowerCase();
-        
+
         if (ext === "pdf") {
           // For PDFs, convert to base64 data URL
           const base64 = await blobToBase64(data);
@@ -393,7 +395,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
       setTimeout(() => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-        
+
         // Clean up iframe after printing
         setTimeout(() => {
           document.body.removeChild(iframe);
@@ -432,7 +434,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
     const isChecked = itemData.checked || false;
     const hasFile = !!itemData.filePath;
     const isUploading = uploadingItem === item.id;
-    
+
     return (
       <div key={item.id} className="flex items-start gap-3 py-2 group">
         <Checkbox
@@ -450,10 +452,13 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
             {item.label}
           </Label>
           {hasFile && (
-            <span className="text-xs text-brand flex items-center gap-1 mt-1">
-              <FileText className="w-3 h-3" />
+            <button
+              onClick={() => setPreviewFile({ filePath: itemData.filePath, fileName: itemData.fileName, title: item.label })}
+              className="text-xs text-brand flex items-center gap-1 mt-1 hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              <Eye className="w-3 h-3" />
               {itemData.fileName}
-            </span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -470,11 +475,10 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
             <button
               onClick={() => triggerFileUpload(item.id, side)}
               disabled={isUploading}
-              className={`p-1.5 rounded-lg transition-colors ${
-                hasFile 
-                  ? "text-brand bg-brand/10" 
+              className={`p-1.5 rounded-lg transition-colors ${hasFile
+                  ? "text-brand bg-brand/10"
                   : "text-heading-subdued hover:text-brand hover:bg-brand/10"
-              }`}
+                }`}
               title={hasFile ? "Replace file" : "Upload file"}
             >
               {isUploading ? (
@@ -504,22 +508,20 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
         <div className="flex items-center bg-black/20 rounded-full p-1">
           <button
             onClick={() => setMode("download")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "download" 
-                ? "bg-brand text-black" 
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "download"
+                ? "bg-brand text-black"
                 : "text-heading-subdued hover:text-heading-primary"
-            }`}
+              }`}
           >
             <Download className="w-3.5 h-3.5" />
             Download
           </button>
           <button
             onClick={() => setMode("print")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "print" 
-                ? "bg-brand text-black" 
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "print"
+                ? "bg-brand text-black"
                 : "text-heading-subdued hover:text-heading-primary"
-            }`}
+              }`}
           >
             <Printer className="w-3.5 h-3.5" />
             Print
@@ -566,6 +568,15 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
         accept=".pdf,.jpg,.jpeg"
         onChange={handleFileChange}
         className="hidden"
+      />
+
+      <FilePreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        filePath={previewFile?.filePath}
+        fileName={previewFile?.fileName}
+        title={previewFile?.title}
+        storageBucket="client-documents"
       />
 
       <div className="grid gap-6 md:grid-cols-2">

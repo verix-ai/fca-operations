@@ -11,7 +11,6 @@ import {
   MessageSquare,
   PieChart,
   Plus,
-  Search,
   Settings,
   User,
   Users,
@@ -171,18 +170,6 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail,
 }
 
 function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
-  const [searchValue, setSearchValue] = useState('')
-  const filteredSections = useMemo(() => {
-    const query = searchValue.trim().toLowerCase()
-    if (!query) return sections
-    return sections
-      .map((section) => ({
-        ...section,
-        items: section.items.filter((item) => item.title.toLowerCase().includes(query)),
-      }))
-      .filter((section) => section.items.length > 0)
-  }, [sections, searchValue])
-
   return (
     <aside
       data-sidebar
@@ -194,11 +181,8 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
           <div className={classNames(railLogoShadeClass, 'h-12 w-12 overflow-hidden')}>
             <img src="/fca-logo.png" alt="FCA" className="h-full w-full object-contain p-1.5" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold uppercase tracking-[0.25em] text-[rgba(var(--muted),0.7)]">
-              Friendly Care Agency
-            </span>
-            <span className="text-xl font-semibold text-[rgb(var(--text))]">FCA Operations</span>
+          <div className="flex flex-col justify-center">
+            <span className="text-xl font-semibold text-[rgb(var(--text))]">Friendly Care App</span>
           </div>
         </div>
         <button
@@ -220,21 +204,8 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
         <p className="mt-2 text-lg font-semibold text-[rgb(var(--text))]">{currentPageName}</p>
       </div>
 
-      <div className="w-full overflow-hidden rounded-xl border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.8)] px-4 py-2">
-        <div className="flex items-center gap-2 text-[rgba(var(--muted),0.75)]">
-          <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(event) => setSearchValue(event.target.value)}
-            className="w-full bg-transparent text-sm text-[rgb(var(--text))] outline-none placeholder:text-[rgba(var(--muted),0.6)]"
-            placeholder="Quick search"
-          />
-        </div>
-      </div>
-
       <nav className="flex w-full flex-1 flex-col gap-6 overflow-y-auto pr-1">
-        {filteredSections.map((section) => (
+        {sections.map((section) => (
           <div key={section.id} className="flex w-full flex-col gap-3">
             <h3 className="px-2 text-xs font-semibold uppercase tracking-[0.3em] text-[rgba(var(--muted),0.6)]">
               {section.title}
@@ -326,11 +297,8 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
           <div className={classNames(railLogoShadeClass, 'h-11 w-11 overflow-hidden')}>
             <img src="/fca-logo.png" alt="FCA" className="h-full w-full object-contain p-1.5" />
           </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium uppercase tracking-[0.28em] text-[rgba(var(--muted),0.6)]">
-              FCA Operations
-            </span>
-            <span className="text-sm font-semibold text-[rgb(var(--text))]">Navigation</span>
+          <div className="flex flex-col justify-center">
+            <span className="text-lg font-semibold text-[rgb(var(--text))]">Friendly Care App</span>
           </div>
         </div>
       </div>

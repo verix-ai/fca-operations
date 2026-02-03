@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, FileText, Download, Printer, X, Check } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Printer, X, Check, Eye, Plus } from "lucide-react";
+import FilePreviewModal from "@/components/ui/FilePreviewModal";
 import { supabase } from "@/lib/supabase";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
+import { COMPLIANCE_ONBOARDING_MAP } from "@/constants/caregiver";
 
 const LEFT_SIDE_ITEMS = [
   { id: "drivers_license", label: "Driver License" },
@@ -35,6 +37,7 @@ const RIGHT_SIDE_ITEMS = [
   { id: "abuse_neglect_statement", label: "Statement of Abuse, Neglect, Exploitation, Misconduct" },
   { id: "tb_hepatitis_clearance", label: "TB Hepatitis Exposure Reporting and Clearance" },
   { id: "form_w4", label: "W-4" },
+  { id: "caregiver_training", label: "Caregiver Training", isMulti: true },
 ];
 
 export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = false }) {
@@ -47,6 +50,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
   const fileInputRef = useRef(null);
   const currentUploadItem = useRef(null);
   const currentUploadSide = useRef(null);
+  const [previewFile, setPreviewFile] = useState(null);
 
   useEffect(() => {
     if (caregiver?.compliance_data) {
@@ -54,16 +58,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
     }
   }, [caregiver]);
 
-  const saveComplianceData = async (newData) => {
-    if (readOnly || !onUpdate) return;
-    try {
-      await onUpdate({
-        compliance_data: newData,
-      });
-    } catch (error) {
-      console.error("Error saving compliance data:", error);
-    }
-  };
+
 
   const handleCheckChange = (itemId, checked) => {
     const newData = {
@@ -74,7 +69,25 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
       },
     };
     setComplianceData(newData);
-    saveComplianceData(newData);
+
+    // Sync with Onboarding Checklist
+    const onboardingField = COMPLIANCE_ONBOARDING_MAP[itemId];
+    const updates = { compliance_data: newData };
+
+    if (onboardingField) {
+      updates[onboardingField] = checked;
+    }
+
+    saveComplianceData(updates);
+  };
+
+  const saveComplianceData = async (updates) => {
+    if (readOnly || !onUpdate) return;
+    try {
+      await onUpdate(updates);
+    } catch (error) {
+      console.error("Error saving compliance data:", error);
+    }
   };
 
   const triggerFileUpload = (itemId, side) => {
@@ -90,7 +103,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
 
     const itemId = currentUploadItem.current;
     const side = currentUploadSide.current;
-    
+
     const validTypes = ["application/pdf", "image/jpeg", "image/jpg"];
     if (!validTypes.includes(file.type)) {
       alert("Please upload a PDF or JPG file.");
@@ -98,61 +111,124 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
     }
 
     setUploadingItem(itemId);
-    
+
     try {
       const ext = file.name.split(".").pop().toLowerCase();
       const filePath = `${caregiver.id}/compliance/${side}/${itemId}.${ext}`;
-      
+
       const { data, error } = await supabase.storage
         .from("caregiver-documents")
         .upload(filePath, file, { upsert: true });
 
       if (error) throw error;
 
-      const newData = {
-        ...complianceData,
-        [itemId]: {
-          ...complianceData[itemId],
-          checked: true,
+      let newData;
+      const isMulti = side === "right" && itemId === "caregiver_training";
+
+      if (isMulti) {
+        // Handle multi-file upload
+        const existingFiles = complianceData[itemId]?.files || [];
+        const newFileEntry = {
+          id: `${Date.now()}`, // Unique ID for the file entry
           filePath: filePath,
           fileName: file.name,
           uploadedAt: new Date().toISOString(),
-        },
-      };
+          label: `Training Record - ${new Date().toLocaleDateString()}`
+        };
+
+        newData = {
+          ...complianceData,
+          [itemId]: {
+            ...complianceData[itemId],
+            checked: true,
+            files: [...existingFiles, newFileEntry]
+          }
+        };
+      } else {
+        // Handle single-file upload (standard)
+        newData = {
+          ...complianceData,
+          [itemId]: {
+            ...complianceData[itemId],
+            checked: true,
+            filePath: filePath,
+            fileName: file.name,
+            uploadedAt: new Date().toISOString(),
+          },
+        };
+      }
+
       setComplianceData(newData);
-      saveComplianceData(newData);
-      
+
+      const updates = { compliance_data: newData };
+
+      // Auto-check onboarding item if file uploaded
+      const onboardingField = COMPLIANCE_ONBOARDING_MAP[itemId];
+      if (onboardingField) {
+        updates[onboardingField] = true;
+      }
+
+      saveComplianceData(updates);
+
     } catch (error) {
       console.error("Error uploading file:", error);
       alert("Failed to upload file. Please try again.");
     }
-    
+
     setUploadingItem(null);
     currentUploadItem.current = null;
     currentUploadSide.current = null;
     e.target.value = "";
   };
 
-  const removeFile = async (itemId) => {
+  const removeFile = async (itemId, fileEntryId = null) => {
     if (readOnly) return;
-    
+
     const itemData = complianceData[itemId];
-    if (!itemData?.filePath) return;
+
+    // Determine path to delete
+    let filePathToDelete;
+    if (fileEntryId && itemData?.files) {
+      const fileEntry = itemData.files.find(f => f.id === fileEntryId);
+      filePathToDelete = fileEntry?.filePath;
+    } else {
+      filePathToDelete = itemData?.filePath;
+    }
+
+    if (!filePathToDelete) return;
 
     try {
       await supabase.storage
         .from("caregiver-documents")
-        .remove([itemData.filePath]);
+        .remove([filePathToDelete]);
 
-      const newData = {
-        ...complianceData,
-        [itemId]: {
-          ...complianceData[itemId],
-          filePath: null,
-          fileName: null,
-          uploadedAt: null,
-        },
-      };
+      let newData;
+      if (fileEntryId && itemData?.files) {
+        // Remove specific file from multi-item list
+        const updatedFiles = itemData.files.filter(f => f.id !== fileEntryId);
+        newData = {
+          ...complianceData,
+          [itemId]: {
+            ...itemData,
+            files: updatedFiles,
+            // Uncheck if no files left? Optional. Let's keep it checked if user manually checked it.
+            // But if it was auto-checked, maybe we leave it? 
+            // For now, simple removal.
+          }
+        };
+      } else {
+        // Remove single file
+        newData = {
+          ...complianceData,
+          [itemId]: {
+            ...complianceData[itemId],
+            filePath: null,
+            fileName: null,
+            uploadedAt: null,
+          },
+        };
+      }
+
       setComplianceData(newData);
       saveComplianceData(newData);
     } catch (error) {
@@ -162,12 +238,32 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
 
   const getFilesForSide = (side) => {
     const items = side === "left" ? LEFT_SIDE_ITEMS : RIGHT_SIDE_ITEMS;
-    return items
-      .filter(item => complianceData[item.id]?.filePath)
-      .map(item => ({
-        ...item,
-        ...complianceData[item.id],
-      }));
+    const files = [];
+
+    items.forEach(item => {
+      const itemData = complianceData[item.id];
+      if (!itemData) return;
+
+      if (item.isMulti && itemData.files && itemData.files.length > 0) {
+        // Add all files from multi-item
+        itemData.files.forEach((file, index) => {
+          files.push({
+            id: `${item.id}_${file.id}`,
+            label: `${item.label} (${index + 1})`, // or file.label
+            filePath: file.filePath,
+            fileName: file.fileName
+          });
+        });
+      } else if (itemData.filePath) {
+        // Add single file
+        files.push({
+          ...item,
+          ...itemData
+        });
+      }
+    });
+
+    return files;
   };
 
   const handleDownload = async (side) => {
@@ -183,12 +279,12 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
       }
 
       const zip = new JSZip();
-      
+
       for (const file of files) {
         const { data, error } = await supabase.storage
           .from("caregiver-documents")
           .download(file.filePath);
-        
+
         if (error) {
           console.error(`Error downloading ${file.fileName}:`, error);
           continue;
@@ -201,7 +297,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
       const content = await zip.generateAsync({ type: "blob" });
       const sideName = side === "left" ? "Left_Side" : "Right_Side";
       saveAs(content, `${caregiver.full_name}_${sideName}_Compliance.zip`);
-      
+
     } catch (error) {
       console.error("Error creating download:", error);
       alert("Failed to create download. Please try again.");
@@ -223,19 +319,19 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
       }
 
       let pagesHtml = "";
-      
+
       for (const file of files) {
         const { data, error } = await supabase.storage
           .from("caregiver-documents")
           .download(file.filePath);
-        
+
         if (error) {
           console.error(`Error downloading ${file.fileName}:`, error);
           continue;
         }
 
         const ext = file.filePath.split(".").pop().toLowerCase();
-        
+
         if (ext === "pdf") {
           const base64 = await blobToBase64(data);
           pagesHtml += `
@@ -387,7 +483,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
       setTimeout(() => {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
-        
+
         setTimeout(() => {
           document.body.removeChild(iframe);
         }, 1000);
@@ -422,9 +518,85 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
   const renderChecklistItem = (item, side) => {
     const itemData = complianceData[item.id] || {};
     const isChecked = itemData.checked || false;
-    const hasFile = !!itemData.filePath;
     const isUploading = uploadingItem === item.id;
-    
+
+    // Multi-file item rendering (Caregiver Training)
+    if (item.isMulti) {
+      const files = itemData.files || [];
+
+      return (
+        <div key={item.id} className="flex flex-col gap-2 py-2 group">
+          <div className="flex items-start gap-3">
+            <Checkbox
+              id={item.id}
+              checked={isChecked}
+              onCheckedChange={(checked) => handleCheckChange(item.id, checked)}
+              disabled={readOnly}
+              className="mt-0.5 shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <Label
+                htmlFor={item.id}
+                className="text-sm text-heading-subdued cursor-pointer leading-tight block font-medium"
+              >
+                {item.label}
+              </Label>
+            </div>
+            {!readOnly && (
+              <button
+                onClick={() => triggerFileUpload(item.id, side)}
+                disabled={isUploading}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium bg-brand/10 text-brand hover:bg-brand/20 transition-colors"
+                title="Add another training record"
+              >
+                {isUploading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Plus className="w-3 h-3" />
+                )}
+                Add Record
+              </button>
+            )}
+          </div>
+
+          {/* List of uploaded files */}
+          <div className="pl-8 space-y-1">
+            {files.map((file, index) => (
+              <div key={file.id} className="flex items-center justify-between text-xs p-1.5 rounded hover:bg-white/5 group/file">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <span className="text-heading-subdued w-4">{index + 1}.</span>
+                  <button
+                    onClick={() => setPreviewFile({ filePath: file.filePath, fileName: file.fileName, title: `${item.label} - ${file.fileName}` })}
+                    className="flex items-center gap-1.5 text-brand hover:underline truncate"
+                  >
+                    <Eye className="w-3 h-3 shrink-0" />
+                    <span className="truncate">{file.fileName}</span>
+                  </button>
+                </div>
+                {!readOnly && (
+                  <button
+                    onClick={() => removeFile(item.id, file.id)}
+                    className="p-1 text-heading-subdued hover:text-red-400 opacity-0 group-hover/file:opacity-100 transition-opacity"
+                    title="Remove this record"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+            {files.length === 0 && (
+              <div className="text-xs text-heading-subdued italic">
+                No training records uploaded yet.
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Standard single-file item rendering
+    const hasFile = !!itemData.filePath;
+
     return (
       <div key={item.id} className="flex items-start gap-3 py-2 group">
         <Checkbox
@@ -442,10 +614,13 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
             {item.label}
           </Label>
           {hasFile && (
-            <span className="text-xs text-brand flex items-center gap-1 mt-1">
-              <FileText className="w-3 h-3" />
+            <button
+              onClick={() => setPreviewFile({ filePath: itemData.filePath, fileName: itemData.fileName, title: item.label })}
+              className="text-xs text-brand flex items-center gap-2 mt-1 hover:underline cursor-pointer bg-transparent border-none p-0"
+            >
+              <Eye className="w-3 h-3" />
               {itemData.fileName}
-            </span>
+            </button>
           )}
         </div>
         <div className="flex items-center gap-1 shrink-0">
@@ -462,11 +637,10 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
             <button
               onClick={() => triggerFileUpload(item.id, side)}
               disabled={isUploading}
-              className={`p-1.5 rounded-lg transition-colors ${
-                hasFile 
-                  ? "text-brand bg-brand/10" 
-                  : "text-heading-subdued hover:text-brand hover:bg-brand/10"
-              }`}
+              className={`p-1.5 rounded-lg transition-colors ${hasFile
+                ? "text-brand bg-brand/10"
+                : "text-heading-subdued hover:text-brand hover:bg-brand/10"
+                }`}
               title={hasFile ? "Replace file" : "Upload file"}
             >
               {isUploading ? (
@@ -495,22 +669,20 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
         <div className="flex items-center bg-black/20 rounded-full p-1">
           <button
             onClick={() => setMode("download")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "download" 
-                ? "bg-brand text-black" 
-                : "text-heading-subdued hover:text-heading-primary"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "download"
+              ? "bg-brand text-black"
+              : "text-heading-subdued hover:text-heading-primary"
+              }`}
           >
             <Download className="w-3.5 h-3.5" />
             Download
           </button>
           <button
             onClick={() => setMode("print")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "print" 
-                ? "bg-brand text-black" 
-                : "text-heading-subdued hover:text-heading-primary"
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "print"
+              ? "bg-brand text-black"
+              : "text-heading-subdued hover:text-heading-primary"
+              }`}
           >
             <Printer className="w-3.5 h-3.5" />
             Print
@@ -555,6 +727,15 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
         accept=".pdf,.jpg,.jpeg"
         onChange={handleFileChange}
         className="hidden"
+      />
+
+      <FilePreviewModal
+        isOpen={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        filePath={previewFile?.filePath}
+        fileName={previewFile?.fileName}
+        title={previewFile?.title}
+        storageBucket="caregiver-documents"
       />
 
       <div className="grid gap-6 md:grid-cols-2">

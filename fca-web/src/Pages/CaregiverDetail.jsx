@@ -157,7 +157,7 @@ export default function CaregiverDetail() {
     const cprIssuedAt = caregiver.cpr_issued_at || client.cpr_issued_at;
     const tbIssuedAt = caregiver.tb_test_issued_at || client.tb_test_issued_at;
     const licenseExpiresAt = caregiver.drivers_license_expires_at || client.drivers_license_expires_at;
-    const trainingDate = client.training_or_care_start_date; // Training stays on client for now
+    const trainingDate = caregiver.caregiver_training_date || client.training_or_care_start_date;
 
     const cprExpiration = cprIssuedAt ? addYears(new Date(cprIssuedAt), 2) : null;
     const tbExpiration = tbIssuedAt ? addYears(new Date(tbIssuedAt), 1) : null;
@@ -264,142 +264,142 @@ export default function CaregiverDetail() {
 
                     <TabsContent value="overview">
                         <div className="grid md:grid-cols-3 gap-8">
-                    {/* Main Info */}
-                    <div className="md:col-span-2 space-y-6">
-                        <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
-                            <CardHeader className="border-b border-white/5 p-6 flex flex-row items-center justify-between">
-                                <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
-                                    <User className="w-5 h-5 text-brand/70" />
-                                    Details
-                                </CardTitle>
-                                <Button variant="outline" size="sm" className="gap-2 rounded-xl" onClick={openEditModal}>
-                                    <Pencil className="w-4 h-4" />
-                                    Edit
-                                </Button>
-                            </CardHeader>
-                            <CardContent className="p-6 space-y-4">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <InfoRow icon={User} label="Relationship" value={caregiver.relationship || '-'} />
-                                    <InfoRow icon={Home} label="Lives In Home" value={caregiver.lives_in_home ? 'Yes' : 'No'} />
-                                    <InfoRow icon={Phone} label="Phone" value={caregiver.phone || '-'} />
-                                    <InfoRow icon={Mail} label="Email" value={caregiver.email || '-'} />
-                                    <InfoRow icon={Calendar} label="Start Date" value={caregiver.started_at ? format(new Date(caregiver.started_at), 'MMM d, yyyy') : '-'} />
-                                    <InfoRow icon={Calendar} label="End Date" value={caregiver.ended_at ? format(new Date(caregiver.ended_at), 'MMM d, yyyy') : '-'} />
-                                </div>
+                            {/* Main Info */}
+                            <div className="md:col-span-2 space-y-6">
+                                <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
+                                    <CardHeader className="border-b border-white/5 p-6 flex flex-row items-center justify-between">
+                                        <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
+                                            <User className="w-5 h-5 text-brand/70" />
+                                            Details
+                                        </CardTitle>
+                                        <Button variant="outline" size="sm" className="gap-2 rounded-xl" onClick={openEditModal}>
+                                            <Pencil className="w-4 h-4" />
+                                            Edit
+                                        </Button>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-4">
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            <InfoRow icon={User} label="Relationship" value={caregiver.relationship || '-'} />
+                                            <InfoRow icon={Home} label="Lives In Home" value={caregiver.lives_in_home ? 'Yes' : 'No'} />
+                                            <InfoRow icon={Phone} label="Phone" value={caregiver.phone || '-'} />
+                                            <InfoRow icon={Mail} label="Email" value={caregiver.email || '-'} />
+                                            <InfoRow icon={Calendar} label="Start Date" value={caregiver.started_at ? format(new Date(caregiver.started_at), 'MMM d, yyyy') : '-'} />
+                                            <InfoRow icon={Calendar} label="End Date" value={caregiver.ended_at ? format(new Date(caregiver.ended_at), 'MMM d, yyyy') : '-'} />
+                                        </div>
 
-                                {caregiver.notes && (
-                                    <div className="mt-6 pt-6 border-t border-white/5 space-y-2">
-                                        <h4 className="text-xs uppercase tracking-[0.3em] text-heading-subdued">Notes</h4>
-                                        <p className="text-sm text-heading-primary leading-relaxed bg-black/20 p-4 rounded-2xl border border-white/5">
-                                            {caregiver.notes}
-                                        </p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Onboarding Checklist - for all caregivers */}
-                        <CaregiverOnboardingChecklist
-                            caregiver={caregiver}
-                            onUpdate={(updates) => setCaregiver(prev => ({ ...prev, ...updates }))}
-                        />
-
-                        <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
-                            <CardHeader className="border-b border-white/5 p-6">
-                                <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
-                                    <AlertTriangle className="w-5 h-5 text-brand/70" />
-                                    Expiration Dates
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6">
-                                <div className="grid sm:grid-cols-2 gap-4">
-                                    <InfoRow
-                                        icon={getStatus(cprExpiration, settings?.cpr_days) !== 'ok' ? AlertTriangle : Calendar}
-                                        label="CPR | First Aid Expires"
-                                        value={cprExpiration ? format(cprExpiration, "MMM d, yyyy") : null}
-                                        status={getStatus(cprExpiration, settings?.cpr_days)}
-                                    />
-                                    <InfoRow
-                                        icon={getStatus(tbExpiration, settings?.tb_days) !== 'ok' ? AlertTriangle : Calendar}
-                                        label="TB Test Expires"
-                                        value={tbExpiration ? format(tbExpiration, "MMM d, yyyy") : null}
-                                        status={getStatus(tbExpiration, settings?.tb_days)}
-                                    />
-                                    <InfoRow
-                                        icon={getStatus(licenseExpiration, settings?.drivers_license_days) !== 'ok' ? AlertTriangle : Calendar}
-                                        label="License Expires"
-                                        value={licenseExpiration ? format(licenseExpiration, "MMM d, yyyy") : null}
-                                        status={getStatus(licenseExpiration, settings?.drivers_license_days)}
-                                    />
-                                    <InfoRow
-                                        icon={getStatus(trainingExpiration, settings?.training_days) !== 'ok' ? AlertTriangle : Calendar}
-                                        label="Training Expires"
-                                        value={trainingExpiration ? format(trainingExpiration, "MMM d, yyyy") : null}
-                                        status={getStatus(trainingExpiration, settings?.training_days)}
-                                    />
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Sidebar / Linked Client */}
-                    <div className="space-y-6">
-                        <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
-                            <CardHeader className="border-b border-white/5 p-6">
-                                <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
-                                    <User className="w-5 h-5 text-brand/70" />
-                                    Assigned Client
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-6 space-y-6">
-                                {caregiver.status === 'inactive' ? (
-                                    <div className="space-y-4">
-                                        <p className="text-heading-subdued">This caregiver has been deactivated.</p>
-                                        {caregiver.client && (
-                                            <div className="text-sm text-heading-subdued">
-                                                Previously assigned to: <span className="text-heading-primary">{caregiver.client.client_name}</span>
+                                        {caregiver.notes && (
+                                            <div className="mt-6 pt-6 border-t border-white/5 space-y-2">
+                                                <h4 className="text-xs uppercase tracking-[0.3em] text-heading-subdued">Notes</h4>
+                                                <p className="text-sm text-heading-primary leading-relaxed bg-black/20 p-4 rounded-2xl border border-white/5">
+                                                    {caregiver.notes}
+                                                </p>
                                             </div>
                                         )}
-                                        <Button
-                                            variant="default"
-                                            className="w-full gap-2 rounded-full"
-                                            onClick={() => setAssignModalOpen(true)}
-                                        >
-                                            Reassign to Client
-                                        </Button>
-                                    </div>
-                                ) : caregiver.client ? (
-                                    <div className="space-y-4">
-                                        <div>
-                                            <div className="text-xs uppercase tracking-[0.3em] text-heading-subdued mb-1">Client Name</div>
-                                            <div className="text-xl font-semibold text-heading-primary">{caregiver.client.client_name}</div>
+                                    </CardContent>
+                                </Card>
+
+                                {/* Onboarding Checklist - for all caregivers */}
+                                <CaregiverOnboardingChecklist
+                                    caregiver={caregiver}
+                                    onUpdate={(updates) => setCaregiver(prev => ({ ...prev, ...updates }))}
+                                />
+
+                                <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
+                                    <CardHeader className="border-b border-white/5 p-6">
+                                        <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
+                                            <AlertTriangle className="w-5 h-5 text-brand/70" />
+                                            Expiration Dates
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6">
+                                        <div className="grid sm:grid-cols-2 gap-4">
+                                            <InfoRow
+                                                icon={getStatus(cprExpiration, settings?.cpr_days) !== 'ok' ? AlertTriangle : Calendar}
+                                                label="CPR | First Aid Expires"
+                                                value={cprExpiration ? format(cprExpiration, "MMM d, yyyy") : null}
+                                                status={getStatus(cprExpiration, settings?.cpr_days)}
+                                            />
+                                            <InfoRow
+                                                icon={getStatus(tbExpiration, settings?.tb_days) !== 'ok' ? AlertTriangle : Calendar}
+                                                label="TB Test Expires"
+                                                value={tbExpiration ? format(tbExpiration, "MMM d, yyyy") : null}
+                                                status={getStatus(tbExpiration, settings?.tb_days)}
+                                            />
+                                            <InfoRow
+                                                icon={getStatus(licenseExpiration, settings?.drivers_license_days) !== 'ok' ? AlertTriangle : Calendar}
+                                                label="License Expires"
+                                                value={licenseExpiration ? format(licenseExpiration, "MMM d, yyyy") : null}
+                                                status={getStatus(licenseExpiration, settings?.drivers_license_days)}
+                                            />
+                                            <InfoRow
+                                                icon={getStatus(trainingExpiration, settings?.training_days) !== 'ok' ? AlertTriangle : Calendar}
+                                                label="Training Expires"
+                                                value={trainingExpiration ? format(trainingExpiration, "MMM d, yyyy") : null}
+                                                status={getStatus(trainingExpiration, settings?.training_days)}
+                                            />
                                         </div>
-                                        <div className="pt-4 border-t border-white/5">
-                                            <Button
-                                                variant="outline"
-                                                className="w-full justify-between group"
-                                                onClick={() => navigate(createPageUrl('ClientDetail', { id: caregiver.client.id }))}
-                                            >
-                                                View Client Profile
-                                                <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-1" />
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-4">
-                                        <p className="text-heading-subdued">No client assigned yet.</p>
-                                        <Button
-                                            variant="default"
-                                            className="w-full gap-2 rounded-full"
-                                            onClick={() => setAssignModalOpen(true)}
-                                        >
-                                            Assign to Client
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
+                                    </CardContent>
+                                </Card>
+                            </div>
+
+                            {/* Sidebar / Linked Client */}
+                            <div className="space-y-6">
+                                <Card className="border border-[rgba(96,255,168,0.18)] rounded-3xl">
+                                    <CardHeader className="border-b border-white/5 p-6">
+                                        <CardTitle className="text-lg font-semibold text-heading-primary flex items-center gap-2">
+                                            <User className="w-5 h-5 text-brand/70" />
+                                            Assigned Client
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-6 space-y-6">
+                                        {caregiver.status === 'inactive' ? (
+                                            <div className="space-y-4">
+                                                <p className="text-heading-subdued">This caregiver has been deactivated.</p>
+                                                {caregiver.client && (
+                                                    <div className="text-sm text-heading-subdued">
+                                                        Previously assigned to: <span className="text-heading-primary">{caregiver.client.client_name}</span>
+                                                    </div>
+                                                )}
+                                                <Button
+                                                    variant="default"
+                                                    className="w-full gap-2 rounded-full"
+                                                    onClick={() => setAssignModalOpen(true)}
+                                                >
+                                                    Reassign to Client
+                                                </Button>
+                                            </div>
+                                        ) : caregiver.client ? (
+                                            <div className="space-y-4">
+                                                <div>
+                                                    <div className="text-xs uppercase tracking-[0.3em] text-heading-subdued mb-1">Client Name</div>
+                                                    <div className="text-xl font-semibold text-heading-primary">{caregiver.client.client_name}</div>
+                                                </div>
+                                                <div className="pt-4 border-t border-white/5">
+                                                    <Button
+                                                        variant="outline"
+                                                        className="w-full justify-between group"
+                                                        onClick={() => navigate(createPageUrl('ClientDetail', { id: caregiver.client.id }))}
+                                                    >
+                                                        View Client Profile
+                                                        <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-1" />
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                <p className="text-heading-subdued">No client assigned yet.</p>
+                                                <Button
+                                                    variant="default"
+                                                    className="w-full gap-2 rounded-full"
+                                                    onClick={() => setAssignModalOpen(true)}
+                                                >
+                                                    Assign to Client
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </TabsContent>
 
