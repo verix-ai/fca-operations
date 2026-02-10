@@ -429,6 +429,24 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
     }
   };
 
+  const handleSelectAll = (side, checked) => {
+    if (readOnly) return;
+    const items = side === "left" ? LEFT_SIDE_ITEMS : RIGHT_SIDE_ITEMS;
+
+    // Create new compliance data object starting with current state
+    const newComplianceData = { ...complianceData };
+
+    items.forEach(item => {
+      newComplianceData[item.id] = {
+        ...(complianceData[item.id] || {}),
+        checked: checked
+      };
+    });
+
+    setComplianceData(newComplianceData);
+    saveComplianceData(newComplianceData);
+  };
+
   const renderChecklistItem = (item, side) => {
     const itemData = complianceData[item.id] || {};
     const isChecked = itemData.checked || false;
@@ -476,8 +494,8 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
               onClick={() => triggerFileUpload(item.id, side)}
               disabled={isUploading}
               className={`p-1.5 rounded-lg transition-colors ${hasFile
-                  ? "text-brand bg-brand/10"
-                  : "text-heading-subdued hover:text-brand hover:bg-brand/10"
+                ? "text-brand bg-brand/10"
+                : "text-heading-subdued hover:text-brand hover:bg-brand/10"
                 }`}
               title={hasFile ? "Replace file" : "Upload file"}
             >
@@ -509,8 +527,8 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
           <button
             onClick={() => setMode("download")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "download"
-                ? "bg-brand text-black"
-                : "text-heading-subdued hover:text-heading-primary"
+              ? "bg-brand text-black"
+              : "text-heading-subdued hover:text-heading-primary"
               }`}
           >
             <Download className="w-3.5 h-3.5" />
@@ -519,8 +537,8 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
           <button
             onClick={() => setMode("print")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${mode === "print"
-                ? "bg-brand text-black"
-                : "text-heading-subdued hover:text-heading-primary"
+              ? "bg-brand text-black"
+              : "text-heading-subdued hover:text-heading-primary"
               }`}
           >
             <Printer className="w-3.5 h-3.5" />
@@ -588,6 +606,21 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
+            <div className="flex items-center gap-3 py-2 border-b border-white/10 mb-2">
+              <Checkbox
+                id="select-all-client-left"
+                checked={LEFT_SIDE_ITEMS.every(item => complianceData[item.id]?.checked)}
+                onCheckedChange={(checked) => handleSelectAll("left", checked)}
+                disabled={readOnly}
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor="select-all-client-left"
+                className="text-sm font-medium cursor-pointer leading-tight block text-heading-primary"
+              >
+                Select All
+              </Label>
+            </div>
             <div className="space-y-1">
               {LEFT_SIDE_ITEMS.map(item => renderChecklistItem(item, "left"))}
             </div>
@@ -603,6 +636,21 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
+            <div className="flex items-center gap-3 py-2 border-b border-white/10 mb-2">
+              <Checkbox
+                id="select-all-client-right"
+                checked={RIGHT_SIDE_ITEMS.every(item => complianceData[item.id]?.checked)}
+                onCheckedChange={(checked) => handleSelectAll("right", checked)}
+                disabled={readOnly}
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor="select-all-client-right"
+                className="text-sm font-medium cursor-pointer leading-tight block text-heading-primary"
+              >
+                Select All
+              </Label>
+            </div>
             <div className="space-y-1">
               {RIGHT_SIDE_ITEMS.map(item => renderChecklistItem(item, "right"))}
             </div>

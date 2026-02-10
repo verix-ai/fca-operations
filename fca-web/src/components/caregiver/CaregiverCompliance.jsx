@@ -515,6 +515,33 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
     }
   };
 
+  const handleSelectAll = (side, checked) => {
+    if (readOnly) return;
+    const items = side === "left" ? LEFT_SIDE_ITEMS : RIGHT_SIDE_ITEMS;
+
+    // Create new compliance data object starting with current state
+    const newComplianceData = { ...complianceData };
+    const updates = {};
+
+    items.forEach(item => {
+      newComplianceData[item.id] = {
+        ...(complianceData[item.id] || {}),
+        checked: checked
+      };
+
+      // Sync with Onboarding Checklist map
+      const onboardingField = COMPLIANCE_ONBOARDING_MAP[item.id];
+      if (onboardingField) {
+        updates[onboardingField] = checked;
+      }
+    });
+
+    setComplianceData(newComplianceData);
+    updates.compliance_data = newComplianceData;
+
+    saveComplianceData(updates);
+  };
+
   const renderChecklistItem = (item, side) => {
     const itemData = complianceData[item.id] || {};
     const isChecked = itemData.checked || false;
@@ -747,6 +774,21 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
+            <div className="flex items-center gap-3 py-2 border-b border-white/10 mb-2">
+              <Checkbox
+                id="select-all-left"
+                checked={LEFT_SIDE_ITEMS.every(item => complianceData[item.id]?.checked)}
+                onCheckedChange={(checked) => handleSelectAll("left", checked)}
+                disabled={readOnly}
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor="select-all-left"
+                className="text-sm font-medium cursor-pointer leading-tight block text-heading-primary"
+              >
+                Select All
+              </Label>
+            </div>
             <div className="space-y-1">
               {LEFT_SIDE_ITEMS.map(item => renderChecklistItem(item, "left"))}
             </div>
@@ -762,6 +804,21 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
             </CardTitle>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col">
+            <div className="flex items-center gap-3 py-2 border-b border-white/10 mb-2">
+              <Checkbox
+                id="select-all-right"
+                checked={RIGHT_SIDE_ITEMS.every(item => complianceData[item.id]?.checked)}
+                onCheckedChange={(checked) => handleSelectAll("right", checked)}
+                disabled={readOnly}
+                className="mt-0.5 shrink-0"
+              />
+              <Label
+                htmlFor="select-all-right"
+                className="text-sm font-medium cursor-pointer leading-tight block text-heading-primary"
+              >
+                Select All
+              </Label>
+            </div>
             <div className="space-y-1">
               {RIGHT_SIDE_ITEMS.map(item => renderChecklistItem(item, "right"))}
             </div>

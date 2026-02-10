@@ -182,7 +182,7 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
             <img src="/fca-logo.png" alt="FCA" className="h-full w-full object-contain p-1.5" />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="text-xl font-semibold text-[rgb(var(--text))]">Friendly Care App</span>
+            <span className="text-xl font-semibold text-[rgb(var(--text))]">Mr. Friendly</span>
           </div>
         </div>
         <button
@@ -298,7 +298,7 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
             <img src="/fca-logo.png" alt="FCA" className="h-full w-full object-contain p-1.5" />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="text-lg font-semibold text-[rgb(var(--text))]">Friendly Care App</span>
+            <span className="text-lg font-semibold text-[rgb(var(--text))]">Mr. Friendly</span>
           </div>
         </div>
       </div>
