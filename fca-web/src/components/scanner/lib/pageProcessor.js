@@ -3,6 +3,53 @@ import { loadScanner } from './jscanifyLoader.js'
 const MAX_LONG_EDGE = 2000
 const JPEG_QUALITY = 0.8
 const THUMB_LONG_EDGE = 200
+// Minimum fraction of the source frame the detected document quad must cover
+// for us to trust the auto-crop. Anything smaller is almost certainly a
+// false-positive (jscanify locking onto a paragraph, logo, or sticker inside
+// the document) and would produce a "super zoomed-in" crop. Below this
+// threshold we discard the crop and keep the full frame instead.
+const MIN_QUAD_COVERAGE = 0.35
+// Each side of the quad must be at least this long relative to the
+// corresponding frame edge — guards against degenerate skinny quads.
+const MIN_QUAD_EDGE_FRACTION = 0.4
+
+function quadAreaFraction(corners, frameWidth, frameHeight) {
+  if (!corners) return 0
+  const tl = corners.topLeftCorner
+  const tr = corners.topRightCorner
+  const br = corners.bottomRightCorner
+  const bl = corners.bottomLeftCorner
+  if (!tl || !tr || !br || !bl) return 0
+  const area =
+    Math.abs(
+      tl.x * tr.y - tr.x * tl.y +
+        tr.x * br.y - br.x * tr.y +
+        br.x * bl.y - bl.x * br.y +
+        bl.x * tl.y - tl.x * bl.y,
+    ) / 2
+  const total = frameWidth * frameHeight
+  return total > 0 ? area / total : 0
+}
+
+function quadEdgesAreReasonable(corners, frameWidth, frameHeight) {
+  if (!corners) return false
+  const tl = corners.topLeftCorner
+  const tr = corners.topRightCorner
+  const br = corners.bottomRightCorner
+  const bl = corners.bottomLeftCorner
+  if (!tl || !tr || !br || !bl) return false
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y)
+  const top = dist(tl, tr)
+  const bottom = dist(bl, br)
+  const left = dist(tl, bl)
+  const right = dist(tr, br)
+  const minHorizontal = Math.min(top, bottom)
+  const minVertical = Math.min(left, right)
+  return (
+    minHorizontal >= frameWidth * MIN_QUAD_EDGE_FRACTION &&
+    minVertical >= frameHeight * MIN_QUAD_EDGE_FRACTION
+  )
+}
 
 function fitDims(w, h, maxEdge) {
   const long = Math.max(w, h)
@@ -31,22 +78,55 @@ function drawBitmapToCanvas(bitmap, width, height) {
 }
 
 export async function processFrame(bitmap) {
-  const { scanner } = await loadScanner()
+  const { cv, scanner } = await loadScanner()
 
   // Source canvas at native resolution for jscanify
   const srcCanvas = drawBitmapToCanvas(bitmap, bitmap.width, bitmap.height)
 
-  let croppedCanvas = null
-  let autoCropped = true
-  try {
-    croppedCanvas = scanner.extractPaper(srcCanvas, srcCanvas.width, srcCanvas.height)
-    if (!croppedCanvas) {
-      autoCropped = false
-      croppedCanvas = srcCanvas
+  let croppedCanvas = srcCanvas
+  let autoCropped = false
+
+  // Try to detect a document quad and validate it before trusting the crop.
+  // jscanify will happily extract a tiny interior region (a paragraph or logo)
+  // and stretch it to fill the result canvas — that's the "super zoomed-in"
+  // failure mode. Validate area + edge lengths before extracting.
+  if (cv && scanner) {
+    let srcMat = null
+    try {
+      srcMat = cv.imread(srcCanvas)
+      const contour = scanner.findPaperContour?.(srcMat)
+      if (contour) {
+        const corners = scanner.getCornerPoints?.(contour, srcMat)
+        const coverage = quadAreaFraction(corners, srcCanvas.width, srcCanvas.height)
+        const edgesOk = quadEdgesAreReasonable(corners, srcCanvas.width, srcCanvas.height)
+        // eslint-disable-next-line no-console
+        console.log(
+          '[scanner] quad detected — coverage:',
+          coverage.toFixed(3),
+          'edges-ok:',
+          edgesOk,
+        )
+        if (coverage >= MIN_QUAD_COVERAGE && edgesOk) {
+          const extracted = scanner.extractPaper(
+            srcCanvas,
+            srcCanvas.width,
+            srcCanvas.height,
+            corners,
+          )
+          if (extracted) {
+            croppedCanvas = extracted
+            autoCropped = true
+          }
+        }
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.log('[scanner] quad detection threw, falling back to full frame:', err?.message)
+    } finally {
+      if (srcMat) {
+        try { srcMat.delete() } catch (_) { /* */ }
+      }
     }
-  } catch (_) {
-    autoCropped = false
-    croppedCanvas = srcCanvas
   }
 
   // Resize to MAX_LONG_EDGE
