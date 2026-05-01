@@ -77,7 +77,8 @@ function drawBitmapToCanvas(bitmap, width, height) {
   return canvas
 }
 
-export async function processFrame(bitmap) {
+export async function processFrame(bitmap, options = {}) {
+  const { cropHint } = options
   const { cv, scanner } = await loadScanner()
 
   // Source canvas at native resolution for jscanify
@@ -127,6 +128,26 @@ export async function processFrame(bitmap) {
         try { srcMat.delete() } catch (_) { /* */ }
       }
     }
+  }
+
+  // jscanify didn't produce a confident crop. Fall back to the user's framing
+  // box — they explicitly positioned the document inside a static guide, so
+  // cropping to that rectangle matches their intent. This avoids the "captured
+  // the whole room" failure mode when edge detection can't lock on (low
+  // contrast, occluded corners, busy background).
+  if (!autoCropped && cropHint) {
+    const x = Math.max(0, Math.min(srcCanvas.width - 1, Math.round(cropHint.x)))
+    const y = Math.max(0, Math.min(srcCanvas.height - 1, Math.round(cropHint.y)))
+    const w = Math.max(1, Math.min(srcCanvas.width - x, Math.round(cropHint.width)))
+    const h = Math.max(1, Math.min(srcCanvas.height - y, Math.round(cropHint.height)))
+    // eslint-disable-next-line no-console
+    console.log('[scanner] using framing-box cropHint:', { x, y, w, h })
+    const cropped = document.createElement('canvas')
+    cropped.width = w
+    cropped.height = h
+    cropped.getContext('2d').drawImage(srcCanvas, x, y, w, h, 0, 0, w, h)
+    croppedCanvas = cropped
+    autoCropped = true
   }
 
   // Resize to MAX_LONG_EDGE
