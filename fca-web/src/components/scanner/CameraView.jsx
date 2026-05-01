@@ -1,20 +1,26 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Camera, Loader2 } from 'lucide-react'
 import { loadScanner } from './lib/jscanifyLoader.js'
-import {
-  quadAreaFraction,
-  quadEdgesAreReasonable,
-  MIN_QUAD_COVERAGE,
-  MIN_QUAD_EDGE_FRACTION,
-} from './lib/pageProcessor.js'
 
-// Auto-capture: poll detection on the framing-box region, fire shutter when
-// the document has been confidently detected for several consecutive frames.
-const AUTO_DETECT_INTERVAL_MS = 333 // ~3 fps; cheap and human-perceptible
-const AUTO_DETECT_LONG_EDGE = 480 // downscale before running OpenCV; plenty
-const STABLE_THRESHOLD = 3 // consecutive successful detections to call it "stable"
-const AUTO_FIRE_AT = 4 // fire one tick after stable to give the user a beat to settle
+// Auto-capture: poll the framing-box region, track motion stability between
+// frames, fire shutter once the user has held steady for several frames.
+// Motion stability beats jscanify edge detection here — jscanify is fine on
+// high-contrast scenes (a dark cup on a light table) but unreliable on the
+// common case of a white document on a similar-toned background. Motion-
+// stability works for any document the user can frame, regardless of contrast.
+const AUTO_DETECT_INTERVAL_MS = 250 // ~4 fps; smooth enough, cheap
+const AUTO_DETECT_LONG_EDGE = 320 // we only need pixel-diff math, not OCR
+const STABLE_THRESHOLD = 3 // consecutive low-motion frames to call it "stable"
+const AUTO_FIRE_AT = 5 // ~1.25s of holding steady before auto-fire
 const AUTO_FIRE_COOLDOWN_MS = 2500 // don't immediately re-fire after a capture
+// Mean per-channel pixel diff (out of 255) below which we consider the frame
+// "still". Camera sensor noise is usually 2-4; deliberate hand motion is 10+.
+const MOTION_STABILITY_THRESHOLD = 6
+// Mean brightness of the detection region must be in this range to count as
+// stable — guards against firing on a totally black frame (camera not ready)
+// or pure-white frame (lens covered, nothing to scan).
+const MIN_BRIGHTNESS = 25
+const MAX_BRIGHTNESS = 245
 
 function classifyError(err) {
   const name = err?.name || ''
@@ -36,6 +42,7 @@ export default function CameraView({ onCapture, onError }) {
   const handleShutterRef = useRef(null)
   const autoModeRef = useRef(true)
   const detectTickRef = useRef(0)
+  const prevSampleRef = useRef(null) // { data: Uint8ClampedArray, w, h }
   const [phase, setPhase] = useState('initializing') // 'initializing' | 'ready' | 'capturing'
   const [filter, setFilter] = useState('bw') // 'bw' | 'color'
   const [autoMode, setAutoMode] = useState(true)
@@ -153,14 +160,10 @@ export default function CameraView({ onCapture, onError }) {
     function runDetection() {
       const video = videoRef.current
       const box = frameBoxRef.current
-      const cv = cvRef.current
-      const scanner = scannerRef.current
-      if (!video || !box || !cv || !scanner) return
+      if (!video || !box) return
       if (video.readyState < 2 || video.videoWidth === 0) return
 
-      // Pre-crop to the framing-box region (in natural coords) before running
-      // detection. Same crop the capture path will use, so what we see is
-      // what we get.
+      // Sample the framing-box region (in natural coords).
       const naturalW = video.videoWidth
       const naturalH = video.videoHeight
       const videoRect = video.getBoundingClientRect()
@@ -186,55 +189,68 @@ export default function CameraView({ onCapture, onError }) {
       const tmp = document.createElement('canvas')
       tmp.width = dw
       tmp.height = dh
-      tmp.getContext('2d').drawImage(video, cropX, cropY, cropW, cropH, 0, 0, dw, dh)
+      const ctx = tmp.getContext('2d', { willReadFrequently: true })
+      ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, dw, dh)
 
-      let mat = null
-      let valid = false
+      let imageData
       try {
-        mat = cv.imread(tmp)
-        const contour = scanner.findPaperContour?.(mat)
-        if (contour) {
-          const corners = scanner.getCornerPoints?.(contour, mat)
-          const coverage = quadAreaFraction(corners, dw, dh)
-          const edgesOk = quadEdgesAreReasonable(corners, dw, dh)
-          valid =
-            !!corners &&
-            coverage >= MIN_QUAD_COVERAGE &&
-            coverage >= MIN_QUAD_EDGE_FRACTION &&
-            edgesOk
-        }
+        imageData = ctx.getImageData(0, 0, dw, dh)
       } catch (_) {
-        valid = false
-      } finally {
-        if (mat) {
-          try { mat.delete() } catch (_) { /* */ }
-        }
+        return // tainted canvas (shouldn't happen with same-origin video)
       }
+      const data = imageData.data
 
-      if (valid) stableCountRef.current += 1
+      // Compute mean brightness — used to gate auto-fire on something actually
+      // being in the frame (not pure black, not pure white wall).
+      let brightnessSum = 0
+      for (let i = 0; i < data.length; i += 4) {
+        brightnessSum += (data[i] + data[i + 1] + data[i + 2]) / 3
+      }
+      const meanBrightness = brightnessSum / (data.length / 4)
+      const brightnessOk = meanBrightness >= MIN_BRIGHTNESS && meanBrightness <= MAX_BRIGHTNESS
+
+      // Compare to previous frame to measure motion. Sample every 4th pixel
+      // (every 16th byte) to keep this cheap on slower CPUs.
+      let stable = false
+      let meanDiff = -1
+      const prev = prevSampleRef.current
+      if (prev && prev.w === dw && prev.h === dh) {
+        let diffSum = 0
+        let count = 0
+        for (let i = 0; i < data.length; i += 16) {
+          diffSum +=
+            Math.abs(data[i] - prev.data[i]) +
+            Math.abs(data[i + 1] - prev.data[i + 1]) +
+            Math.abs(data[i + 2] - prev.data[i + 2])
+          count += 1
+        }
+        meanDiff = diffSum / count / 3
+        stable = meanDiff < MOTION_STABILITY_THRESHOLD && brightnessOk
+      }
+      // Cache current sample for next tick.
+      prevSampleRef.current = { data, w: dw, h: dh }
+
+      if (stable) stableCountRef.current += 1
       else stableCountRef.current = 0
       const c = stableCountRef.current
       const next = c === 0 ? 'idle' : c < STABLE_THRESHOLD ? 'partial' : 'stable'
-      setDetectionState((prev) => (prev === next ? prev : next))
+      setDetectionState((prev2) => (prev2 === next ? prev2 : next))
 
-      // Log every ~2 seconds so we can verify the loop is alive without
-      // flooding the console.
       detectTickRef.current += 1
-      if (detectTickRef.current % 6 === 0) {
+      if (detectTickRef.current % 4 === 0) {
         // eslint-disable-next-line no-console
         console.log(
-          '[scanner] detect tick — valid:',
-          valid,
-          'stableCount:',
+          '[scanner] detect — meanDiff:',
+          meanDiff.toFixed(2),
+          'brightness:',
+          meanBrightness.toFixed(0),
+          'stable:',
+          stable,
+          'count:',
           c,
-          'state:',
-          next,
-          'autoMode:',
-          autoModeRef.current,
         )
       }
 
-      // Auto-fire one beat after stable, with cooldown after each capture.
       if (
         autoModeRef.current &&
         c >= AUTO_FIRE_AT &&
@@ -242,7 +258,7 @@ export default function CameraView({ onCapture, onError }) {
         handleShutterRef.current
       ) {
         // eslint-disable-next-line no-console
-        console.log('[scanner] auto-firing shutter (stableCount:', c, ')')
+        console.log('[scanner] auto-firing shutter (stable count:', c, ')')
         handleShutterRef.current()
       }
     }
