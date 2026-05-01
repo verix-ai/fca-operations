@@ -1,17 +1,15 @@
 import { loadScanner } from './jscanifyLoader.js'
 
-const MAX_LONG_EDGE = 2000
-const JPEG_QUALITY = 0.8
-const THUMB_LONG_EDGE = 200
-// Minimum fraction of the source frame the detected document quad must cover
-// for us to trust the auto-crop. Anything smaller is almost certainly a
-// false-positive (jscanify locking onto a paragraph, logo, or sticker inside
-// the document) and would produce a "super zoomed-in" crop. Below this
-// threshold we discard the crop and keep the full frame instead.
-export const MIN_QUAD_COVERAGE = 0.15
+const MAX_LONG_EDGE = 2400
+const JPEG_QUALITY = 0.9
+const THUMB_LONG_EDGE = 240
+// After we pre-crop to the user's framing box, the document should fill most
+// of what's left. Require the detected quad to cover at least half the
+// pre-cropped area before we trust jscanify's perspective extraction.
+export const MIN_QUAD_COVERAGE = 0.5
 // Each side of the quad must be at least this long relative to the
 // corresponding frame edge — guards against degenerate skinny quads.
-export const MIN_QUAD_EDGE_FRACTION = 0.2
+export const MIN_QUAD_EDGE_FRACTION = 0.5
 
 export function quadAreaFraction(corners, frameWidth, frameHeight) {
   if (!corners) return 0
@@ -81,37 +79,58 @@ export async function processFrame(bitmap, options = {}) {
   const { cropHint } = options
   const { cv, scanner } = await loadScanner()
 
-  // Source canvas at native resolution for jscanify
+  // Source canvas at native resolution
   const srcCanvas = drawBitmapToCanvas(bitmap, bitmap.width, bitmap.height)
 
-  let croppedCanvas = srcCanvas
+  // Step 1: pre-crop to the user's framing box (when provided). The user
+  // already lined up the document inside the static guide, so the cropHint
+  // narrows the search space dramatically — jscanify ends up looking for
+  // paper edges in a frame that is *mostly* document, which is a much easier
+  // problem than scanning the whole webcam scene with shirt + painting +
+  // plant + hand.
+  let workCanvas = srcCanvas
   let autoCropped = false
+  if (cropHint) {
+    const x = Math.max(0, Math.min(srcCanvas.width - 1, Math.round(cropHint.x)))
+    const y = Math.max(0, Math.min(srcCanvas.height - 1, Math.round(cropHint.y)))
+    const w = Math.max(1, Math.min(srcCanvas.width - x, Math.round(cropHint.width)))
+    const h = Math.max(1, Math.min(srcCanvas.height - y, Math.round(cropHint.height)))
+    // eslint-disable-next-line no-console
+    console.log('[scanner] pre-cropping to framing-box hint:', { x, y, w, h })
+    const cropped = document.createElement('canvas')
+    cropped.width = w
+    cropped.height = h
+    cropped.getContext('2d').drawImage(srcCanvas, x, y, w, h, 0, 0, w, h)
+    workCanvas = cropped
+    autoCropped = true
+  }
 
-  // Try to detect a document quad and validate it before trusting the crop.
-  // jscanify will happily extract a tiny interior region (a paragraph or logo)
-  // and stretch it to fill the result canvas — that's the "super zoomed-in"
-  // failure mode. Validate area + edge lengths before extracting.
+  // Step 2: try to find document edges within workCanvas and apply
+  // perspective correction. Pre-cropping makes the doc fill most of the
+  // search area; require ≥ MIN_QUAD_COVERAGE so we do not accept jscanify
+  // locking onto an interior region.
+  let croppedCanvas = workCanvas
   if (cv && scanner) {
-    let srcMat = null
+    let workMat = null
     try {
-      srcMat = cv.imread(srcCanvas)
-      const contour = scanner.findPaperContour?.(srcMat)
+      workMat = cv.imread(workCanvas)
+      const contour = scanner.findPaperContour?.(workMat)
       if (contour) {
-        const corners = scanner.getCornerPoints?.(contour, srcMat)
-        const coverage = quadAreaFraction(corners, srcCanvas.width, srcCanvas.height)
-        const edgesOk = quadEdgesAreReasonable(corners, srcCanvas.width, srcCanvas.height)
+        const corners = scanner.getCornerPoints?.(contour, workMat)
+        const coverage = quadAreaFraction(corners, workCanvas.width, workCanvas.height)
+        const edgesOk = quadEdgesAreReasonable(corners, workCanvas.width, workCanvas.height)
         // eslint-disable-next-line no-console
         console.log(
-          '[scanner] quad detected — coverage:',
+          '[scanner] quad on work-canvas — coverage:',
           coverage.toFixed(3),
           'edges-ok:',
           edgesOk,
         )
         if (coverage >= MIN_QUAD_COVERAGE && edgesOk) {
           const extracted = scanner.extractPaper(
-            srcCanvas,
-            srcCanvas.width,
-            srcCanvas.height,
+            workCanvas,
+            workCanvas.width,
+            workCanvas.height,
             corners,
           )
           if (extracted) {
@@ -122,32 +141,12 @@ export async function processFrame(bitmap, options = {}) {
       }
     } catch (err) {
       // eslint-disable-next-line no-console
-      console.log('[scanner] quad detection threw, falling back to full frame:', err?.message)
+      console.log('[scanner] quad detection threw, keeping working canvas:', err?.message)
     } finally {
-      if (srcMat) {
-        try { srcMat.delete() } catch (_) { /* */ }
+      if (workMat) {
+        try { workMat.delete() } catch (_) { /* */ }
       }
     }
-  }
-
-  // jscanify didn't produce a confident crop. Fall back to the user's framing
-  // box — they explicitly positioned the document inside a static guide, so
-  // cropping to that rectangle matches their intent. This avoids the "captured
-  // the whole room" failure mode when edge detection can't lock on (low
-  // contrast, occluded corners, busy background).
-  if (!autoCropped && cropHint) {
-    const x = Math.max(0, Math.min(srcCanvas.width - 1, Math.round(cropHint.x)))
-    const y = Math.max(0, Math.min(srcCanvas.height - 1, Math.round(cropHint.y)))
-    const w = Math.max(1, Math.min(srcCanvas.width - x, Math.round(cropHint.width)))
-    const h = Math.max(1, Math.min(srcCanvas.height - y, Math.round(cropHint.height)))
-    // eslint-disable-next-line no-console
-    console.log('[scanner] using framing-box cropHint:', { x, y, w, h })
-    const cropped = document.createElement('canvas')
-    cropped.width = w
-    cropped.height = h
-    cropped.getContext('2d').drawImage(srcCanvas, x, y, w, h, 0, 0, w, h)
-    croppedCanvas = cropped
-    autoCropped = true
   }
 
   // Resize to MAX_LONG_EDGE

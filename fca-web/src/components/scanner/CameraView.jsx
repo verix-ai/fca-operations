@@ -162,7 +162,7 @@ export default function CameraView({ onCapture, onError }) {
             <div
               ref={frameBoxRef}
               className="rounded-lg border-2 border-white/85 border-dashed shadow-[0_0_0_9999px_rgba(0,0,0,0.45)]"
-              style={{ aspectRatio: '8.5 / 11', height: '78%', maxWidth: '88%' }}
+              style={{ aspectRatio: '5 / 6', height: '90%', maxWidth: '94%' }}
             />
           </div>
           <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
