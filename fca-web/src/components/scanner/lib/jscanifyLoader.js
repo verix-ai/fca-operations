@@ -3,7 +3,9 @@
 // for the browser UMD build — use that instead.
 import jscanify from 'jscanify/client'
 
-const OPENCV_URL = 'https://docs.opencv.org/4.10.0/opencv.js'
+// 4.7.0 is the version jscanify's docs reference and the build we know is
+// compatible with the Module.onRuntimeInitialized pattern.
+const OPENCV_URL = 'https://docs.opencv.org/4.7.0/opencv.js'
 
 let promise = null
 
@@ -61,26 +63,11 @@ async function awaitCvReady() {
 
 function loadOpenCv() {
   return new Promise((resolve, reject) => {
-    if (window.cv && window.cv.imread) {
+    if (window.cv && window.cv.imread && window.cv._opencvReady) {
       // eslint-disable-next-line no-console
       console.log('[scanner] window.cv already initialized, skipping script load')
       resolve(window.cv)
       return
-    }
-
-    window.Module = window.Module || {}
-
-    const existing = document.querySelector(`script[data-opencv]`)
-    const script = existing || document.createElement('script')
-    if (!existing) {
-      script.async = true
-      script.src = OPENCV_URL
-      script.dataset.opencv = '1'
-      // eslint-disable-next-line no-console
-      console.log('[scanner] injecting OpenCV.js script tag from', OPENCV_URL)
-    } else {
-      // eslint-disable-next-line no-console
-      console.log('[scanner] reusing existing OpenCV.js script tag')
     }
 
     let settled = false
@@ -90,7 +77,12 @@ function loadOpenCv() {
       clearTimeout(timeoutId)
       fn(...args)
     }
-    const onResolve = settle(resolve)
+    const onResolve = settle((mod) => {
+      mod._opencvReady = true
+      // eslint-disable-next-line no-console
+      console.log('[scanner] OpenCV.js fully ready (imread:', !!mod.imread, ')')
+      resolve(mod)
+    })
     const onReject = settle(reject)
 
     const timeoutId = setTimeout(
@@ -98,20 +90,59 @@ function loadOpenCv() {
       READY_TIMEOUT_MS,
     )
 
-    const onReady = async () => {
-      // eslint-disable-next-line no-console
-      console.log('[scanner] script load event fired')
-      try {
-        const mod = await awaitCvReady()
+    // Pre-install the Module hook BEFORE the script loads. The opencv.js script
+    // picks up window.Module on init and fires onRuntimeInitialized when WASM
+    // bootstrapping is done — this is the most reliable signal across all builds.
+    const previousModule = window.Module || {}
+    window.Module = {
+      ...previousModule,
+      onRuntimeInitialized: () => {
         // eslint-disable-next-line no-console
-        console.log('[scanner] OpenCV.js fully ready')
-        onResolve(mod)
-      } catch (err) {
-        onReject(err)
-      }
+        console.log('[scanner] Module.onRuntimeInitialized fired')
+        if (window.cv) {
+          onResolve(window.cv)
+        } else {
+          onReject(new Error('onRuntimeInitialized fired but window.cv is undefined'))
+        }
+      },
     }
 
-    script.addEventListener('load', onReady, { once: true })
+    const existing = document.querySelector(`script[data-opencv]`)
+    if (existing) {
+      // eslint-disable-next-line no-console
+      console.log('[scanner] reusing existing OpenCV.js script tag')
+      // If the existing load finished and cv is ready, resolve now; otherwise
+      // the Module hook above will fire when init completes.
+      if (window.cv && window.cv.imread) {
+        // Try the legacy path detection too
+        awaitCvReady().then(onResolve).catch(onReject)
+      }
+      return
+    }
+
+    const script = document.createElement('script')
+    script.async = true
+    script.src = OPENCV_URL
+    script.dataset.opencv = '1'
+    // eslint-disable-next-line no-console
+    console.log('[scanner] injecting OpenCV.js script tag from', OPENCV_URL)
+
+    script.addEventListener(
+      'load',
+      async () => {
+        // eslint-disable-next-line no-console
+        console.log('[scanner] script load event fired (waiting for runtime init)')
+        // For builds that don't honor Module.onRuntimeInitialized (e.g. modern
+        // MODULARIZE), fall back to the awaitCvReady detection.
+        try {
+          const mod = await awaitCvReady()
+          onResolve(mod)
+        } catch (err) {
+          onReject(err)
+        }
+      },
+      { once: true },
+    )
     script.addEventListener(
       'error',
       (e) => {
@@ -122,8 +153,7 @@ function loadOpenCv() {
       { once: true },
     )
 
-    if (!existing) document.head.appendChild(script)
-    else if (window.cv) onReady()
+    document.head.appendChild(script)
   })
 }
 
