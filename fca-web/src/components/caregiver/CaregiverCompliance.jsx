@@ -3,7 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Loader2, Upload, FileText, Download, Printer, X, Check, Eye, Plus } from "lucide-react";
+import { Loader2, Upload, FileText, Download, Printer, X, Check, Eye, Plus, Camera } from "lucide-react";
+import DocumentScanner from "@/components/scanner/DocumentScanner";
+import { uploadComplianceDoc } from "@/lib/uploadComplianceDoc";
+import { confirm } from "@/components/ui/confirm-dialog";
 import FilePreviewModal from "@/components/ui/FilePreviewModal";
 import { supabase } from "@/lib/supabase";
 import JSZip from "jszip";
@@ -51,6 +54,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
   const currentUploadItem = useRef(null);
   const currentUploadSide = useRef(null);
   const [previewFile, setPreviewFile] = useState(null);
+  const [scannerCategory, setScannerCategory] = useState(null); // { itemId, side, label } | null
 
   useEffect(() => {
     if (caregiver?.compliance_data) {
@@ -97,88 +101,114 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !currentUploadItem.current) return;
-
-    const itemId = currentUploadItem.current;
-    const side = currentUploadSide.current;
-
-    const validTypes = ["application/pdf", "image/jpeg", "image/jpg"];
-    if (!validTypes.includes(file.type)) {
-      alert("Please upload a PDF or JPG file.");
-      return;
-    }
-
+  const performUpload = async (file, itemId, side) => {
     setUploadingItem(itemId);
-
     try {
-      const ext = file.name.split(".").pop().toLowerCase();
-      const filePath = `${caregiver.id}/compliance/${side}/${itemId}.${ext}`;
-
-      const { data, error } = await supabase.storage
-        .from("caregiver-documents")
-        .upload(filePath, file, { upsert: true });
-
-      if (error) throw error;
-
-      let newData;
       const isMulti = side === "right" && itemId === "caregiver_training";
 
       if (isMulti) {
-        // Handle multi-file upload
+        // Multi-file upload: build a unique file path with timestamp to avoid collisions
+        const ext = file.name.split(".").pop().toLowerCase();
+        const timestamp = Date.now();
+        const filePath = `${caregiver.id}/compliance/${side}/${itemId}_${timestamp}.${ext}`;
+
+        const { error } = await supabase.storage
+          .from("caregiver-documents")
+          .upload(filePath, file, { upsert: true });
+
+        if (error) throw error;
+
         const existingFiles = complianceData[itemId]?.files || [];
         const newFileEntry = {
-          id: `${Date.now()}`, // Unique ID for the file entry
+          id: `${timestamp}`,
           filePath: filePath,
           fileName: file.name,
           uploadedAt: new Date().toISOString(),
-          label: `Training Record - ${new Date().toLocaleDateString()}`
+          label: `Training Record - ${new Date().toLocaleDateString()}`,
         };
 
-        newData = {
+        const newData = {
           ...complianceData,
           [itemId]: {
             ...complianceData[itemId],
             checked: true,
-            files: [...existingFiles, newFileEntry]
-          }
-        };
-      } else {
-        // Handle single-file upload (standard)
-        newData = {
-          ...complianceData,
-          [itemId]: {
-            ...complianceData[itemId],
-            checked: true,
-            filePath: filePath,
-            fileName: file.name,
-            uploadedAt: new Date().toISOString(),
+            files: [...existingFiles, newFileEntry],
           },
         };
+        setComplianceData(newData);
+        const updates = { compliance_data: newData };
+        const onboardingField = COMPLIANCE_ONBOARDING_MAP[itemId];
+        if (onboardingField) updates[onboardingField] = true;
+        saveComplianceData(updates);
+      } else {
+        // Standard single-file upload via shared helper
+        const meta = await uploadComplianceDoc(supabase, {
+          bucket: "caregiver-documents",
+          ownerId: caregiver.id,
+          side,
+          itemId,
+          file,
+        });
+        const newData = {
+          ...complianceData,
+          [itemId]: {
+            ...complianceData[itemId],
+            checked: true,
+            ...meta,
+          },
+        };
+        setComplianceData(newData);
+        const updates = { compliance_data: newData };
+        const onboardingField = COMPLIANCE_ONBOARDING_MAP[itemId];
+        if (onboardingField) updates[onboardingField] = true;
+        saveComplianceData(updates);
       }
-
-      setComplianceData(newData);
-
-      const updates = { compliance_data: newData };
-
-      // Auto-check onboarding item if file uploaded
-      const onboardingField = COMPLIANCE_ONBOARDING_MAP[itemId];
-      if (onboardingField) {
-        updates[onboardingField] = true;
-      }
-
-      saveComplianceData(updates);
-
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload file. Please try again.");
+      alert(error?.message || "Failed to upload file. Please try again.");
     }
-
     setUploadingItem(null);
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUploadItem.current) return;
+    const itemId = currentUploadItem.current;
+    const side = currentUploadSide.current;
+    if (!["application/pdf", "image/jpeg", "image/jpg"].includes(file.type)) {
+      alert("Please upload a PDF or JPG file.");
+      e.target.value = "";
+      return;
+    }
+    await performUpload(file, itemId, side);
     currentUploadItem.current = null;
     currentUploadSide.current = null;
     e.target.value = "";
+  };
+
+  const triggerScan = (itemId, side, label) => {
+    if (readOnly) return;
+    setScannerCategory({ itemId, side, label });
+  };
+
+  const handleScanComplete = async (pdfFile) => {
+    if (!scannerCategory) return;
+    const { itemId, side, label } = scannerCategory;
+    const existing = complianceData[itemId]?.filePath;
+    if (existing) {
+      const ok = await confirm({
+        title: `Replace existing ${label}?`,
+        description: "This will replace the document already on file.",
+        confirmText: "Replace",
+        cancelText: "Cancel",
+      });
+      if (!ok) {
+        setScannerCategory(null);
+        return;
+      }
+    }
+    await performUpload(pdfFile, itemId, side);
+    setScannerCategory(null);
   };
 
   const removeFile = async (itemId, fileEntryId = null) => {
@@ -661,23 +691,33 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
             </button>
           )}
           {!readOnly && (
-            <button
-              onClick={() => triggerFileUpload(item.id, side)}
-              disabled={isUploading}
-              className={`p-1.5 rounded-lg transition-colors ${hasFile
-                ? "text-brand bg-brand/10"
-                : "text-heading-subdued hover:text-brand hover:bg-brand/10"
-                }`}
-              title={hasFile ? "Replace file" : "Upload file"}
-            >
-              {isUploading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : hasFile ? (
-                <Check className="w-4 h-4" />
-              ) : (
-                <Upload className="w-4 h-4" />
-              )}
-            </button>
+            <>
+              <button
+                onClick={() => triggerFileUpload(item.id, side)}
+                disabled={isUploading}
+                className={`p-1.5 rounded-lg transition-colors ${hasFile
+                  ? "text-brand bg-brand/10"
+                  : "text-heading-subdued hover:text-brand hover:bg-brand/10"
+                  }`}
+                title={hasFile ? "Replace file" : "Upload file"}
+              >
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : hasFile ? (
+                  <Check className="w-4 h-4" />
+                ) : (
+                  <Upload className="w-4 h-4" />
+                )}
+              </button>
+              <button
+                onClick={() => triggerScan(item.id, side, item.label)}
+                disabled={isUploading}
+                className="p-1.5 rounded-lg transition-colors text-heading-subdued hover:text-brand hover:bg-brand/10"
+                title="Scan document"
+              >
+                <Camera className="w-4 h-4" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -764,6 +804,15 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
         title={previewFile?.title}
         storageBucket="caregiver-documents"
       />
+
+      {scannerCategory && (
+        <DocumentScanner
+          isOpen
+          onClose={() => setScannerCategory(null)}
+          onComplete={handleScanComplete}
+          categoryName={scannerCategory.label}
+        />
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Left Side Card */}
