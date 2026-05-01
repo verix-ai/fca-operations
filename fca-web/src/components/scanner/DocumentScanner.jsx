@@ -50,9 +50,9 @@ export default function DocumentScanner({ isOpen, onClose, onComplete, categoryN
   }, [state.warned50MB])
 
   const handleCapture = useCallback(
-    async (bitmap, cropHint) => {
+    async (bitmap, captureOptions = {}) => {
       try {
-        const { processedBlob, thumbnailBlob, autoCropped } = await processFrame(bitmap, { cropHint })
+        const { processedBlob, thumbnailBlob, autoCropped } = await processFrame(bitmap, captureOptions)
         addPage(processedBlob, thumbnailBlob, autoCropped)
       } catch (err) {
         setError({ kind: 'unknown', message: err?.message || 'Capture failed' })

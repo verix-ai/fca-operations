@@ -118,7 +118,7 @@ function drawBitmapToCanvas(bitmap, width, height) {
 }
 
 export async function processFrame(bitmap, options = {}) {
-  const { cropHint } = options
+  const { cropHint, filter = 'bw' } = options
   const { cv, scanner } = await loadScanner()
 
   // Source canvas at native resolution
@@ -199,11 +199,12 @@ export async function processFrame(bitmap, options = {}) {
   finalCanvas.getContext('2d').drawImage(croppedCanvas, 0, 0, width, height)
 
   // Auto-enhance: convert the cropped page to a high-contrast B&W scan look.
-  // Without this step the captured frame looks like a photo of paper (dim,
-  // shadowed, busy background tint). Adaptive thresholding produces clean
-  // white background + sharp black text every time, the standard "scan"
-  // appearance the user expects.
-  enhanceAsScan(cv, finalCanvas)
+  // Skipped when the user picks the "Color" filter (e.g. for a driver's
+  // license headshot or any document where preserving the original photo /
+  // tint matters more than the classic scan appearance).
+  if (filter === 'bw') {
+    enhanceAsScan(cv, finalCanvas)
+  }
 
   const processedBlob = await canvasToJpegBlob(finalCanvas, JPEG_QUALITY)
 

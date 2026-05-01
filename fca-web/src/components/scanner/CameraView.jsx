@@ -15,6 +15,7 @@ export default function CameraView({ onCapture, onError }) {
   const streamRef = useRef(null)
   const frameBoxRef = useRef(null)
   const [phase, setPhase] = useState('initializing') // 'initializing' | 'ready' | 'capturing'
+  const [filter, setFilter] = useState('bw') // 'bw' (auto-enhance scan look) | 'color' (preserve original)
 
   useEffect(() => {
     let cancelled = false
@@ -130,7 +131,7 @@ export default function CameraView({ onCapture, onError }) {
         c.getContext('2d').drawImage(video, 0, 0, w, h)
         bitmap = c
       }
-      await onCapture(bitmap, cropHint)
+      await onCapture(bitmap, { cropHint, filter })
     } finally {
       setPhase('ready')
     }
@@ -165,9 +166,31 @@ export default function CameraView({ onCapture, onError }) {
               style={{ aspectRatio: '5 / 6', height: '90%', maxWidth: '94%' }}
             />
           </div>
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 pointer-events-none">
             <div className="px-3 py-1.5 rounded-full text-xs font-medium bg-black/70 text-white shadow-md whitespace-nowrap">
               Frame your document inside the box
+            </div>
+            <div className="pointer-events-auto inline-flex p-0.5 rounded-full bg-black/70 shadow-md text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setFilter('bw')}
+                className={`px-3 py-1 rounded-full transition ${
+                  filter === 'bw' ? 'bg-white text-black' : 'text-white/80 hover:text-white'
+                }`}
+                aria-pressed={filter === 'bw'}
+              >
+                B&amp;W
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilter('color')}
+                className={`px-3 py-1 rounded-full transition ${
+                  filter === 'color' ? 'bg-white text-black' : 'text-white/80 hover:text-white'
+                }`}
+                aria-pressed={filter === 'color'}
+              >
+                Color
+              </button>
             </div>
           </div>
         </>
