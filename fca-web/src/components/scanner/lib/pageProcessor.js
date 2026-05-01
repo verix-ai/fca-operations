@@ -8,12 +8,12 @@ const THUMB_LONG_EDGE = 200
 // false-positive (jscanify locking onto a paragraph, logo, or sticker inside
 // the document) and would produce a "super zoomed-in" crop. Below this
 // threshold we discard the crop and keep the full frame instead.
-const MIN_QUAD_COVERAGE = 0.35
+export const MIN_QUAD_COVERAGE = 0.15
 // Each side of the quad must be at least this long relative to the
 // corresponding frame edge — guards against degenerate skinny quads.
-const MIN_QUAD_EDGE_FRACTION = 0.4
+export const MIN_QUAD_EDGE_FRACTION = 0.2
 
-function quadAreaFraction(corners, frameWidth, frameHeight) {
+export function quadAreaFraction(corners, frameWidth, frameHeight) {
   if (!corners) return 0
   const tl = corners.topLeftCorner
   const tr = corners.topRightCorner
@@ -31,7 +31,7 @@ function quadAreaFraction(corners, frameWidth, frameHeight) {
   return total > 0 ? area / total : 0
 }
 
-function quadEdgesAreReasonable(corners, frameWidth, frameHeight) {
+export function quadEdgesAreReasonable(corners, frameWidth, frameHeight) {
   if (!corners) return false
   const tl = corners.topLeftCorner
   const tr = corners.topRightCorner
