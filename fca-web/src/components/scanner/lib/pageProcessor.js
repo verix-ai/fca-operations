@@ -49,6 +49,48 @@ export function quadEdgesAreReasonable(corners, frameWidth, frameHeight) {
   )
 }
 
+// Apply an adaptive threshold to the canvas in place, producing the clean
+// "scanned document" look: pure white paper, pure black text, no background
+// tint, no shadows, no creases. Block size and C tuned for letter-size
+// printed-text documents at 1500-2400px. If anything fails (no cv, image is
+// not paper-like, etc.), we leave the canvas untouched so the user still gets
+// the original color crop.
+function enhanceAsScan(cv, canvas) {
+  if (!cv) return canvas
+  let src = null
+  let gray = null
+  let blurred = null
+  let thresholded = null
+  try {
+    src = cv.imread(canvas)
+    gray = new cv.Mat()
+    cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY)
+    blurred = new cv.Mat()
+    cv.GaussianBlur(gray, blurred, new cv.Size(3, 3), 0)
+    thresholded = new cv.Mat()
+    cv.adaptiveThreshold(
+      blurred,
+      thresholded,
+      255,
+      cv.ADAPTIVE_THRESH_GAUSSIAN_C,
+      cv.THRESH_BINARY,
+      25, // block size: must be odd; 25px works well at our output resolution
+      12, // constant subtracted from mean — higher = more aggressive (whiter background)
+    )
+    cv.imshow(canvas, thresholded)
+    return canvas
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] enhanceAsScan failed, keeping color:', err?.message)
+    return canvas
+  } finally {
+    if (src) try { src.delete() } catch (_) { /* */ }
+    if (gray) try { gray.delete() } catch (_) { /* */ }
+    if (blurred) try { blurred.delete() } catch (_) { /* */ }
+    if (thresholded) try { thresholded.delete() } catch (_) { /* */ }
+  }
+}
+
 function fitDims(w, h, maxEdge) {
   const long = Math.max(w, h)
   if (long <= maxEdge) return { width: w, height: h }
@@ -155,6 +197,13 @@ export async function processFrame(bitmap, options = {}) {
   finalCanvas.width = width
   finalCanvas.height = height
   finalCanvas.getContext('2d').drawImage(croppedCanvas, 0, 0, width, height)
+
+  // Auto-enhance: convert the cropped page to a high-contrast B&W scan look.
+  // Without this step the captured frame looks like a photo of paper (dim,
+  // shadowed, busy background tint). Adaptive thresholding produces clean
+  // white background + sharp black text every time, the standard "scan"
+  // appearance the user expects.
+  enhanceAsScan(cv, finalCanvas)
 
   const processedBlob = await canvasToJpegBlob(finalCanvas, JPEG_QUALITY)
 
