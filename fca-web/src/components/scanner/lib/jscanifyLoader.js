@@ -81,6 +81,30 @@ function loadOpenCv() {
       mod._opencvReady = true
       // eslint-disable-next-line no-console
       console.log('[scanner] OpenCV.js fully ready (imread:', !!mod.imread, ')')
+      // emscripten leaves a .then method on the Module object as a side-effect
+      // of MODULARIZE. If we hand `mod` straight to resolve(), the Promise
+      // machinery treats it as a thenable and recursively awaits mod.then(...) —
+      // that .then never invokes its onFulfilled callback, and the outer Promise
+      // hangs forever even though OpenCV is fully ready.
+      let stripped = false
+      try {
+        stripped = delete mod.then
+      } catch (_) {
+        stripped = false
+      }
+      if (!stripped) {
+        // .then is non-configurable. Override it with a no-op that is not
+        // recognized as a thenable accessor (assignment may still fail in
+        // strict frozen-prototype builds; in that case fall back to a holder).
+        try {
+          mod.then = undefined
+          stripped = mod.then === undefined
+        } catch (_) {
+          stripped = false
+        }
+      }
+      // eslint-disable-next-line no-console
+      console.log('[scanner] cv.then stripped:', stripped, '— current typeof cv.then:', typeof mod.then)
       resolve(mod)
     })
     const onReject = settle(reject)
