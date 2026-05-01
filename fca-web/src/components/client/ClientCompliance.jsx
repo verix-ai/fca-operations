@@ -501,7 +501,7 @@ export default function ClientCompliance({ client, onUpdate, readOnly = false })
           {hasFile && !readOnly && (
             <button
               onClick={() => removeFile(item.id)}
-              className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
               title="Remove file"
             >
               <X className="w-4 h-4" />

@@ -127,11 +127,33 @@ export default function FilePreviewModal({
                                     />
                                 )}
                                 {isPdf && (
-                                    <iframe
-                                        src={fileUrl}
-                                        title={fileName || title}
-                                        className="w-full h-[calc(90vh-120px)] rounded-lg border-0"
-                                    />
+                                    <>
+                                        {/* Mobile: iframes render PDFs at native resolution (zoomed-in
+                                            and unscrollable). Show a prominent "Open Document" button
+                                            that hands the PDF off to the OS viewer (Safari Quick Look /
+                                            Chrome's PDF viewer), which handles fit-to-width correctly. */}
+                                        <div className="md:hidden flex flex-col items-center gap-4 py-12 text-center w-full">
+                                            <p className="text-sm text-heading-subdued max-w-xs">
+                                                Tap below to view this document in your device&apos;s viewer.
+                                            </p>
+                                            <a
+                                                href={fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-brand text-black font-medium hover:bg-brand/90 transition-colors"
+                                            >
+                                                <ExternalLink className="w-5 h-5" />
+                                                Open Document
+                                            </a>
+                                        </div>
+                                        {/* Desktop: inline iframe with FitH so the PDF opens fitted to
+                                            the iframe width instead of native resolution. */}
+                                        <iframe
+                                            src={`${fileUrl}#view=FitH&toolbar=1`}
+                                            title={fileName || title}
+                                            className="hidden md:block w-full h-[calc(90vh-120px)] rounded-lg border-0"
+                                        />
+                                    </>
                                 )}
                                 {!isImage && !isPdf && (
                                     <div className="text-center text-heading-subdued">

@@ -633,7 +633,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
                 {!readOnly && (
                   <button
                     onClick={() => removeFile(item.id, file.id)}
-                    className="p-1 text-heading-subdued hover:text-red-400 opacity-0 group-hover/file:opacity-100 transition-opacity"
+                    className="p-1 text-heading-subdued hover:text-red-400 opacity-100 md:opacity-0 md:group-hover/file:opacity-100 transition-opacity"
                     title="Remove this record"
                   >
                     <X className="w-3 h-3" />
@@ -684,7 +684,7 @@ export default function CaregiverCompliance({ caregiver, onUpdate, readOnly = fa
           {hasFile && !readOnly && (
             <button
               onClick={() => removeFile(item.id)}
-              className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
               title="Remove file"
             >
               <X className="w-4 h-4" />
