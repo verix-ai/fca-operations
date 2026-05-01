@@ -1,4 +1,7 @@
-import jscanify from 'jscanify'
+// jscanify's "." export points to a Node-only entrypoint (requires `canvas` + `jsdom`)
+// and crashes when loaded in the browser. The package exposes a "./client" subpath
+// for the browser UMD build — use that instead.
+import jscanify from 'jscanify/client'
 
 const OPENCV_URL = 'https://docs.opencv.org/4.10.0/opencv.js'
 
