@@ -42,9 +42,36 @@ export default function CameraView({ onCapture, onError }) {
         onError({ kind, message: err?.message || String(err) })
       }
     }
+    async function handleVisibilityChange() {
+      if (document.visibilityState !== 'visible') return
+      if (!streamRef.current?.getVideoTracks().some((t) => t.readyState === 'ended')) return
+      // Track ended while backgrounded — silently re-acquire without changing phase
+      streamRef.current.getTracks().forEach((t) => t.stop())
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1920 } },
+          audio: false,
+        })
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
+        streamRef.current = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+          await videoRef.current.play().catch(() => {})
+        }
+      } catch (err) {
+        if (cancelled) return
+        onError({ kind: classifyError(err), message: err?.message || String(err) })
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     start()
     return () => {
       cancelled = true
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
