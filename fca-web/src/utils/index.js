@@ -20,6 +20,8 @@ export function createPageUrl(name, params = {}) {
       return '/messages';
     case 'Notifications':
       return '/notifications';
+    case 'Alerts':
+      return '/alerts';
     case 'Prospects':
       return '/prospects';
     case 'ClientConnectList':
