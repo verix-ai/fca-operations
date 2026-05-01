@@ -17,18 +17,28 @@ const READY_TIMEOUT_MS = 30000
 // Detect each and resolve to the fully-initialized cv module.
 async function awaitCvReady() {
   const cv = window.cv
+  // eslint-disable-next-line no-console
+  console.log('[scanner] awaitCvReady — window.cv typeof:', typeof cv, 'has imread:', !!cv?.imread, 'has then:', typeof cv?.then === 'function')
   if (!cv) throw new Error('OpenCV.js loaded but window.cv is undefined')
   if (typeof cv === 'function') {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] calling window.cv() factory...')
     const mod = await cv()
+    // eslint-disable-next-line no-console
+    console.log('[scanner] factory resolved, has imread:', !!mod?.imread)
     window.cv = mod
     return mod
   }
   if (cv.imread) return cv
   if (typeof cv.then === 'function') {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] awaiting window.cv thenable...')
     const mod = await cv
     window.cv = mod
     return mod
   }
+  // eslint-disable-next-line no-console
+  console.log('[scanner] waiting on cv.onRuntimeInitialized...')
   return new Promise((resolve) => {
     cv.onRuntimeInitialized = () => resolve(window.cv)
   })
@@ -37,6 +47,8 @@ async function awaitCvReady() {
 function loadOpenCv() {
   return new Promise((resolve, reject) => {
     if (window.cv && window.cv.imread) {
+      // eslint-disable-next-line no-console
+      console.log('[scanner] window.cv already initialized, skipping script load')
       resolve(window.cv)
       return
     }
@@ -49,6 +61,11 @@ function loadOpenCv() {
       script.async = true
       script.src = OPENCV_URL
       script.dataset.opencv = '1'
+      // eslint-disable-next-line no-console
+      console.log('[scanner] injecting OpenCV.js script tag from', OPENCV_URL)
+    } else {
+      // eslint-disable-next-line no-console
+      console.log('[scanner] reusing existing OpenCV.js script tag')
     }
 
     let settled = false
@@ -67,8 +84,12 @@ function loadOpenCv() {
     )
 
     const onReady = async () => {
+      // eslint-disable-next-line no-console
+      console.log('[scanner] script load event fired')
       try {
         const mod = await awaitCvReady()
+        // eslint-disable-next-line no-console
+        console.log('[scanner] OpenCV.js fully ready')
         onResolve(mod)
       } catch (err) {
         onReject(err)
@@ -76,7 +97,15 @@ function loadOpenCv() {
     }
 
     script.addEventListener('load', onReady, { once: true })
-    script.addEventListener('error', () => onReject(new Error('Failed to load OpenCV.js')), { once: true })
+    script.addEventListener(
+      'error',
+      (e) => {
+        // eslint-disable-next-line no-console
+        console.error('[scanner] script error event:', e)
+        onReject(new Error('Failed to load OpenCV.js'))
+      },
+      { once: true },
+    )
 
     if (!existing) document.head.appendChild(script)
     else if (window.cv) onReady()
@@ -85,12 +114,17 @@ function loadOpenCv() {
 
 export function loadScanner() {
   if (!promise) {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] loadScanner: starting fresh load')
     promise = (async () => {
       try {
         const cv = await loadOpenCv()
+        // eslint-disable-next-line no-console
+        console.log('[scanner] OpenCV ready, constructing jscanify')
         const scanner = new jscanify()
-        // jscanify reads cv from window.cv at call time, so just confirming it's there
         scanner.loadOpenCV?.(cv)
+        // eslint-disable-next-line no-console
+        console.log('[scanner] loadScanner: complete')
         return { cv, scanner }
       } catch (err) {
         promise = null // allow retry on failure
@@ -99,6 +133,9 @@ export function loadScanner() {
         throw err
       }
     })()
+  } else {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] loadScanner: returning cached promise')
   }
   return promise
 }
