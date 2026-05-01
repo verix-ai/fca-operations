@@ -113,8 +113,8 @@ export default function DocumentScanner({ isOpen, onClose, onComplete, categoryN
         </button>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 relative">
+      {/* Body — min-h-0 + overflow-hidden so the high-res video doesn't push the bottom bar off-screen */}
+      <div className="flex-1 relative min-h-0 overflow-hidden">
         {state.mode === 'capturing' && (
           <CameraView
             onCapture={handleCapture}

@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { loadScanner } from './lib/jscanifyLoader.js'
 
 function classifyError(err) {
@@ -117,17 +116,18 @@ export default function CameraView({ onCapture, onError }) {
         ref={videoRef}
         playsInline
         muted
-        className="w-full h-full object-cover"
+        className="absolute inset-0 w-full h-full object-cover"
       />
-      <div className="absolute inset-x-0 bottom-0 p-4 flex justify-center">
-        <Button
+      <div className="absolute inset-x-0 bottom-0 p-6 flex justify-center pointer-events-none">
+        <button
+          type="button"
           onClick={handleShutter}
           disabled={phase !== 'ready'}
-          className="rounded-full w-16 h-16 p-0"
           aria-label="Capture page"
+          className="pointer-events-auto rounded-full w-20 h-20 bg-white text-black shadow-[0_8px_24px_rgba(0,0,0,0.45)] ring-4 ring-white/30 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:scale-105 transition"
         >
-          {phase === 'capturing' ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}
-        </Button>
+          {phase === 'capturing' ? <Loader2 className="w-8 h-8 animate-spin" /> : <Camera className="w-8 h-8" />}
+        </button>
       </div>
     </div>
   )
