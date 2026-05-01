@@ -63,6 +63,11 @@ export default function DocumentScanner({ isOpen, onClose, onComplete, categoryN
     [addPage, setError],
   )
 
+  // Memoized so CameraView's effect dep on onError stays stable across renders;
+  // otherwise the camera + detection loop would tear down on every parent
+  // re-render (e.g. when state.warned50MB or pages change).
+  const handleCameraError = useCallback((err) => setError(err), [setError])
+
   const handleDone = useCallback(async () => {
     if (state.pages.length === 0) return
     setMode('building-pdf')
@@ -118,7 +123,7 @@ export default function DocumentScanner({ isOpen, onClose, onComplete, categoryN
         {state.mode === 'capturing' && (
           <CameraView
             onCapture={handleCapture}
-            onError={(err) => setError(err)}
+            onError={handleCameraError}
           />
         )}
 

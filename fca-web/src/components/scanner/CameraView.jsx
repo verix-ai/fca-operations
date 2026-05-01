@@ -34,10 +34,18 @@ export default function CameraView({ onCapture, onError }) {
   const stableCountRef = useRef(0)
   const cooldownUntilRef = useRef(0)
   const handleShutterRef = useRef(null)
+  const autoModeRef = useRef(true)
+  const detectTickRef = useRef(0)
   const [phase, setPhase] = useState('initializing') // 'initializing' | 'ready' | 'capturing'
   const [filter, setFilter] = useState('bw') // 'bw' | 'color'
   const [autoMode, setAutoMode] = useState(true)
   const [detectionState, setDetectionState] = useState('idle') // 'idle' | 'partial' | 'stable'
+
+  // Mirror autoMode into a ref so the polling loop reads the current value
+  // without the effect needing to restart on toggle.
+  useEffect(() => {
+    autoModeRef.current = autoMode
+  }, [autoMode])
 
   // Map the on-screen framing box to natural video coordinates, accounting for
   // object-cover scaling. Returns null if anything isn't ready yet.
@@ -209,13 +217,32 @@ export default function CameraView({ onCapture, onError }) {
       const next = c === 0 ? 'idle' : c < STABLE_THRESHOLD ? 'partial' : 'stable'
       setDetectionState((prev) => (prev === next ? prev : next))
 
+      // Log every ~2 seconds so we can verify the loop is alive without
+      // flooding the console.
+      detectTickRef.current += 1
+      if (detectTickRef.current % 6 === 0) {
+        // eslint-disable-next-line no-console
+        console.log(
+          '[scanner] detect tick — valid:',
+          valid,
+          'stableCount:',
+          c,
+          'state:',
+          next,
+          'autoMode:',
+          autoModeRef.current,
+        )
+      }
+
       // Auto-fire one beat after stable, with cooldown after each capture.
       if (
-        autoMode &&
+        autoModeRef.current &&
         c >= AUTO_FIRE_AT &&
         Date.now() >= cooldownUntilRef.current &&
         handleShutterRef.current
       ) {
+        // eslint-disable-next-line no-console
+        console.log('[scanner] auto-firing shutter (stableCount:', c, ')')
         handleShutterRef.current()
       }
     }
@@ -258,7 +285,7 @@ export default function CameraView({ onCapture, onError }) {
         streamRef.current = null
       }
     }
-  }, [onError, autoMode])
+  }, [onError])
 
   // Border / ring color reflects detection state. NO movement, just a static
   // color change so the UI doesn't feel jumpy.
