@@ -18,8 +18,10 @@ const READY_TIMEOUT_MS = 30000
 async function awaitCvReady() {
   const cv = window.cv
   // eslint-disable-next-line no-console
-  console.log('[scanner] awaitCvReady — window.cv typeof:', typeof cv, 'has imread:', !!cv?.imread, 'has then:', typeof cv?.then === 'function')
+  console.log('[scanner] awaitCvReady — window.cv typeof:', typeof cv, 'has imread:', !!cv?.imread, 'has then:', typeof cv?.then === 'function', 'has onRuntimeInitialized:', 'onRuntimeInitialized' in (cv || {}))
   if (!cv) throw new Error('OpenCV.js loaded but window.cv is undefined')
+
+  // Factory function: call to get the Promise (modern emscripten MODULARIZE)
   if (typeof cv === 'function') {
     // eslint-disable-next-line no-console
     console.log('[scanner] calling window.cv() factory...')
@@ -29,14 +31,27 @@ async function awaitCvReady() {
     window.cv = mod
     return mod
   }
-  if (cv.imread) return cv
+
+  // Thenable: cv IS the Module promise (emscripten MODULARIZE on a pre-init object).
+  // imread may exist as a stub even before WASM is ready, so .then takes priority.
   if (typeof cv.then === 'function') {
     // eslint-disable-next-line no-console
     console.log('[scanner] awaiting window.cv thenable...')
     const mod = await cv
+    // eslint-disable-next-line no-console
+    console.log('[scanner] thenable resolved, has imread:', !!mod?.imread)
     window.cv = mod
     return mod
   }
+
+  // Already-initialized module
+  if (cv.imread) {
+    // eslint-disable-next-line no-console
+    console.log('[scanner] cv already has imread, returning')
+    return cv
+  }
+
+  // Older Module-style: hook onRuntimeInitialized
   // eslint-disable-next-line no-console
   console.log('[scanner] waiting on cv.onRuntimeInitialized...')
   return new Promise((resolve) => {
