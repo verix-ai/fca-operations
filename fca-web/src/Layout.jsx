@@ -21,6 +21,7 @@ import { useAuth } from '@/auth/AuthProvider.jsx'
 import { createPageUrl } from '@/utils'
 import { Button } from '@/components/ui/button'
 import NotificationNavItem from '@/components/layout/NotificationNavItem.jsx'
+import { useLeadsRealtime } from '@/realtime/LeadsRealtimeProvider.jsx'
 
 const softSpringEasing = 'cubic-bezier(0.25, 1.1, 0.4, 1)'
 
@@ -75,7 +76,23 @@ function buildNavigationSections(user) {
 const railLogoShadeClass =
   'relative flex items-center justify-center rounded-2xl border border-[rgba(var(--border),0.55)] bg-[rgba(var(--bg),0.9)] shadow-[0_12px_28px_-18px_rgba(0,0,0,0.65)]'
 
+function CountBadge({ count, className = '' }) {
+  if (!count || count <= 0) return null
+  const display = count > 99 ? '99+' : String(count)
+  return (
+    <span
+      className={classNames(
+        'inline-flex items-center justify-center rounded-full bg-[rgba(255,80,90,0.95)] text-white text-[10px] font-bold leading-none px-1.5 min-w-[18px] h-[18px] shadow-[0_4px_10px_-4px_rgba(255,80,90,0.7)]',
+        className,
+      )}
+    >
+      {display}
+    </span>
+  )
+}
+
 function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail, user }) {
+  const { unseenCount } = useLeadsRealtime()
   return (
     <aside
       data-sidebar
@@ -111,22 +128,27 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail,
             return <NotificationNavItem key={item.id} variant="rail" />
           }
 
+          const showLeadsBadge = item.id === 'leads' && unseenCount > 0
+
           return (
             <NavLink
               key={item.id}
               to={item.url}
               className={({ isActive }) =>
                 classNames(
-                  'group flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300',
+                  'group relative flex h-12 w-12 items-center justify-center rounded-xl border transition-all motion-safe:duration-300',
                   'border-transparent text-[rgba(var(--muted),0.75)] hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.22)] hover:text-[rgb(var(--text))]',
                   isActive &&
                   'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.35)] text-[rgb(var(--text))] shadow-[0_10px_30px_-18px_rgba(0,0,0,0.55)]',
                 )
               }
-              title={item.title}
+              title={showLeadsBadge ? `${item.title} (${unseenCount} new)` : item.title}
             >
               <item.icon className="h-5 w-5" aria-hidden="true" />
               <span className="sr-only">{item.title}</span>
+              {showLeadsBadge && (
+                <CountBadge count={unseenCount} className="absolute -top-1 -right-1" />
+              )}
             </NavLink>
           )
         })}
@@ -176,6 +198,7 @@ function NavigationRail({ items, footerItems, isDetailCollapsed, onToggleDetail,
 }
 
 function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
+  const { unseenCount } = useLeadsRealtime()
   return (
     <aside
       data-sidebar
@@ -223,6 +246,8 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
                   return <NotificationNavItem key={item.id} variant="detail" />
                 }
 
+                const showLeadsBadge = item.id === 'leads' && unseenCount > 0
+
                 return (
                   <NavLink
                     key={item.id}
@@ -235,18 +260,22 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
                         'border-[rgba(var(--brand),0.45)] bg-[rgba(255,255,255,0.12)] text-[rgb(var(--text))] shadow-[0_18px_40px_-30px_rgba(0,0,0,0.7)]',
                       )
                     }
-                    title={item.title}
+                    title={showLeadsBadge ? `${item.title} (${unseenCount} new)` : item.title}
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.8)] text-[rgba(var(--muted),0.8)] shadow-[0_12px_24px_-20px_rgba(0,0,0,0.65)] transition-colors group-hover:border-[rgba(var(--border),0.55)] group-hover:text-[rgb(var(--text))]">
+                    <span className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-[rgba(var(--border),0.35)] bg-[rgba(var(--bg),0.8)] text-[rgba(var(--muted),0.8)] shadow-[0_12px_24px_-20px_rgba(0,0,0,0.65)] transition-colors group-hover:border-[rgba(var(--border),0.55)] group-hover:text-[rgb(var(--text))]">
                       <item.icon className="h-4 w-4" aria-hidden="true" />
                     </span>
                     <span className="flex flex-1 flex-col text-left">
                       <span>{item.title}</span>
                     </span>
-                    <span className="inline-flex items-center gap-1 text-xs text-[rgba(var(--muted),0.55)] opacity-0 transition-opacity group-hover:opacity-100">
-                      <LinkIcon className="h-3 w-3" aria-hidden="true" />
-                      Open
-                    </span>
+                    {showLeadsBadge ? (
+                      <CountBadge count={unseenCount} />
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-xs text-[rgba(var(--muted),0.55)] opacity-0 transition-opacity group-hover:opacity-100">
+                        <LinkIcon className="h-3 w-3" aria-hidden="true" />
+                        Open
+                      </span>
+                    )}
                   </NavLink>
                 )
               })}

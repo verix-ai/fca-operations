@@ -33,12 +33,15 @@ import { ThemeProvider } from '@/components/theme/ThemeProvider.jsx'
 import AuthProvider from '@/auth/AuthProvider.jsx'
 import { ProtectedRoute, RoleRoute } from '@/components/auth/ProtectedRoute.jsx'
 import { useAuth } from '@/auth/AuthProvider.jsx'
+import LeadsRealtimeProvider from '@/realtime/LeadsRealtimeProvider.jsx'
 
 // Root component that wraps everything with AuthProvider
 function Root() {
   return (
     <AuthProvider>
-      <Outlet />
+      <LeadsRealtimeProvider>
+        <Outlet />
+      </LeadsRealtimeProvider>
     </AuthProvider>
   )
 }

@@ -23,6 +23,7 @@ import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { useToast } from '@/components/ui/toast'
 import { confirm } from '@/components/ui/confirm-dialog'
 import { Lead } from '@/entities/Lead.supabase'
+import { useLeadsRealtime } from '@/realtime/LeadsRealtimeProvider.jsx'
 import { formatPhone } from '@/utils'
 
 const STATUS_OPTIONS = [
@@ -110,6 +111,14 @@ export default function Leads() {
   const [notesLead, setNotesLead] = useState(null)
 
   const { push: toast } = useToast()
+  const { markSeen, onNewLead, requestNotifPermission } = useLeadsRealtime()
+
+  // Clear the unseen-leads badge whenever the user is on this page.
+  useEffect(() => { markSeen() }, [markSeen, view, page])
+
+  // Ask for desktop-notification permission on first arrival to the page.
+  // Browsers require a user gesture; arriving via sidebar click qualifies.
+  useEffect(() => { requestNotifPermission() }, [requestNotifPermission])
 
   const dateRange = useMemo(() => {
     if (datePreset === 'custom') {
@@ -164,6 +173,46 @@ export default function Leads() {
   useEffect(() => {
     Lead.distinctCounties().then(setCounties).catch(() => setCounties([]))
   }, [view])
+
+  // Live-prepend new leads from the realtime channel when they match the
+  // current filter set and the user is on page 1 of the Active view.
+  useEffect(() => {
+    if (view !== 'active' || page !== 1) return
+
+    function matchesCurrentFilter(lead) {
+      if (lead.archived_at) return false
+      if (stateFilter !== 'all' && lead.state !== stateFilter) return false
+      if (statusFilter.length > 0 && !statusFilter.includes(lead.status)) return false
+      if (countyFilter && lead.county !== countyFilter) return false
+      if (dateRange.from && new Date(lead.created_at) < new Date(dateRange.from)) return false
+      if (dateRange.to && new Date(lead.created_at) > new Date(dateRange.to)) return false
+      const term = search.trim().toLowerCase()
+      if (term) {
+        const hay = `${lead.full_name} ${lead.email || ''} ${lead.phone || ''}`.toLowerCase()
+        if (!hay.includes(term)) return false
+      }
+      return true
+    }
+
+    const off = onNewLead((lead) => {
+      if (!matchesCurrentFilter(lead)) {
+        // Doesn't fit the current view — still bump the total counter so the
+        // user sees something arrived.
+        setTotal((t) => t + 1)
+        return
+      }
+      setRows((curr) => {
+        if (curr.some((r) => r.id === lead.id)) return curr
+        const next = [lead, ...curr]
+        return next.length > pageSize ? next.slice(0, pageSize) : next
+      })
+      setTotal((t) => t + 1)
+      // The user is actively on the page, so the new arrival is "seen".
+      markSeen()
+    })
+
+    return off
+  }, [view, page, pageSize, stateFilter, statusFilter, countyFilter, dateRange.from, dateRange.to, search, onNewLead, markSeen])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 

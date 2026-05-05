@@ -16,6 +16,7 @@ export default defineConfig({
       '@/utils': fileURLToPath(new URL('./src/utils', import.meta.url)),
       '@/entities': fileURLToPath(new URL('./src/entities', import.meta.url)),
       '@/Pages': fileURLToPath(new URL('./src/Pages', import.meta.url)),
+      '@/realtime': fileURLToPath(new URL('./src/realtime', import.meta.url)),
       // Force external deps resolution for files outside this package
       'lucide-react': fileURLToPath(new URL('./node_modules/lucide-react', import.meta.url)),
       'date-fns': fileURLToPath(new URL('./node_modules/date-fns', import.meta.url)),
