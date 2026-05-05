@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardList,
   HeartHandshake,
+  Inbox,
   Link as LinkIcon,
   MessageSquare,
   PieChart,
@@ -32,6 +33,7 @@ function buildNavigationSections(user) {
   const managementItems = isMarketer
     ? [
       { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
+      { id: 'leads', title: 'Leads', icon: Inbox, url: createPageUrl('Leads') },
       { id: 'clients', title: 'Clients', icon: Users, url: createPageUrl('ClientList') },
       { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
       { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
@@ -46,6 +48,7 @@ function buildNavigationSections(user) {
       { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
       { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
       { id: 'marketer-intake', title: 'Referral Form', icon: ClipboardList, url: createPageUrl('MarketerIntake') },
+      { id: 'leads', title: 'Leads', icon: Inbox, url: createPageUrl('Leads') },
       { id: 'alerts', title: 'Alerts', icon: AlertTriangle, url: createPageUrl('Alerts') },
       { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
     ]

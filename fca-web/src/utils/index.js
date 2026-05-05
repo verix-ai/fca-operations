@@ -12,6 +12,8 @@ export function createPageUrl(name, params = {}) {
       return params.id ? `/caregiver/${params.id}` : '/caregiver';
     case 'MarketerIntake':
       return '/marketer-intake';
+    case 'Leads':
+      return '/leads';
     case 'ClientIntake':
       return '/clients/new';
     case 'ClientDetail':
