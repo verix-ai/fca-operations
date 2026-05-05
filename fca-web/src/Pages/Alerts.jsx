@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { useToast } from '@/components/ui/toast'
 import { loadAlerts, getAlertProviders, ALERT_CATEGORIES } from '@/services/alerts'
@@ -15,7 +16,7 @@ import { Notification } from '@/entities/Notification.supabase'
 import { useAuth } from '@/auth/AuthProvider.jsx'
 import { createPageUrl } from '@/utils'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 function severityBadge(severity) {
   if (severity === 'expired') {
@@ -42,6 +43,7 @@ export default function Alerts() {
   const [activeCategory, setActiveCategory] = useState(ALERT_CATEGORIES.DOCUMENT_EXPIRATION)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('upcoming')
+  const [pageSize, setPageSize] = useState(25)
   const [page, setPage] = useState(1)
   const [remindingId, setRemindingId] = useState(null)
   const { push: toast } = useToast()
@@ -82,14 +84,14 @@ export default function Alerts() {
     })
   }, [alerts, searchTerm, statusFilter])
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, totalPages)
   const pageItems = useMemo(
-    () => filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE),
-    [filtered, safePage]
+    () => filtered.slice((safePage - 1) * pageSize, safePage * pageSize),
+    [filtered, safePage, pageSize]
   )
 
-  useEffect(() => { setPage(1) }, [searchTerm, statusFilter, activeCategory])
+  useEffect(() => { setPage(1) }, [searchTerm, statusFilter, activeCategory, pageSize])
 
   const counts = useMemo(() => {
     const expired = alerts.filter((a) => a.severity === 'expired').length
@@ -170,7 +172,7 @@ export default function Alerts() {
                       className="pl-9"
                     />
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-end gap-2">
                     {[
                       { id: 'upcoming', label: 'Upcoming + Expired' },
                       { id: 'warning', label: 'Expiring soon' },
@@ -186,6 +188,17 @@ export default function Alerts() {
                         {opt.label}
                       </Button>
                     ))}
+                    <div>
+                      <label className="block text-xs uppercase tracking-[0.3em] text-heading-subdued mb-1">Per page</label>
+                      <Select value={String(pageSize)} onValueChange={(v) => setPageSize(Number(v))}>
+                        <SelectTrigger className="w-[88px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {PAGE_SIZE_OPTIONS.map((n) => (
+                            <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 
