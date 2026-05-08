@@ -2054,3 +2054,28 @@ Include a manual test checklist mirroring Task 18.
 - Email notification to the marketer when a referral submits (future enhancement)
 - Analytics / click-through tracking on `/ref/:slug` visits (future)
 - Splitting this plan into separate Phase-1 / Phase-2 / Phase-3 PRs (could be done if the user wants to ship in stages — current plan ships as one branch)
+
+---
+
+## Follow-up: "Slug for every staff member + admin management UI" (planned, NOT in this PR)
+
+After E2E verification on 2026-05-08, the user requested an expansion that is **deliberately deferred to a follow-up PR** so this branch stays focused and reviewable. Captured here so we don't lose it.
+
+**Scope of the follow-up:**
+
+1. **Every staff member can have a referral slug + QR**, not just rows in `marketers`. Today, the slug lives on `marketers.referral_slug`; in the follow-up it should live where any staff `users` row can own one. Most likely path: add `referral_slug` to `users` (with the same citext + CHECK + reserved-slugs + alias machinery), migrate existing `marketers.referral_slug` values over (so all currently-printed QRs keep working), update `get_marketer_by_slug` (or rename it to e.g. `get_referrer_by_slug`) to resolve via `users` and join through to org/marketer details as needed for commission attribution.
+
+2. **Admin (and CMO) management UI** to view, copy, and download the QR for any staff member's slug, plus optionally edit. The user designated **Ahmad Barron** (currently `role='admin'`, slug `ahmad`) as the **Chief Marketing Officer**, who oversees all marketers. For this PR, "admin role" = "can manage everyone" is sufficient (CMO is currently an admin, not a separate role). When new roles are added later, gate the management UI on `role IN ('admin', <new mgmt role>)`.
+
+3. **Future roles**: the user has indicated more roles will be added beyond `admin` / `marketer`. The follow-up should leave room for that — e.g., move role checks into a small `permissions.canManageAllSlugs(user)` helper rather than scattering `role === 'admin'` checks.
+
+**Open design questions to resolve when planning the follow-up (do a brainstorm first):**
+
+- Should every user be auto-assigned a slug at account creation (backfill on migration), or only when they first opt in via the Profile UI? (Auto-assign matches the current marketer behavior; opt-in is less noisy.)
+- Should admins be able to *edit* others' slugs, or only view/copy/download? (Edit means they could break someone else's printed QR — an alias is auto-created by the trigger so it survives, but it's still an action with social consequences.)
+- Where does the admin management UI live? A new "Referral Links" page in Settings? A column added to Employee Management? A new dedicated page reachable from the sidebar?
+- For commission attribution: the public Edge Function currently resolves a `marketers` row and writes `marketer_id` into `notes`. If the slug owner is a non-marketer staff member, should we still write a commission attribution? Probably not — but we should record `referrer_user_id` so the relationship is preserved for reporting.
+- Migration: when `users.referral_slug` is added, existing `marketers.referral_slug` values must be copied to the matching `users.id` (via `marketers.user_id`). If a marketer has no `user_id` link, leave their slug on `marketers` only and treat the two as fallback paths in the resolver.
+- Once `users` owns the slug, do we keep `marketers.referral_slug` as a redundant copy or drop it? Dropping it means a single source of truth (good); keeping it means existing app code that reads `marketers.referral_slug` needs zero changes (lower risk). Probably drop after migration + read-side updates.
+
+**Don't start the follow-up without brainstorming these questions with the user first.**
