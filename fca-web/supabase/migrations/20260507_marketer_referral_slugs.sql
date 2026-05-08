@@ -192,7 +192,8 @@ BEGIN
     WHERE referral_slug IS NULL
     ORDER BY created_at NULLS LAST, id
   LOOP
-    base_slug := lower(regexp_replace(split_part(coalesce(m.name, 'marketer'), ' ', 1), '[^a-z0-9]+', '', 'g'));
+    -- lower() FIRST so the regex doesn't strip uppercase letters (Postgres regex is case-sensitive)
+    base_slug := regexp_replace(lower(split_part(coalesce(m.name, 'marketer'), ' ', 1)), '[^a-z0-9]+', '', 'g');
     IF base_slug IS NULL OR length(base_slug) < 2 THEN
       base_slug := 'marketer';
     END IF;
