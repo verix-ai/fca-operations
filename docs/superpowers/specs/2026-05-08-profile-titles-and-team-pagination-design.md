@@ -14,14 +14,14 @@ The Team Members list is currently growing without bound and the role badge alon
 
 ## Data model
 
-Add a `title` column to `public.profiles`:
+Add a `title` column to `public.users` (the table the app reads/writes user records from — this app does not use a separate `profiles` table):
 
 - Type: `text`, nullable.
-- Length cap: DB-side `check (char_length(title) <= 100)`.
+- Length cap: DB-side `check (title is null or char_length(title) <= 100)`.
 - Trimmed/normalized to `null` when blank on write (handled at the application layer).
-- New migration: `supabase/migrations/<timestamp>_profiles_add_title.sql`.
+- New migration: `supabase/migrations/<timestamp>_users_add_title.sql`.
 
-RLS: existing profile policies already permit users to update their own row and admins to update any row. The migration must verify no policy uses a column allowlist that would exclude `title`; if any does, extend it. No new policies are introduced.
+RLS: existing `users` policies already permit users to update their own row and admins to update any row in their organization. The migration must verify no policy uses a column allowlist that would exclude `title`; if any does, extend it. No new policies are introduced.
 
 ## Profile page (self-edit)
 
@@ -63,7 +63,7 @@ Add to `fca-web/src/entities/User.supabase.js`:
 async updateTitle(userId, title) {
   const trimmed = (title || '').trim() || null
   const { data, error } = await supabase
-    .from('profiles')
+    .from('users')
     .update({ title: trimmed })
     .eq('id', userId)
     .select()
