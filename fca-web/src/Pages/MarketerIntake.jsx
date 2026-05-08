@@ -18,14 +18,21 @@ import { CAREGIVER_RELATIONSHIPS } from '../constants/caregiver.js'
 const INTAKE_BY = ['Ahmad','Quantez','Manda','Carlos','Emory','Melvin','Dwayne','Tevin','Kayla','Brittany','Carrie','Lorenzo','Jeffrey','Miya','Maurice','Reggie','Jimmy/Precious','Aubrey','Alexus/Shan','Dentay','Latina','Otis','Jeremiah','Josiah','Maddox','Jeanette','Lanita','Darius','Travis','Meg','Darius Rogers-Wilson','J Hall','Stacy','Diane Davis','Alexus','Brian','Mike','Sumo','Ms. Val','Adonis “AD” Thomas','Lovie','Valencia','Angel']
 const SEX = ['Female','Male','Prefer not to say']
 // Formatting helpers
-function formatSSN(input) {
-  const digits = String(input || '').replace(/\D/g, '').slice(0, 9)
-  const part1 = digits.slice(0, 3)
-  const part2 = digits.slice(3, 5)
-  const part3 = digits.slice(5, 9)
-  if (digits.length > 5) return `${part1}-${part2}-${part3}`
-  if (digits.length > 3) return `${part1}-${part2}`
-  return part1
+function formatMedicaidOrSSN(input) {
+  const digits = String(input || '').replace(/\D/g, '').slice(0, 12)
+  if (digits.length <= 9) {
+    const p1 = digits.slice(0, 3)
+    const p2 = digits.slice(3, 5)
+    const p3 = digits.slice(5, 9)
+    if (digits.length > 5) return `${p1}-${p2}-${p3}`
+    if (digits.length > 3) return `${p1}-${p2}`
+    return p1
+  }
+  const p1 = digits.slice(0, 3)
+  const p2 = digits.slice(3, 6)
+  const p3 = digits.slice(6, 9)
+  const p4 = digits.slice(9, 12)
+  return `${p1}-${p2}-${p3}-${p4}`
 }
 
 function formatUSPhone(input) {
@@ -98,7 +105,12 @@ export default function MarketerIntake() {
     if (!form.referral_name) e.referral_name = 'Required'
     if (!form.caregiver_name) e.caregiver_name = 'Required'
     if (!form.referral_dob) e.referral_dob = 'Required'
-    if (!form.medicaid_or_ssn) e.medicaid_or_ssn = 'Required'
+    if (!form.medicaid_or_ssn) {
+      e.medicaid_or_ssn = 'Required'
+    } else {
+      const len = form.medicaid_or_ssn.replace(/\D/g, '').length
+      if (len !== 9 && len !== 12) e.medicaid_or_ssn = 'Enter a 9-digit SSN or 12-digit GA Medicaid number'
+    }
     if (!form.phone) e.phone = 'Required'
     if (!form.caregiver_phone) e.caregiver_phone = 'Required'
     if (!form.address_line1) e.address_line1 = 'Required'
@@ -268,12 +280,12 @@ export default function MarketerIntake() {
                 <Label className="text-heading-subdued font-medium">GA Medicaid or SS#*</Label>
                 <Input
                   value={form.medicaid_or_ssn}
-                  onChange={(e)=>setField('medicaid_or_ssn', formatSSN(e.target.value))}
+                  onChange={(e)=>setField('medicaid_or_ssn', formatMedicaidOrSSN(e.target.value))}
                   inputMode="numeric"
-                  placeholder="___-__-____"
+                  placeholder="XXX-XXX-XXX-XXX or XXX-XX-XXXX"
                   className={`rounded-xl py-3 ${attempted && requiredErrors.medicaid_or_ssn ? 'border-red-500' : ''}`}
                 />
-                  {attempted && requiredErrors.medicaid_or_ssn && <div className="text-red-600 text-sm mt-1">Required</div>}
+                  {attempted && requiredErrors.medicaid_or_ssn && <div className="text-red-600 text-sm mt-1">{requiredErrors.medicaid_or_ssn}</div>}
                 </div>
                 <div>
                   <Label className="text-heading-subdued font-medium">Phone #*</Label>
