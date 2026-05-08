@@ -196,8 +196,8 @@ BEGIN
     IF base_slug IS NULL OR length(base_slug) < 2 THEN
       base_slug := 'marketer';
     END IF;
-    -- Trim to 28 chars to leave room for "-NN" suffix
-    base_slug := substr(base_slug, 1, 28);
+    -- Trim to 25 chars to leave room for "-NNNN" suffix (max attempt is 9999; 25 + 1 + 4 = 30 = CHECK limit)
+    base_slug := substr(base_slug, 1, 25);
 
     candidate := base_slug::citext;
     attempt := 1;
