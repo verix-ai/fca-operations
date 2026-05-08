@@ -38,7 +38,6 @@ function buildNavigationSections(user) {
       { id: 'clients', title: 'Clients', icon: Users, url: createPageUrl('ClientList') },
       { id: 'prospects', title: 'Prospects', icon: Users, url: createPageUrl('Prospects') },
       { id: 'reports', title: 'Reports', icon: PieChart, url: createPageUrl('Reports') },
-      { id: 'alerts', title: 'Alerts', icon: AlertTriangle, url: createPageUrl('Alerts') },
       { id: 'messages', title: 'Messages', icon: MessageSquare, url: createPageUrl('Messages') },
     ]
     : [
