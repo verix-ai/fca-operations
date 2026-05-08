@@ -115,6 +115,15 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Reject oversized bodies before they reach req.json() to avoid OOM. 32KB is generous for a form payload.
+  const contentLength = Number(req.headers.get('content-length') ?? '0');
+  if (contentLength > 32768) {
+    return new Response(JSON.stringify({ error: 'Payload too large' }), {
+      status: 413,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   const ip =
     req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     req.headers.get('cf-connecting-ip') ||
@@ -158,34 +167,34 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Resolve marketer (authoritative server-side lookup; client cannot spoof)
-  const { data: marketers, error: marketerErr } = await supabase
+  // Direct slug match
+  const { data: m1, error: m1Err } = await supabase
     .from('marketers')
     .select('id, name, email, organization_id, is_active')
-    .or(`referral_slug.eq.${payload.slug},id.eq.${'00000000-0000-0000-0000-000000000000'}`)
-    .limit(1);
+    .eq('referral_slug', payload.slug)
+    .maybeSingle();
 
-  // The above .or() trick handles the citext direct match. For the alias path we do a second query.
-  let marketer = (marketers ?? []).find((m) => m.is_active) ?? null;
+  let marketer = m1?.is_active ? m1 : null;
+
+  // Alias fallback
   if (!marketer) {
-    const { data: aliasRows } = await supabase
+    const { data: alias } = await supabase
       .from('marketer_slug_aliases')
       .select('marketer_id')
       .eq('slug', payload.slug)
-      .limit(1);
-    const aliasMarketerId = aliasRows?.[0]?.marketer_id;
-    if (aliasMarketerId) {
+      .maybeSingle();
+    if (alias?.marketer_id) {
       const { data: m2 } = await supabase
         .from('marketers')
         .select('id, name, email, organization_id, is_active')
-        .eq('id', aliasMarketerId)
-        .limit(1)
+        .eq('id', alias.marketer_id)
         .maybeSingle();
       if (m2?.is_active) marketer = m2;
     }
   }
 
-  if (!marketer || marketerErr) {
+  if (!marketer || m1Err) {
+    // Query error or not found → generic 404 (no schema leak)
     return new Response(JSON.stringify({ error: 'Unknown referral link' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -193,12 +202,10 @@ Deno.serve(async (req: Request) => {
   }
 
   // Build the JSON-in-notes payload to match the staff app's existing shape
-  const { slug: _slug, hp: _hp, heard_about_us, ...rest } = payload;
+  const { slug: _slug, hp: _hp, ...rest } = payload;
 
   const notesPayload = {
     ...rest,
-    heard_about_us,
-    state: payload.state,
     marketer_id: marketer.id,
     marketer_name: marketer.name,
     marketer_email: marketer.email ?? null,
@@ -210,7 +217,7 @@ Deno.serve(async (req: Request) => {
     client_id: null,
     referred_by: marketer.name,
     referral_date: new Date().toISOString().slice(0, 10),
-    referral_source: heard_about_us,
+    referral_source: payload.heard_about_us,
     notes: JSON.stringify(notesPayload),
   });
 
