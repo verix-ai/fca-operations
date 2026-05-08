@@ -92,7 +92,7 @@ function validate(p: IncomingPayload): string | null {
     'receives_benefits', 'heard_about_us'
   ] as const;
   for (const k of required) {
-    const v = (p as Record<string, unknown>)[k];
+    const v = (p as unknown as Record<string, unknown>)[k];
     if (typeof v !== 'string' || v.trim() === '') return `Missing required field: ${k}`;
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(p.referral_dob)) return 'Invalid referral_dob';
