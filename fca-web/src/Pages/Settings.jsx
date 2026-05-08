@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Trash2, Save, UserPlus, Mail, Copy, X, RefreshCw, Shield, UserCheck, UserX, Wrench, ChevronLeft, ChevronRight } from 'lucide-react'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import CommunicationServicesSection from '@/components/settings/CommunicationServicesSection'
+import ReferralLinksSection from '@/components/settings/ReferralLinksSection.jsx'
 import { usePermissions } from '@/utils/permissions.jsx'
 import { useAuth } from '@/auth/AuthProvider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -45,6 +46,13 @@ export default function Settings() {
         <ClientConnectAlertsSection />
         <CountiesSection />
       </div>
+
+      {/* Referral Links - admin-only, full width */}
+      {isAdmin && (
+        <div className="mt-6">
+          <ReferralLinksSection />
+        </div>
+      )}
 
       {/* Communication Services - Full Width */}
       {isAdmin && (
