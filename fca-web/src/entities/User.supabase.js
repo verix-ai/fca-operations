@@ -179,6 +179,32 @@ export const User = {
   },
 
   /**
+   * Update a user's title (free-text). Pass null/empty to clear.
+   * RLS handles authorization (self-edit + admin-in-org).
+   * @param {string} userId
+   * @param {string|null} title
+   * @returns {Promise<object>} updated user row
+   */
+  async updateTitle(userId, title) {
+    const trimmed = (title ?? '').trim()
+    const next = trimmed.length === 0 ? null : trimmed
+    if (next != null && next.length > 100) {
+      throw new Error('Title must be 100 characters or fewer.')
+    }
+    const { data, error } = await supabase
+      .from('users')
+      .update({ title: next })
+      .eq('id', userId)
+      .select()
+      .single()
+    if (error) {
+      console.error('❌ User.updateTitle error:', error)
+      throw error
+    }
+    return data
+  },
+
+  /**
    * Delete a user permanently
    * @param {string} id - User ID
    * @returns {Promise<void>}
