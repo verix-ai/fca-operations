@@ -581,7 +581,10 @@ function EmployeeManagementSection() {
                       onChange={(e) => handleChangePageSize(Number(e.target.value))}
                       className="bg-transparent border border-[rgba(147,165,197,0.3)] rounded-md px-2 py-1 text-xs text-heading-primary"
                     >
-                      {ALLOWED_PAGE_SIZES.map(size => (
+                      {(ALLOWED_PAGE_SIZES.includes(pageSize)
+                        ? ALLOWED_PAGE_SIZES
+                        : [...ALLOWED_PAGE_SIZES, pageSize].sort((a, b) => a - b)
+                      ).map(size => (
                         <option key={size} value={size}>{size}</option>
                       ))}
                     </select>
