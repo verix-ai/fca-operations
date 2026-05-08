@@ -164,7 +164,57 @@ export const Marketer = {
    */
   async reactivate(id) {
     return marketerService.update(id, { is_active: true })
-  }
+  },
+
+  /**
+   * Get the marketer record linked to the currently logged-in user.
+   * Returns null if the user is not linked to a marketer.
+   */
+  async getMine() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
+    const { data, error } = await supabase
+      .from('marketers')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Update the referral_slug on a marketer.
+   * The DB trigger automatically pushes the previous slug into marketer_slug_aliases.
+   */
+  async updateSlug(id, slug) {
+    return marketerService.update(id, { referral_slug: slug })
+  },
+
+  /**
+   * Check if a slug is available (not used by any marketer or alias).
+   * `excludeId` lets you exclude the current marketer from the check (so they can re-save the same slug).
+   */
+  async isSlugAvailable(slug, excludeId = null) {
+    const lower = String(slug).toLowerCase()
+
+    // Check active slugs
+    let q = supabase.from('marketers').select('id').eq('referral_slug', lower).limit(1)
+    if (excludeId) q = q.neq('id', excludeId)
+    const { data: m, error: mErr } = await q
+    if (mErr) throw mErr
+    if ((m ?? []).length > 0) return false
+
+    // Check aliases (any alias counts as taken, even our own — but the trigger will keep aliases unique to us)
+    let q2 = supabase.from('marketer_slug_aliases').select('marketer_id').eq('slug', lower).limit(1)
+    const { data: a, error: aErr } = await q2
+    if (aErr) throw aErr
+    if ((a ?? []).length > 0) {
+      // If the only alias hit belongs to the same marketer, that's actually fine (they're reverting)
+      if (excludeId && a[0].marketer_id === excludeId) return true
+      return false
+    }
+    return true
+  },
 }
 
 export default Marketer
