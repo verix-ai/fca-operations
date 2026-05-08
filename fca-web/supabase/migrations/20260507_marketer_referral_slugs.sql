@@ -177,3 +177,47 @@ CREATE POLICY reserved_slugs_select
   ON public.reserved_slugs FOR SELECT
   TO authenticated
   USING (true);
+
+-- 9. Backfill referral_slug for existing marketers
+-- Strategy: lowercase first word of name, strip non [a-z0-9-], collision-suffix with -2, -3, ...
+DO $$
+DECLARE
+  m record;
+  base_slug text;
+  candidate citext;
+  attempt int;
+BEGIN
+  FOR m IN
+    SELECT id, name FROM public.marketers
+    WHERE referral_slug IS NULL
+    ORDER BY created_at NULLS LAST, id
+  LOOP
+    base_slug := lower(regexp_replace(split_part(coalesce(m.name, 'marketer'), ' ', 1), '[^a-z0-9]+', '', 'g'));
+    IF base_slug IS NULL OR length(base_slug) < 2 THEN
+      base_slug := 'marketer';
+    END IF;
+    -- Trim to 28 chars to leave room for "-NN" suffix
+    base_slug := substr(base_slug, 1, 28);
+
+    candidate := base_slug::citext;
+    attempt := 1;
+
+    -- Loop until candidate is free in BOTH marketers.referral_slug AND marketer_slug_aliases AND not reserved
+    WHILE EXISTS (SELECT 1 FROM public.marketers WHERE referral_slug = candidate)
+       OR EXISTS (SELECT 1 FROM public.marketer_slug_aliases WHERE slug = candidate)
+       OR EXISTS (SELECT 1 FROM public.reserved_slugs WHERE slug = candidate)
+    LOOP
+      attempt := attempt + 1;
+      candidate := (base_slug || '-' || attempt)::citext;
+      IF attempt > 9999 THEN
+        RAISE EXCEPTION 'Could not generate unique slug for marketer % (%)', m.id, m.name;
+      END IF;
+    END LOOP;
+
+    UPDATE public.marketers SET referral_slug = candidate WHERE id = m.id;
+  END LOOP;
+END $$;
+
+-- 10. Lock down: NOT NULL going forward
+ALTER TABLE public.marketers
+  ALTER COLUMN referral_slug SET NOT NULL;
