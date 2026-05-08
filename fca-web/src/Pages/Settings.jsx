@@ -11,13 +11,20 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus, Trash2, Save, UserPlus, Mail, Copy, X, RefreshCw, Shield, UserCheck, UserX, Wrench } from 'lucide-react'
+import { Plus, Trash2, Save, UserPlus, Mail, Copy, X, RefreshCw, Shield, UserCheck, UserX, Wrench, ChevronLeft, ChevronRight } from 'lucide-react'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import CommunicationServicesSection from '@/components/settings/CommunicationServicesSection'
 import { usePermissions } from '@/utils/permissions.jsx'
 import { useAuth } from '@/auth/AuthProvider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatPhone } from '@/utils'
+import {
+  ALLOWED_PAGE_SIZES,
+  clampPage,
+  getWindow,
+  readPersistedPageSize,
+  writePersistedPageSize,
+} from '@/lib/pagination'
 
 export default function Settings() {
   const { isAdmin } = usePermissions()
@@ -50,6 +57,9 @@ export default function Settings() {
 }
 
 function EmployeeManagementSection() {
+  const PAGE_SIZE_STORAGE_KEY = 'fca.settings.teamMembers.pageSize'
+  const DEFAULT_PAGE_SIZE = 7
+
   const [users, setUsers] = useState([])
   const [invites, setInvites] = useState([])
   const [isInviting, setIsInviting] = useState(false)
@@ -61,6 +71,15 @@ function EmployeeManagementSection() {
   const [successMessage, setSuccessMessage] = useState(null)
   const [newInvite, setNewInvite] = useState(null)
   const { user: currentUser } = useAuth()
+
+  // Inline title editing: which user row is being edited, plus its draft value.
+  const [editingTitleUserId, setEditingTitleUserId] = useState(null)
+  const [titleDraft, setTitleDraft] = useState('')
+
+  const [pageSize, setPageSize] = useState(() =>
+    readPersistedPageSize(PAGE_SIZE_STORAGE_KEY, DEFAULT_PAGE_SIZE)
+  )
+  const [page, setPage] = useState(1)
 
   const load = async () => {
     try {
@@ -85,6 +104,10 @@ function EmployeeManagementSection() {
   }
 
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    setPage(prev => clampPage(prev, users.length, pageSize))
+  }, [users.length, pageSize])
 
   const handleInvite = async () => {
     try {
@@ -268,12 +291,61 @@ function EmployeeManagementSection() {
     }
   }
 
+  const handleSaveTitle = async (userId, originalTitle) => {
+    const next = titleDraft.trim()
+    const normalized = next.length === 0 ? null : next
+    const original = originalTitle ?? null
+    setEditingTitleUserId(null)
+
+    if (normalized === original) {
+      // No-op — exit edit mode.
+      return
+    }
+
+    // Optimistic update.
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, title: normalized } : u))
+
+    try {
+      await User.updateTitle(userId, normalized)
+    } catch (err) {
+      console.error('Error updating title:', err)
+      setError(err.message || 'Failed to update title.')
+      // Revert on failure.
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, title: original } : u))
+    }
+  }
+
+  const handleStartEditTitle = (user) => {
+    setEditingTitleUserId(user.id)
+    setTitleDraft(user.title || '')
+  }
+
+  const handleCancelEditTitle = () => {
+    setEditingTitleUserId(null)
+    setTitleDraft('')
+  }
+
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
       case 'marketer': return 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
       default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
     }
+  }
+
+  const total = users.length
+  const { start, end } = getWindow(page, pageSize)
+  const visibleUsers = users.slice(start, end)
+  const showFooter = total > 5
+  const showNav = total > pageSize
+  const lastPage = Math.max(1, Math.ceil(total / pageSize))
+  const displayStart = total === 0 ? 0 : start + 1
+  const displayEnd = Math.min(end, total)
+
+  const handleChangePageSize = (next) => {
+    setPageSize(next)
+    writePersistedPageSize(PAGE_SIZE_STORAGE_KEY, next)
+    setPage(1)
   }
 
   return (
@@ -381,7 +453,7 @@ function EmployeeManagementSection() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map(u => (
+                {visibleUsers.map(u => (
                   <TableRow key={u.id} className="border-b border-[rgba(147,165,197,0.2)]">
                     <TableCell className="p-3 sm:p-4">
                       <div className="flex flex-col gap-1">
@@ -391,6 +463,45 @@ function EmployeeManagementSection() {
                             <span className="text-xs text-heading-subdued">(You)</span>
                           )}
                         </div>
+                        {editingTitleUserId === u.id ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={titleDraft}
+                            onChange={(e) => setTitleDraft(e.target.value)}
+                            onBlur={() => handleSaveTitle(u.id, u.title)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                e.currentTarget.blur()
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault()
+                                handleCancelEditTitle()
+                              }
+                            }}
+                            maxLength={100}
+                            placeholder="e.g., Chief Marketing Officer"
+                            className="text-xs bg-transparent border-b border-[rgba(147,165,197,0.4)] focus:outline-none focus:border-[rgba(147,165,197,0.9)] px-0 py-0.5 w-full max-w-[280px]"
+                          />
+                        ) : u.title ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTitle(u)}
+                            className="text-xs text-heading-subdued text-left hover:text-heading-primary transition-colors w-fit"
+                            title="Click to edit title"
+                          >
+                            {u.title}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTitle(u)}
+                            className="text-xs text-heading-subdued/60 italic text-left hover:text-heading-subdued transition-colors w-fit"
+                            title="Click to add title"
+                          >
+                            Add title
+                          </button>
+                        )}
                         <span className="text-xs text-heading-subdued md:hidden">{u.email}</span>
                       </div>
                     </TableCell>
@@ -456,6 +567,60 @@ function EmployeeManagementSection() {
               </TableBody>
             </Table>
           </div>
+
+            {showFooter && (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 border-t border-[rgba(147,165,197,0.2)]">
+                <span className="text-xs text-heading-subdued">
+                  Showing {displayStart}–{displayEnd} of {total}
+                </span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 text-xs text-heading-subdued">
+                    Rows per page
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handleChangePageSize(Number(e.target.value))}
+                      className="bg-transparent border border-[rgba(147,165,197,0.3)] rounded-md px-2 py-1 text-xs text-heading-primary"
+                    >
+                      {(ALLOWED_PAGE_SIZES.includes(pageSize)
+                        ? ALLOWED_PAGE_SIZES
+                        : [...ALLOWED_PAGE_SIZES, pageSize].sort((a, b) => a - b)
+                      ).map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </label>
+                  {showNav && (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        borderRadius="0.5rem"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={page <= 1}
+                        aria-label="Previous page"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </Button>
+                      <span className="text-xs text-heading-subdued px-1">
+                        Page {page} of {lastPage}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        borderRadius="0.5rem"
+                        className="h-7 w-7 p-0"
+                        onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                        disabled={page >= lastPage}
+                        aria-label="Next page"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
           {invites.length > 0 && (
             <div className="border-t border-[rgba(147,165,197,0.2)]">

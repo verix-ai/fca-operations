@@ -40,6 +40,7 @@ export default function Profile() {
 
 function ProfileInfoSection({ user, updateProfile }) {
   const [name, setName] = useState(user?.name || '')
+  const [title, setTitle] = useState(user?.title || '')
   const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '')
   const [isUploading, setIsUploading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -47,7 +48,10 @@ function ProfileInfoSection({ user, updateProfile }) {
   const [error, setError] = useState(null)
   const fileInputRef = useRef(null)
 
-  const hasChanges = name !== (user?.name || '') || avatarUrl !== (user?.avatar_url || '')
+  const hasChanges =
+    name !== (user?.name || '') ||
+    avatarUrl !== (user?.avatar_url || '') ||
+    title !== (user?.title || '')
 
   const handleAvatarClick = () => {
     if (isUploading) return
@@ -149,7 +153,8 @@ function ProfileInfoSection({ user, updateProfile }) {
     try {
       const { error: updateError } = await updateProfile({
         name: name.trim(),
-        avatar_url: avatarUrl || null
+        avatar_url: avatarUrl || null,
+        title: title.trim() || null
       })
 
       if (updateError) throw updateError
@@ -168,7 +173,7 @@ function ProfileInfoSection({ user, updateProfile }) {
     <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
       <CardHeader className="p-4 sm:p-6">
         <CardTitle className="text-heading-primary">Personal Information</CardTitle>
-        <p className="text-sm text-heading-subdued mt-1">Update your profile photo and display name</p>
+        <p className="text-sm text-heading-subdued mt-1">Update your profile photo, display name, and title.</p>
       </CardHeader>
       <CardContent className="p-4 sm:p-6 pt-2 sm:pt-2 space-y-6">
         {error && (
@@ -243,6 +248,19 @@ function ProfileInfoSection({ user, updateProfile }) {
             placeholder="Your name"
             className="rounded-xl"
           />
+        </div>
+
+        {/* Title Field */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-heading-primary">Title</label>
+          <Input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g., Chief Marketing Officer"
+            maxLength={100}
+            className="rounded-xl"
+          />
+          <p className="text-xs text-heading-subdued">Shown next to your name on the team list.</p>
         </div>
 
         {/* Email (read-only for now) */}
