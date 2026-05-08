@@ -391,6 +391,9 @@ function EmployeeManagementSection() {
                             <span className="text-xs text-heading-subdued">(You)</span>
                           )}
                         </div>
+                        {u.title ? (
+                          <span className="text-xs text-heading-subdued">{u.title}</span>
+                        ) : null}
                         <span className="text-xs text-heading-subdued md:hidden">{u.email}</span>
                       </div>
                     </TableCell>
