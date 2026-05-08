@@ -62,6 +62,10 @@ function EmployeeManagementSection() {
   const [newInvite, setNewInvite] = useState(null)
   const { user: currentUser } = useAuth()
 
+  // Inline title editing: which user row is being edited, plus its draft value.
+  const [editingTitleUserId, setEditingTitleUserId] = useState(null)
+  const [titleDraft, setTitleDraft] = useState('')
+
   const load = async () => {
     try {
       setLoading(true)
@@ -268,6 +272,40 @@ function EmployeeManagementSection() {
     }
   }
 
+  const handleSaveTitle = async (userId, originalTitle) => {
+    const next = titleDraft.trim()
+    const normalized = next.length === 0 ? null : next
+    const original = originalTitle ?? null
+    setEditingTitleUserId(null)
+
+    if (normalized === original) {
+      // No-op — exit edit mode.
+      return
+    }
+
+    // Optimistic update.
+    setUsers(prev => prev.map(u => u.id === userId ? { ...u, title: normalized } : u))
+
+    try {
+      await User.updateTitle(userId, normalized)
+    } catch (err) {
+      console.error('Error updating title:', err)
+      setError(err.message || 'Failed to update title.')
+      // Revert on failure.
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, title: original } : u))
+    }
+  }
+
+  const handleStartEditTitle = (user) => {
+    setEditingTitleUserId(user.id)
+    setTitleDraft(user.title || '')
+  }
+
+  const handleCancelEditTitle = () => {
+    setEditingTitleUserId(null)
+    setTitleDraft('')
+  }
+
   const getRoleBadgeColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300'
@@ -391,9 +429,45 @@ function EmployeeManagementSection() {
                             <span className="text-xs text-heading-subdued">(You)</span>
                           )}
                         </div>
-                        {u.title ? (
-                          <span className="text-xs text-heading-subdued">{u.title}</span>
-                        ) : null}
+                        {editingTitleUserId === u.id ? (
+                          <input
+                            autoFocus
+                            type="text"
+                            value={titleDraft}
+                            onChange={(e) => setTitleDraft(e.target.value)}
+                            onBlur={() => handleSaveTitle(u.id, u.title)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault()
+                                handleSaveTitle(u.id, u.title)
+                              } else if (e.key === 'Escape') {
+                                e.preventDefault()
+                                handleCancelEditTitle()
+                              }
+                            }}
+                            maxLength={100}
+                            placeholder="e.g., Chief Marketing Officer"
+                            className="text-xs bg-transparent border-b border-[rgba(147,165,197,0.4)] focus:outline-none focus:border-[rgba(147,165,197,0.9)] px-0 py-0.5 w-full max-w-[280px]"
+                          />
+                        ) : u.title ? (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTitle(u)}
+                            className="text-xs text-heading-subdued text-left hover:text-heading-primary transition-colors w-fit"
+                            title="Click to edit title"
+                          >
+                            {u.title}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleStartEditTitle(u)}
+                            className="text-xs text-heading-subdued/60 italic text-left hover:text-heading-subdued transition-colors w-fit"
+                            title="Click to add title"
+                          >
+                            Add title
+                          </button>
+                        )}
                         <span className="text-xs text-heading-subdued md:hidden">{u.email}</span>
                       </div>
                     </TableCell>
