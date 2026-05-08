@@ -439,7 +439,7 @@ function EmployeeManagementSection() {
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault()
-                                handleSaveTitle(u.id, u.title)
+                                e.currentTarget.blur()
                               } else if (e.key === 'Escape') {
                                 e.preventDefault()
                                 handleCancelEditTitle()
