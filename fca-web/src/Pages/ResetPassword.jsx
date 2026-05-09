@@ -18,18 +18,21 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    // Check if we're in password update mode (user clicked email link)
-    const checkRecoveryMode = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1))
-      const type = hashParams.get('type')
-      
-      if (type === 'recovery') {
-        setMode('update')
-      }
+    // Detect recovery mode in two ways:
+    // 1. Hash fragment from implicit flow (legacy): #type=recovery
+    // 2. PASSWORD_RECOVERY event from supabase auth, fired when the
+    //    client auto-exchanges the recovery code/hash from the URL.
+    const hashParams = new URLSearchParams(window.location.hash.substring(1))
+    if (hashParams.get('type') === 'recovery') {
+      setMode('update')
     }
 
-    checkRecoveryMode()
-  }, [])
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') setMode('update')
+    })
+
+    return () => sub.subscription.unsubscribe()
+  }, [supabase])
 
   const handleRequestReset = async (e) => {
     e.preventDefault()
