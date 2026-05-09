@@ -254,7 +254,68 @@ export const User = {
       filters: { role },
       sort: 'name:asc'
     })
-  }
+  },
+
+  /**
+   * Get the currently logged-in user's referral_slug + identity.
+   * Returns null if not authenticated. Returns { id, role, referral_slug }.
+   */
+  async getMySlug() {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) return null
+    const { data, error } = await supabase
+      .from('users')
+      .select('id, role, referral_slug')
+      .eq('id', session.user.id)
+      .maybeSingle()
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Update the current user's referral_slug.
+   * The DB trigger automatically pushes the previous slug into user_slug_aliases.
+   */
+  async updateMySlug(slug) {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) throw new Error('Not authenticated')
+    const { data, error } = await supabase
+      .from('users')
+      .update({ referral_slug: slug })
+      .eq('id', session.user.id)
+      .select('id, role, referral_slug')
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  /**
+   * Check if a slug is available (not used by any user or alias).
+   * `excludeUserId` lets you exclude the current user from the check
+   * so they can re-save their existing slug.
+   */
+  async isSlugAvailable(slug, excludeUserId = null) {
+    const lower = String(slug).toLowerCase()
+
+    let q = supabase.from('users').select('id').eq('referral_slug', lower).limit(1)
+    if (excludeUserId) q = q.neq('id', excludeUserId)
+    const { data: u, error: uErr } = await q
+    if (uErr) throw uErr
+    if ((u ?? []).length > 0) return false
+
+    const { data: a, error: aErr } = await supabase
+      .from('user_slug_aliases')
+      .select('user_id')
+      .eq('slug', lower)
+      .limit(1)
+    if (aErr) throw aErr
+    if ((a ?? []).length > 0) {
+      // If the only alias hit belongs to the same user, that's actually fine (reverting).
+      if (excludeUserId && a[0].user_id === excludeUserId) return true
+      return false
+    }
+    return true
+  },
 }
 
 export default User
