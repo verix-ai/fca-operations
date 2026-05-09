@@ -167,55 +167,75 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Direct slug match
-  const { data: m1, error: m1Err } = await supabase
-    .from('marketers')
-    .select('id, name, email, organization_id, is_active')
+  // Direct slug match on users
+  const { data: u1, error: u1Err } = await supabase
+    .from('users')
+    .select('id, name, email, role, organization_id, is_active')
     .eq('referral_slug', payload.slug)
     .maybeSingle();
 
-  let marketer = m1?.is_active ? m1 : null;
+  const OFFICE_ROLES = ['admin', 'marketer'];
+  const isOfficeRole = (role: string | null | undefined) =>
+    typeof role === 'string' && OFFICE_ROLES.includes(role);
+
+  let referrer = (u1?.is_active && isOfficeRole(u1.role)) ? u1 : null;
 
   // Alias fallback
-  if (!marketer) {
+  if (!referrer) {
     const { data: alias } = await supabase
-      .from('marketer_slug_aliases')
-      .select('marketer_id')
+      .from('user_slug_aliases')
+      .select('user_id')
       .eq('slug', payload.slug)
       .maybeSingle();
-    if (alias?.marketer_id) {
-      const { data: m2 } = await supabase
-        .from('marketers')
-        .select('id, name, email, organization_id, is_active')
-        .eq('id', alias.marketer_id)
+    if (alias?.user_id) {
+      const { data: u2 } = await supabase
+        .from('users')
+        .select('id, name, email, role, organization_id, is_active')
+        .eq('id', alias.user_id)
         .maybeSingle();
-      if (m2?.is_active) marketer = m2;
+      if (u2?.is_active && isOfficeRole(u2.role)) referrer = u2;
     }
   }
 
-  if (!marketer || m1Err) {
-    // Query error or not found → generic 404 (no schema leak)
+  if (!referrer || u1Err) {
     return new Response(JSON.stringify({ error: 'Unknown referral link' }), {
       status: 404,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  // Build the JSON-in-notes payload to match the staff app's existing shape
+  // Build the JSON-in-notes payload. Generic referrer_* keys are the new shape;
+  // marketer_* keys are kept for backward-compat with existing dashboards when the
+  // resolved user happens to be a marketer.
   const { slug: _slug, hp: _hp, ...rest } = payload;
 
-  const notesPayload = {
+  const notesPayload: Record<string, unknown> = {
     ...rest,
-    marketer_id: marketer.id,
-    marketer_name: marketer.name,
-    marketer_email: marketer.email ?? null,
+    referrer_user_id: referrer.id,
+    referrer_name: referrer.name,
+    referrer_email: referrer.email ?? null,
+    referrer_role: referrer.role,
     submission_source: 'public_website',
   };
 
+  if (referrer.role === 'marketer') {
+    // Look up the marketers row so existing reports keyed off marketer_id keep working.
+    const { data: m } = await supabase
+      .from('marketers')
+      .select('id, name, email')
+      .eq('user_id', referrer.id)
+      .maybeSingle();
+    if (m) {
+      notesPayload.marketer_id = m.id;
+      notesPayload.marketer_name = m.name;
+      notesPayload.marketer_email = m.email ?? null;
+    }
+  }
+
   const { error: insertErr } = await supabase.from('referrals').insert({
-    organization_id: marketer.organization_id,
+    organization_id: referrer.organization_id,
     client_id: null,
-    referred_by: marketer.name,
+    referred_by: referrer.name,
     referral_date: new Date().toISOString().slice(0, 10),
     referral_source: payload.heard_about_us,
     notes: JSON.stringify(notesPayload),
@@ -229,7 +249,7 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  return new Response(JSON.stringify({ ok: true, marketer_name: marketer.name }), {
+  return new Response(JSON.stringify({ ok: true, referrer_name: referrer.name }), {
     status: 200,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
