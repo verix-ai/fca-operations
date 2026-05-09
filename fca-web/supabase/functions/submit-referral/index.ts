@@ -1,6 +1,6 @@
 // fca-web/supabase/functions/submit-referral/index.ts
 // Public endpoint for friendlycareagency.org/ref/<slug> referral submissions.
-// - Resolves marketer by slug (current or alias) via service-role client
+// - Resolves any active office user (admin/marketer) by slug or alias via service-role client
 // - Validates honeypot, applies per-IP rate limit
 // - Inserts into `referrals` matching the staff form's JSON-in-`notes` shape
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
