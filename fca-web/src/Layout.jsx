@@ -311,7 +311,7 @@ function DetailSidebar({ sections, currentPageName, onCollapse, user }) {
   )
 }
 
-function MobileNavigation({ sections, isOpen, onToggle }) {
+function MobileNavigation({ sections, isOpen, onToggle, user }) {
   return (
     <div className="md:hidden border-b border-[rgba(var(--border),0.25)] bg-[rgba(var(--bg-soft),0.95)] px-4 py-3 backdrop-blur-lg">
       <div className="flex items-center gap-3">
@@ -370,6 +370,25 @@ function MobileNavigation({ sections, isOpen, onToggle }) {
               </div>
             </div>
           ))}
+          <NavLink
+            to={createPageUrl('Profile')}
+            className={({ isActive }) =>
+              classNames(
+                'flex items-center gap-3 rounded-xl border border-transparent px-3 py-2 text-sm font-medium text-[rgba(var(--muted),0.75)] transition-colors',
+                'hover:border-[rgba(var(--border),0.45)] hover:bg-[rgba(var(--border),0.12)] hover:text-[rgb(var(--text))]',
+                isActive && 'border-[rgba(var(--brand),0.45)] bg-[rgba(var(--border),0.2)] text-[rgb(var(--text))]',
+              )
+            }
+          >
+            <span className="flex h-6 w-6 items-center justify-center overflow-hidden rounded-full">
+              {user?.avatar_url ? (
+                <img src={user.avatar_url} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <User className="h-4 w-4" aria-hidden="true" />
+              )}
+            </span>
+            <span className="flex-1 text-left">Profile</span>
+          </NavLink>
         </div>
       )}
     </div>
@@ -431,6 +450,7 @@ export default function Layout({ children, currentPageName }) {
             sections={sections}
             isOpen={mobileMenuOpen}
             onToggle={() => setMobileMenuOpen((value) => !value)}
+            user={user}
           />
           <div className="flex-1 overflow-y-auto px-4 pb-8 pt-6 md:px-6 lg:px-8 xl:px-10">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
