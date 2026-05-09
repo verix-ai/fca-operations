@@ -3,11 +3,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Check, AlertCircle, Loader2 } from 'lucide-react'
 import { isValidSlug, slugify, RESERVED_SLUGS } from '@/lib/slug'
-import { Marketer } from '@/entities/Marketer.supabase'
+import { User } from '@/entities/User.supabase'
 
 const PUBLIC_BASE = 'friendlycareagency.org/ref/'
 
-export default function SlugInput({ marketerId, currentSlug, onChange, onValidityChange }) {
+export default function SlugInput({ userId, currentSlug, onChange, onValidityChange }) {
   const [value, setValue] = useState(currentSlug || '')
   const [status, setStatus] = useState('idle') // idle | checking | available | taken | invalid
   const [reason, setReason] = useState('')
@@ -45,7 +45,7 @@ export default function SlugInput({ marketerId, currentSlug, onChange, onValidit
     setStatus('checking'); setReason('')
     debounceRef.current = setTimeout(async () => {
       try {
-        const ok = await Marketer.isSlugAvailable(value, marketerId)
+        const ok = await User.isSlugAvailable(value, userId)
         if (ok) {
           setStatus('available'); setReason('Available'); onValidityChange?.(true)
         } else {
@@ -56,7 +56,7 @@ export default function SlugInput({ marketerId, currentSlug, onChange, onValidit
       }
     }, 350)
     return () => debounceRef.current && clearTimeout(debounceRef.current)
-  }, [value, currentSlug, marketerId, formatHint, onChange, onValidityChange])
+  }, [value, currentSlug, userId, formatHint, onChange, onValidityChange])
 
   return (
     <div className="space-y-2">
