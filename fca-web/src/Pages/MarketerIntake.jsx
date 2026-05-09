@@ -128,7 +128,6 @@ export default function MarketerIntake() {
   }, [form])
 
   const setField = (k, v) => setForm(prev => ({ ...prev, [k]: v }))
-  const toggleService = (k, v) => setForm(prev => ({ ...prev, services_needed: { ...prev.services_needed, [k]: v } }))
 
   const save = async (e) => {
     e.preventDefault()
@@ -216,8 +215,7 @@ export default function MarketerIntake() {
     }
   }
 
-  const serviceRows = ['Ambulating/Transferring','Bathing','Dressing','Feeding','Hygiene/Grooming','Basic Housekeeping','Errand Assistance','Emergency Response/Alert System or Device','Do you require supplies to accommodate your individual needs?']
-  const HEARD_OPTIONS = ['Physician Referral','Signage in my Community','Family or Friend','Word of Mouth','Brochure or Handout from Resource Partners','Social Media','Other (specify)']
+  const HEARD_OPTIONS = ['Physician Referral','Sign in the community','Family or Friend','Word of Mouth','Business Card or Postcard','Social Media','Other (specify)']
 
   return (
     <div className="space-y-10">
@@ -250,12 +248,12 @@ export default function MarketerIntake() {
           </Card>
 
           <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
-            <CardHeader className="p-6"><CardTitle className="text-heading-primary">Referral & Caregiver Details</CardTitle></CardHeader>
+            <CardHeader className="p-6"><CardTitle className="text-heading-primary">Client & Caregiver Details</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-6">
               {/* Referral (top half) */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <Label className="text-heading-subdued font-medium">Referral Name*</Label>
+                  <Label className="text-heading-subdued font-medium">Client Name*</Label>
                   <Input value={form.referral_name} onChange={(e)=>setField('referral_name', e.target.value)} className={`rounded-xl py-3 ${attempted && requiredErrors.referral_name ? 'border-red-500' : ''}`} />
                   {attempted && requiredErrors.referral_name && <div className="text-red-600 text-sm mt-1">Required</div>}
                 </div>
@@ -272,7 +270,7 @@ export default function MarketerIntake() {
                   {attempted && requiredErrors.sex && <div className="text-red-600 text-sm mt-1">Required</div>}
                 </div>
                 <div>
-                  <Label className="text-heading-subdued font-medium">Referral DOB*</Label>
+                  <Label className="text-heading-subdued font-medium">Client DOB*</Label>
                   <Input type="date" value={form.referral_dob} onChange={(e)=>setField('referral_dob', e.target.value)} className={`rounded-xl py-3 ${attempted && requiredErrors.referral_dob ? 'border-red-500' : ''}`} />
                   {attempted && requiredErrors.referral_dob && <div className="text-red-600 text-sm mt-1">Required</div>}
                 </div>
@@ -416,7 +414,7 @@ export default function MarketerIntake() {
           {/* Relationship & Medical Info section removed per spec; relevant fields moved */}
 
           <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
-            <CardHeader className="p-6"><CardTitle className="text-heading-primary">Benefits & Services</CardTitle></CardHeader>
+            <CardHeader className="p-6"><CardTitle className="text-heading-primary">Benefits & Medical</CardTitle></CardHeader>
             <CardContent className="p-6 space-y-6">
               <div>
                 <Label className="text-heading-subdued font-medium">Do you receive Social Security or Disability Benefits?*</Label>
@@ -436,7 +434,7 @@ export default function MarketerIntake() {
                 {attempted && requiredErrors.receives_benefits && <div className="text-red-600 text-sm mt-1">Required</div>}
               </div>
               <div>
-                <Label className={`text-heading-subdued font-medium ${form.receives_benefits==='Yes' ? '' : 'opacity-60'}`}>Received on the 1st or 3rd?</Label>
+                <Label className={`text-heading-subdued font-medium ${form.receives_benefits==='Yes' ? '' : 'opacity-60'}`}>Do you receive your check on the 1st or 3rd?</Label>
                 <div className="flex gap-4 py-2">
                   {['1st','3rd'].map(opt => (
                     <label key={opt} className={`flex items-center gap-2 ${form.receives_benefits==='Yes' ? '' : 'pointer-events-none opacity-60'}`}>
@@ -454,25 +452,14 @@ export default function MarketerIntake() {
                 {attempted && requiredErrors.benefits_pay_date && form.receives_benefits==='Yes' && <div className="text-red-600 text-sm mt-1">Required</div>}
               </div>
               <div>
-                <Label className="text-heading-subdued font-medium">Physician’s Full Name & Location*</Label>
-                <Input value={form.physician} onChange={(e)=>setField('physician', e.target.value)} className={`rounded-xl py-3 ${attempted && requiredErrors.physician ? 'border-red-500' : ''}`} />
+                <Label className="text-heading-subdued font-medium">Doctors Name*</Label>
+                <Input value={form.physician} onChange={(e)=>setField('physician', e.target.value)} placeholder="Dr. Smith" className={`rounded-xl py-3 ${attempted && requiredErrors.physician ? 'border-red-500' : ''}`} />
                 {attempted && requiredErrors.physician && <div className="text-red-600 text-sm mt-1">Required</div>}
               </div>
               <div>
-                <Label className="text-heading-subdued font-medium">Member’s Diagnosis/Disability*</Label>
+                <Label className="text-heading-subdued font-medium">Client Diagnosis/Disability*</Label>
                 <Input value={form.diagnosis} onChange={(e)=>setField('diagnosis', e.target.value)} className={`rounded-xl py-3 ${attempted && requiredErrors.diagnosis ? 'border-red-500' : ''}`} />
                 {attempted && requiredErrors.diagnosis && <div className="text-red-600 text-sm mt-1">Required</div>}
-              </div>
-              <div>
-                <Label className="text-heading-subdued font-medium">Services Needed/Requested</Label>
-                <div className="grid md:grid-cols-2 gap-3 py-2 mt-2">
-                  {serviceRows.map(row => (
-                    <label key={row} className="flex items-center gap-2">
-                      <input type="checkbox" checked={Boolean(form.services_needed[row])} onChange={(e)=>toggleService(row, e.target.checked)} />
-                      <span>{row}</span>
-                    </label>
-                  ))}
-                </div>
               </div>
             </CardContent>
           </Card>
