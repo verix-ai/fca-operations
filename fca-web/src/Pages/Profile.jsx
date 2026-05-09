@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import ReferralLinkSection from '@/components/profile/ReferralLinkSection.jsx'
+import { isOfficeRole } from '@/lib/officeRole'
 import { Camera, Loader2, User, Save, Mail, Lock, Eye, EyeOff, Check, AlertCircle, Bell, MessageSquare, Users, FileText, Megaphone, Sun, Moon } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { useTheme } from '@/components/theme/ThemeProvider'
@@ -29,8 +30,8 @@ export default function Profile() {
       {/* Notification Preferences */}
       <NotificationPreferencesSection user={user} updateProfile={updateProfile} />
 
-      {/* Marketer-only: referral slug + QR */}
-      {user?.role === 'marketer' && <ReferralLinkSection user={user} />}
+      {/* Office roles: referral slug + QR */}
+      {isOfficeRole(user?.role) && <ReferralLinkSection user={user} />}
 
       {/* Future sections placeholder */}
       {/* <ActivityHistorySection /> */}
