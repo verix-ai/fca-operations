@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Link2, Copy, Download, Check, Loader2, Search, AlertCircle } from 'lucide-react'
-import Marketer from '@/entities/Marketer.supabase'
+import User from '@/entities/User.supabase'
+import { OFFICE_ROLES } from '@/lib/officeRole'
 import {
   ALLOWED_PAGE_SIZES,
   clampPage,
@@ -57,32 +58,33 @@ function QrThumbnail({ slug }) {
   return <canvas ref={ref} className="rounded border border-slate-200 bg-white" aria-label={`QR for ${slug}`} />
 }
 
-function MarketerRow({ marketer, onCopy, copiedSlug }) {
+function UserRow({ user, onCopy, copiedSlug }) {
   const [downloading, setDownloading] = useState(false)
   const handleDownload = async () => {
     if (downloading) return
     setDownloading(true)
     try {
-      const blob = await generateQrPngBlob(marketer.referral_slug)
-      downloadBlob(blob, `fca-referral-qr-${marketer.referral_slug}.png`)
+      const blob = await generateQrPngBlob(user.referral_slug)
+      downloadBlob(blob, `fca-referral-qr-${user.referral_slug}.png`)
     } finally {
       setDownloading(false)
     }
   }
   return (
     <TableRow>
-      <TableCell className="font-medium">{marketer.name}</TableCell>
+      <TableCell className="font-medium">{user.name}</TableCell>
+      <TableCell className="capitalize text-sm text-slate-600">{user.role}</TableCell>
       <TableCell>
         <span className="font-mono text-sm">
           <span className="text-slate-400">{PUBLIC_BASE}</span>
-          <span className="text-emerald-700 font-semibold">{marketer.referral_slug}</span>
+          <span className="text-emerald-700 font-semibold">{user.referral_slug}</span>
         </span>
       </TableCell>
-      <TableCell><QrThumbnail slug={marketer.referral_slug} /></TableCell>
+      <TableCell><QrThumbnail slug={user.referral_slug} /></TableCell>
       <TableCell>
         <div className="flex gap-2 justify-end">
-          <Button type="button" variant="outline" size="sm" onClick={() => onCopy(marketer.referral_slug)}>
-            {copiedSlug === marketer.referral_slug
+          <Button type="button" variant="outline" size="sm" onClick={() => onCopy(user.referral_slug)}>
+            {copiedSlug === user.referral_slug
               ? <><Check className="w-4 h-4 mr-1" /> Copied</>
               : <><Copy className="w-4 h-4 mr-1" /> Copy</>}
           </Button>
@@ -112,14 +114,21 @@ export default function ReferralLinksSection() {
     let cancelled = false
     ;(async () => {
       try {
-        const all = await Marketer.getActive()
+        const all = await User.list()
         if (cancelled) return
-        // Only marketers that have a slug (all of them should after backfill, but be defensive)
-        setMarketers((all || []).filter(m => m.referral_slug))
+        // Active office users with a slug.
+        const office = (all || []).filter(
+          u => u.is_active && OFFICE_ROLES.includes(u.role) && u.referral_slug
+        )
+        // Sort: role asc, then name asc — Admins above Marketers, alphabetical within.
+        office.sort((a, b) =>
+          a.role.localeCompare(b.role) || (a.name || '').localeCompare(b.name || '')
+        )
+        setMarketers(office)
         setLoading(false)
       } catch (err) {
         if (!cancelled) {
-          setError(err?.message || 'Failed to load marketers')
+          setError(err?.message || 'Failed to load users')
           setLoading(false)
         }
       }
@@ -160,7 +169,7 @@ export default function ReferralLinksSection() {
       }
       const zipBlob = await zip.generateAsync({ type: 'blob' })
       const today = new Date().toISOString().slice(0, 10)
-      downloadBlob(zipBlob, `fca-marketer-qr-codes-${today}.zip`)
+      downloadBlob(zipBlob, `fca-employee-qr-codes-${today}.zip`)
     } catch (err) {
       setZipError(err?.message || 'Failed to build ZIP')
     } finally {
@@ -194,7 +203,7 @@ export default function ReferralLinksSection() {
       <CardContent>
         {loading ? (
           <div className="flex items-center text-slate-500 text-sm py-6">
-            <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading marketers…
+            <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading users…
           </div>
         ) : error ? (
           <div className="flex items-start gap-2 text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-3 text-sm">
@@ -208,35 +217,36 @@ export default function ReferralLinksSection() {
                 <Input
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                  placeholder="Search marketers or slugs…"
+                  placeholder="Search by name or slug…"
                   className="pl-9"
                 />
               </div>
               <span className="text-sm text-slate-500">
-                {total} {total === 1 ? 'marketer' : 'marketers'}
+                {total} {total === 1 ? 'user' : 'users'}
               </span>
             </div>
 
             {total === 0 ? (
               <div className="text-sm text-slate-500 py-6 text-center">
-                No active marketers with a referral slug.
+                No active office users with a referral slug.
               </div>
             ) : (
               <>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Marketer</TableHead>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Role</TableHead>
                       <TableHead>Public link</TableHead>
                       <TableHead className="w-28">QR</TableHead>
                       <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {items.map((m) => (
-                      <MarketerRow
-                        key={m.id}
-                        marketer={m}
+                    {items.map((u) => (
+                      <UserRow
+                        key={u.id}
+                        user={u}
                         onCopy={handleCopy}
                         copiedSlug={copiedSlug}
                       />
