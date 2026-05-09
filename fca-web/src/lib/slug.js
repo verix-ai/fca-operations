@@ -5,7 +5,7 @@
 // numbers, and hyphens" helper text shown to marketers and the existing tests.
 export const SLUG_REGEX = /^[a-z0-9][a-z0-9-]{0,28}[a-z0-9]$/;
 
-// Keep in sync with the DB `reserved_slugs` table seed (Task 1 migration).
+// Keep in sync with the DB `reserved_slugs` table seed (20260507 migration; reused by 20260509).
 export const RESERVED_SLUGS = new Set([
   'admin', 'api', 'app', 'auth', 'login', 'signup', 'signin', 'logout',
   'ref', 'referral', 'referrals', 'dashboard', 'support', 'help',
