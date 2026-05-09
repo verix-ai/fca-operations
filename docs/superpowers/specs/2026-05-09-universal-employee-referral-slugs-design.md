@@ -72,7 +72,7 @@ Single source of truth for the office-role allowlist. New office roles are added
 
 ### Public RPC
 
-`get_marketer_by_slug(citext)` is dropped and replaced with:
+`get_marketer_by_slug(citext)` is replaced with a thin backwards-compat shim that delegates to the new `get_user_by_slug`. (The public landing page that calls it lives in a separate external website; the shim prevents downtime there at deploy time and is removed in a future migration once that caller has been updated.) The new function:
 
 ```sql
 CREATE FUNCTION public.get_user_by_slug(p_slug citext)
@@ -113,7 +113,7 @@ Granted to `anon, authenticated`. Direct `SELECT` on `users` from anon stays rev
 - `src/entities/User.supabase.js` — add `getMySlug()` and `updateMySlug(slug)`.
 - `src/entities/Marketer.supabase.js` — remove slug-related methods. `Marketer.getMine()` and any non-slug functionality stays.
 - `src/components/settings/ReferralLinksSection.jsx` (admin Settings) — list every office user (not only marketers), grouped by role. Per-row QR download and bulk ZIP-all behavior unchanged.
-- `src/Pages/ReferralProfile.jsx` (public landing) — calls `get_user_by_slug` instead of `get_marketer_by_slug`.
+- `src/Pages/ReferralProfile.jsx` is the staff-facing edit page, NOT the public landing. The actual public `/ref/<slug>` landing page lives in a separate external site outside this repo and is not modified by this change — the backwards-compat shim ensures it keeps working.
 
 ### Reserved-slug list
 No changes required.
@@ -171,9 +171,9 @@ Single transaction. Order is load-bearing.
 - Drop `marketers.referral_slug` column.
 - Replace `auto_create_marketer_record()` with the slugless version.
 
-**Step 6 — Replace public RPC:**
-- Drop `get_marketer_by_slug`.
+**Step 6 — Public RPC (new + backwards-compat shim):**
 - Create `get_user_by_slug` per the architecture section. Grant to `anon, authenticated`.
+- Replace `get_marketer_by_slug` with a thin shim that delegates to `get_user_by_slug` (same return shape). The public `/ref/<slug>` landing page lives in a separate external site (the public friendlycareagency.org marketing site, not `fca-web`); keeping the shim avoids breaking that site at deploy time. The shim is removed in a follow-up migration once the external site has been updated to call the new name.
 
 **Step 7 — Lock down:** keep `users.referral_slug` nullable. Done.
 
@@ -202,7 +202,7 @@ Bundled in the same PR/release as the SQL migration:
 - Every pre-existing alias row exists in `user_slug_aliases` with translated `user_id`.
 - Every admin now has a unique, format-valid slug.
 - `marketers.referral_slug` and `marketer_slug_aliases` no longer exist.
-- `get_marketer_by_slug` is gone; `get_user_by_slug` is callable as `anon`.
+- `get_user_by_slug` is callable as `anon`. `get_marketer_by_slug` still callable as a shim that returns the same rows as `get_user_by_slug`.
 
 **Trigger tests:**
 - Insert a new admin → slug auto-generated.
