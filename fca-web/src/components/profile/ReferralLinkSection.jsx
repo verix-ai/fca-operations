@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Save, Loader2, Link2, AlertCircle, Check } from 'lucide-react'
 import SlugInput from './SlugInput.jsx'
 import QrCodePreview from './QrCodePreview.jsx'
-import { Marketer } from '@/entities/Marketer.supabase'
+import { User } from '@/entities/User.supabase'
 import { slugify } from '@/lib/slug'
 
 export default function ReferralLinkSection({ user }) {
-  const [marketer, setMarketer] = useState(null)
+  const [me, setMe] = useState(null)
   const [loading, setLoading] = useState(true)
   const [slug, setSlug] = useState('')
   const [valid, setValid] = useState(false)
@@ -16,7 +16,6 @@ export default function ReferralLinkSection({ user }) {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
 
-  // Stable callbacks so SlugInput's effect deps don't thrash
   const handleSlugChange = useCallback((next) => setSlug(next), [])
   const handleValidityChange = useCallback((v) => setValid(v), [])
 
@@ -24,17 +23,16 @@ export default function ReferralLinkSection({ user }) {
     let cancelled = false
     ;(async () => {
       try {
-        const m = await Marketer.getMine()
+        const m = await User.getMySlug()
         if (cancelled) return
         if (!m) {
-          setError('No marketer record linked to your account. Ask an admin to link one.')
+          setError('Could not load your profile.')
           setLoading(false)
           return
         }
-        setMarketer(m)
-        // If no slug yet, auto-suggest from first name
+        setMe(m)
         if (!m.referral_slug) {
-          setSlug(slugify((m.name || user?.name || '').split(' ')[0]))
+          setSlug(slugify((user?.name || '').split(' ')[0]))
         } else {
           setSlug(m.referral_slug)
         }
@@ -47,11 +45,11 @@ export default function ReferralLinkSection({ user }) {
   }, [user])
 
   const handleSave = async () => {
-    if (!marketer || !valid || saving) return
+    if (!me || !valid || saving) return
     setSaving(true); setError(null); setSuccess(null)
     try {
-      const updated = await Marketer.updateSlug(marketer.id, slug)
-      setMarketer(updated)
+      const updated = await User.updateMySlug(slug)
+      setMe(updated)
       setSuccess('Saved!')
       setTimeout(() => setSuccess(null), 2000)
     } catch (err) {
@@ -80,13 +78,13 @@ export default function ReferralLinkSection({ user }) {
         ) : (
           <>
             <SlugInput
-              marketerId={marketer.id}
-              currentSlug={marketer.referral_slug || ''}
+              userId={me.id}
+              currentSlug={me.referral_slug || ''}
               onChange={handleSlugChange}
               onValidityChange={handleValidityChange}
             />
             <div className="flex items-center gap-3">
-              <Button onClick={handleSave} disabled={!valid || saving || slug === marketer.referral_slug}>
+              <Button onClick={handleSave} disabled={!valid || saving || slug === me.referral_slug}>
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
                 Save
               </Button>
@@ -94,8 +92,8 @@ export default function ReferralLinkSection({ user }) {
             </div>
             <div className="pt-4 border-t border-slate-100">
               <h4 className="text-sm font-semibold text-slate-700 mb-3">QR Code</h4>
-              <QrCodePreview slug={marketer.referral_slug} />
-              {slug && slug !== marketer.referral_slug && (
+              <QrCodePreview slug={me.referral_slug} />
+              {slug && slug !== me.referral_slug && (
                 <p className="text-xs text-slate-500 mt-2">
                   Save your changes to update the QR code.
                 </p>
