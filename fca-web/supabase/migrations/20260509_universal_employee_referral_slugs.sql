@@ -24,6 +24,19 @@ BEGIN
   END IF;
 END $$;
 
+-- Sanity: every marketer must be linked to a user row. The data copy in
+-- Section D depends on this; without it, D.2's count assertion would fail
+-- with a misleading error message.
+DO $$
+DECLARE
+  v_orphan_count int;
+BEGIN
+  SELECT COUNT(*) INTO v_orphan_count FROM public.marketers WHERE user_id IS NULL;
+  IF v_orphan_count > 0 THEN
+    RAISE EXCEPTION 'Migration aborted: % marketer(s) have NULL user_id (Section D copy would silently skip these)', v_orphan_count;
+  END IF;
+END $$;
+
 -- citext is already enabled by the 20260507 migration, but be defensive.
 CREATE EXTENSION IF NOT EXISTS citext;
 
