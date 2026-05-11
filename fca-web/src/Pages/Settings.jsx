@@ -818,7 +818,9 @@ function EmployeeManagementSection() {
 }
 
 function CmCompaniesSection() {
+  const PAGE_SIZE = 4
   const [list, setList] = useState([])
+  const [page, setPage] = useState(1)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [companyName, setCompanyName] = useState('')
   const [editingId, setEditingId] = useState(null)
@@ -849,6 +851,10 @@ function CmCompaniesSection() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    setPage(prev => clampPage(prev, list.length, PAGE_SIZE))
+  }, [list.length])
 
   const handleOpenDialog = async (company = null) => {
     setError(null)
@@ -1010,6 +1016,12 @@ function CmCompaniesSection() {
     }
   }
 
+  const total = list.length
+  const { start, end } = getWindow(page, PAGE_SIZE)
+  const visibleCompanies = list.slice(start, end)
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const showNav = total > PAGE_SIZE
+
   return (
     <>
       <Card className="bg-[rgb(var(--card))] border rounded-2xl surface-main">
@@ -1029,7 +1041,7 @@ function CmCompaniesSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {list.map(m => (
+              {visibleCompanies.map(m => (
                 <TableRow key={m.id} className="border-b border-[rgba(147,165,197,0.2)] hover:bg-[rgba(147,165,197,0.05)] transition-colors">
                   <TableCell className="p-4">
                     <span className="text-heading-primary font-medium">{m.name}</span>
@@ -1057,6 +1069,40 @@ function CmCompaniesSection() {
               )}
             </TableBody>
           </Table>
+          {showNav && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-[rgba(147,165,197,0.2)]">
+              <span className="text-xs text-heading-subdued">
+                Showing {start + 1}–{Math.min(end, total)} of {total}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  borderRadius="0.5rem"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-xs text-heading-subdued px-1">
+                  Page {page} of {lastPage}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  borderRadius="0.5rem"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                  disabled={page >= lastPage}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -1202,7 +1248,9 @@ function CmCompaniesSection() {
 }
 
 function ProgramsSection() {
+  const PAGE_SIZE = 4
   const [programs, setPrograms] = useState([])
+  const [page, setPage] = useState(1)
   const [editingId, setEditingId] = useState(null)
   const [editingName, setEditingName] = useState('')
   const [isAdding, setIsAdding] = useState(false)
@@ -1213,6 +1261,10 @@ function ProgramsSection() {
     setPrograms(list.sort((a, b) => a.name.localeCompare(b.name)))
   }
   useEffect(() => { load() }, [])
+
+  useEffect(() => {
+    setPage(prev => clampPage(prev, programs.length, PAGE_SIZE))
+  }, [programs.length])
 
   const addProgram = async () => {
     const name = newName.trim()
@@ -1232,6 +1284,12 @@ function ProgramsSection() {
     load()
   }
   const remove = async (id) => { await Program.remove(id); load() }
+
+  const total = programs.length
+  const { start, end } = getWindow(page, PAGE_SIZE)
+  const visiblePrograms = programs.slice(start, end)
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const showNav = total > PAGE_SIZE
 
   return (
     <>
@@ -1257,7 +1315,7 @@ function ProgramsSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {programs.map(p => (
+              {visiblePrograms.map(p => (
                 <TableRow key={p.id} className="border-b border-[rgba(147,165,197,0.2)]">
                   <TableCell className="p-4">
                     {editingId === p.id ? (
@@ -1302,6 +1360,40 @@ function ProgramsSection() {
               ))}
             </TableBody>
           </Table>
+          {showNav && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-[rgba(147,165,197,0.2)]">
+              <span className="text-xs text-heading-subdued">
+                Showing {start + 1}–{Math.min(end, total)} of {total}
+              </span>
+              <div className="flex items-center gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  borderRadius="0.5rem"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-xs text-heading-subdued px-1">
+                  Page {page} of {lastPage}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  borderRadius="0.5rem"
+                  className="h-7 w-7 p-0"
+                  onClick={() => setPage(p => Math.min(lastPage, p + 1))}
+                  disabled={page >= lastPage}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
