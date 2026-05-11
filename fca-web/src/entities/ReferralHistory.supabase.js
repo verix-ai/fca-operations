@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { archiveReasonLabel } from '@/lib/prospects-labels'
 
 async function getUserContext() {
   const { data: { user } } = await supabase.auth.getUser()
@@ -80,9 +81,10 @@ export const ReferralHistory = {
   /** Write an archive event. Reason/note are inlined into the note text for display. */
   async addArchiveEvent(referralId, { reason, note }) {
     const { userId, organizationId, name } = await getUserContext()
+    const label = archiveReasonLabel(reason) || reason
     const summary = note?.trim()
-      ? `Archived — Reason: ${reason}. Note: "${note.trim()}"`
-      : `Archived — Reason: ${reason}`
+      ? `Archived — Reason: ${label}. Note: "${note.trim()}"`
+      : `Archived — Reason: ${label}`
     const { data, error } = await supabase
       .from('referral_status_history')
       .insert({

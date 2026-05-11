@@ -197,6 +197,19 @@ export const Referral = {
       updateData.notes = JSON.stringify({ ...existingNotes, ...extraFields })
     }
 
+    // Auto-flip cm_call_status to 'awaiting' the first time a CM company is
+    // assigned (per spec). Only fires when the existing row has no cm_company
+    // and no cm_call_status, and the caller didn't explicitly set cm_call_status.
+    if (
+      'cm_company' in updateData &&
+      updateData.cm_company &&
+      !existing.cm_company &&
+      !existing.cm_call_status &&
+      !('cm_call_status' in updateData)
+    ) {
+      updateData.cm_call_status = 'awaiting'
+    }
+
     // Compute history diffs BEFORE writing — uses the existing record's tracked fields.
     const diffs = diffTrackedFields(existing, updateData)
 
