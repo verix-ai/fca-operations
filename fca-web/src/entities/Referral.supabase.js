@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { SupabaseService } from '@/services/supabaseService'
+import { diffTrackedFields, TRACKED_FIELDS } from '@/lib/referral-diff'
+import ReferralHistory from '@/entities/ReferralHistory.supabase'
 
 const referralService = new SupabaseService('referrals')
 
@@ -46,13 +48,40 @@ function parseReferralNotes(referral) {
 
 export const Referral = {
   /**
-   * List all referrals in current user's organization
-   * @returns {Promise<Array>} Array of referral objects (newest first)
+   * List referrals in the current user's organization.
+   *
+   * @param {Object} [opts]
+   * @param {'active'|'archived'} [opts.view='active']
+   * @param {string} [opts.cmCompany]
+   * @param {string} [opts.homeCareCompany]
+   * @param {string} [opts.marketer]   - matches marketer_name OR marketer_email
+   * @param {string} [opts.county]     - JSON-blob field; filtered client-side after fetch
+   * @param {string} [opts.search]     - search term; filtered client-side
+   * @param {string} [opts.dateFrom]   - ISO date, inclusive
+   * @param {string} [opts.dateTo]     - ISO date, inclusive
    */
-  async list() {
-    const referrals = await referralService.list({ sort: 'created_at:desc' })
-    // Parse notes field for each referral
-    return referrals.map(parseReferralNotes)
+  async list(opts = {}) {
+    const { view = 'active', cmCompany, homeCareCompany, marketer, dateFrom, dateTo } = opts
+
+    let query = supabase
+      .from('referrals')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (view === 'archived') query = query.not('archived_at', 'is', null)
+    else query = query.is('archived_at', null)
+
+    if (cmCompany) query = query.eq('cm_company', cmCompany)
+    if (homeCareCompany) query = query.eq('home_care_company', homeCareCompany)
+    if (marketer) {
+      query = query.or(`marketer_name.eq.${marketer},marketer_email.eq.${marketer}`)
+    }
+    if (dateFrom) query = query.gte('created_at', dateFrom)
+    if (dateTo) query = query.lte('created_at', dateTo)
+
+    const { data, error } = await query
+    if (error) throw error
+    return (data || []).map(parseReferralNotes)
   },
 
   /**
@@ -124,58 +153,94 @@ export const Referral = {
   },
 
   /**
-   * Update a referral
-   * @param {string} id - Referral ID
-   * @param {Object} updates - Fields to update
-   * @returns {Promise<Object>} Updated referral
+   * Update a referral. Splits the update payload into:
+   *   - real columns (written directly)
+   *   - extra fields (merged into the legacy notes JSON blob — kept for forward-compat
+   *     until all consumers are migrated)
+   * Then diffs tracked fields and writes a field_change row to referral_status_history
+   * for each tracked field whose value changed.
    */
   async update(id, updates) {
-    // First, get the existing referral to merge with
     const existing = await this.get(id)
-    
-    // Extract only core fields that exist in database
-    // Schema: id, organization_id, client_id, referred_by, referral_date, referral_source, notes, created_at, updated_at
+
+    // Schema-aware list of real columns we write to.
+    const REAL_COLUMNS = new Set([
+      'client_id','referred_by','referral_date','referral_source',
+      'cm_company','marketer_id','marketer_name','marketer_email',
+      'code','home_care_company','cm_call_status',
+      'assessment_complete','waiting_state_approval',
+      'archived_at','archived_by','archive_reason','archive_note',
+    ])
+
     const {
-      client_id,
-      referred_by,
-      referral_date,
-      referral_source,
-      notes,
-      organization_id,
-      created_at,
-      updated_at,
-      client, // Remove nested client object from updates
-      id: _id, // Remove id from updates
-      ...extraFields
+      organization_id, created_at, updated_at, client, notes,
+      id: _id,
+      ...rest
     } = updates
 
-    // Build update data with only core fields
-    const updateData = {
-      ...(client_id !== undefined && { client_id }),
-      ...(referred_by !== undefined && { referred_by }),
-      ...(referral_date !== undefined && { referral_date }),
-      ...(referral_source !== undefined && { referral_source }),
+    const updateData = {}
+    const extraFields = {}
+    for (const [k, v] of Object.entries(rest)) {
+      if (REAL_COLUMNS.has(k)) updateData[k] = v
+      else extraFields[k] = v
     }
 
-    // Merge extra fields with existing notes data
+    // Merge extra (non-column) fields into the legacy notes blob.
     if (Object.keys(extraFields).length > 0) {
-      // Parse existing notes to preserve all data
       let existingNotes = {}
       if (existing.notes && typeof existing.notes === 'string') {
-        try {
-          existingNotes = JSON.parse(existing.notes)
-        } catch {
-          // If parsing fails, start fresh
-        }
+        try { existingNotes = JSON.parse(existing.notes) } catch { /* keep empty */ }
       }
-      
-      // Merge existing notes with new fields
-      const mergedNotes = { ...existingNotes, ...extraFields }
-      updateData.notes = JSON.stringify(mergedNotes)
+      updateData.notes = JSON.stringify({ ...existingNotes, ...extraFields })
     }
 
+    // Compute history diffs BEFORE writing — uses the existing record's tracked fields.
+    const diffs = diffTrackedFields(existing, updateData)
+
     const result = await referralService.update(id, updateData)
+
+    // Write history entries (best-effort: don't fail the update if history insert fails).
+    for (const d of diffs) {
+      try { await ReferralHistory.addFieldChange(id, d) } catch (e) { console.warn('history failed', e) }
+    }
+
     return parseReferralNotes(result)
+  },
+
+  /** Soft-archive a referral with a reason + optional note. Writes a history event. */
+  async archive(id, { reason, note }) {
+    if (!reason) throw new Error('Archive reason is required')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data, error } = await supabase
+      .from('referrals')
+      .update({
+        archived_at: new Date().toISOString(),
+        archived_by: user.id,
+        archive_reason: reason,
+        archive_note: note?.trim() || null,
+      })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+
+    try { await ReferralHistory.addArchiveEvent(id, { reason, note }) } catch (e) { console.warn(e) }
+    return parseReferralNotes(data)
+  },
+
+  async unarchive(id) {
+    const { data, error } = await supabase
+      .from('referrals')
+      .update({ archived_at: null, archived_by: null })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+
+    try { await ReferralHistory.addUnarchiveEvent(id) } catch (e) { console.warn(e) }
+    return parseReferralNotes(data)
   },
 
   /**
@@ -232,6 +297,8 @@ export const Referral = {
     }
   }
 }
+
+Referral.TRACKED_FIELDS = TRACKED_FIELDS
 
 export default Referral
 
