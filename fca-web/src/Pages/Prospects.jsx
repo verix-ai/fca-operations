@@ -1,334 +1,266 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState, useCallback } from 'react'
 import Referral from '@/entities/Referral.supabase'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { useNavigate } from 'react-router-dom'
-import { createPageUrl, formatDateInTimezone } from '@/utils'
 import CmCompany from '@/entities/CmCompany.supabase'
-import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useNavigate } from 'react-router-dom'
+import { createPageUrl } from '@/utils'
 import SectionHeader from '@/components/layout/SectionHeader.jsx'
 import { useAuth } from '@/auth/AuthProvider.jsx'
+import { useToast } from '@/components/ui/toast'
+
+import FiltersBar from '@/components/prospects/FiltersBar'
+import MobileFiltersSheet from '@/components/prospects/MobileFiltersSheet'
+import ProspectsTable from '@/components/prospects/ProspectsTable'
+import ProspectsCards from '@/components/prospects/ProspectsCards'
+import ActivityModal from '@/components/prospects/ActivityModal'
+import ArchiveModal from '@/components/prospects/ArchiveModal'
+
+const EMPTY_FILTERS = {
+  search: '', marketer: '', county: '',
+  cmCompany: '', homeCareCompany: '',
+  dateFrom: '', dateTo: '',
+}
 
 export default function Prospects() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const { push: toast } = useToast()
+
+  const [view, setView] = useState('active')                 // 'active' | 'archived'
   const [referrals, setReferrals] = useState([])
-  const [search, setSearch] = useState('')
   const [companies, setCompanies] = useState([])
-  const [marketerFilter, setMarketerFilter] = useState('')
-  const [countyFilter, setCountyFilter] = useState('')
+  const [filters, setFilters] = useState(EMPTY_FILTERS)
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [activityRow, setActivityRow] = useState(null)
+  const [archiveRow, setArchiveRow] = useState(null)
+  const [unarchiveRow, setUnarchiveRow] = useState(null)
+
+  const refreshList = useCallback(async () => {
+    try {
+      const list = await Referral.list({
+        view,
+        cmCompany: filters.cmCompany || undefined,
+        homeCareCompany: filters.homeCareCompany || undefined,
+        dateFrom: filters.dateFrom ? new Date(filters.dateFrom).toISOString() : undefined,
+        dateTo: filters.dateTo || undefined,
+      })
+      setReferrals(list)
+    } catch (err) {
+      toast({ title: 'Could not load prospects', description: err.message, variant: 'destructive' })
+      setReferrals([])
+    }
+  }, [view, filters.cmCompany, filters.homeCareCompany, filters.dateFrom, filters.dateTo, toast])
 
   useEffect(() => {
     (async () => {
-      try {
-        const list = await Referral.list()
-        console.log('📋 All referrals loaded:', list)
-        console.log('👤 Current user:', user)
-        // Log marketer info for debugging
-        list.forEach(r => {
-          console.log(`📝 Referral ${r.id}:`)
-          console.log('  - marketer_id:', r.marketer_id)
-          console.log('  - marketer_name:', r.marketer_name)
-          console.log('  - marketer_email:', r.marketer_email)
-          console.log('  - notes (raw):', r.notes)
-          console.log('  - Full referral object:', r)
-        })
-        setReferrals(list)
-      } catch {}
-      try {
-        const list = await CmCompany.list()
-        setCompanies(list)
-      } catch {}
+      try { setCompanies(await CmCompany.list()) } catch {}
     })()
-  }, [user])
+  }, [])
 
+  useEffect(() => { refreshList() }, [refreshList])
+
+  // Derived options for the filter dropdowns
   const marketerOptions = useMemo(() => {
     const seen = new Set()
-    const list = []
     referrals.forEach(r => {
-      const key = (r.marketer_name || r.marketer_email || '').trim()
-      if (!key) return
-      if (seen.has(key)) return
-      seen.add(key)
-      list.push(key)
+      const k = (r.marketer_name || r.marketer_email || '').trim()
+      if (k) seen.add(k)
     })
-    return list.sort((a, b) => a.localeCompare(b))
+    return [...seen].sort((a,b) => a.localeCompare(b))
   }, [referrals])
 
   const countyOptions = useMemo(() => {
     const seen = new Set()
-    const list = []
-    referrals.forEach(r => {
-      const key = (r.county || '').trim()
-      if (!key) return
-      if (seen.has(key)) return
-      seen.add(key)
-      list.push(key)
-    })
-    return list.sort((a, b) => a.localeCompare(b))
+    referrals.forEach(r => { if (r.county) seen.add(r.county) })
+    return [...seen].sort((a,b) => a.localeCompare(b))
   }, [referrals])
 
+  // Client-side filters: search + county + marketer (county and marketer live in or
+  // alongside the JSON blob and aren't indexed; marketer was removed from server-side
+  // filtering to avoid PostgREST .or() injection on names containing commas).
   const rows = useMemo(() => {
-    const q = search.trim().toLowerCase()
     let list = referrals
-    
-    // Filter for marketers: show only their own referrals
+
     if (user?.role === 'marketer') {
-      // First try to get marketer record ID
-      list = list.filter(r => {
-        // Check by marketer_id (if marketer record exists)
-        if (r.marketer_id && user.id) {
-          // We need to check if this marketer_id belongs to this user
-          // For now, also check by name/email as backup
-          const matchesName = (r.marketer_name || '').trim() === (user?.name || '').trim()
-          const matchesEmail = (r.marketer_email || '').trim() === (user?.email || '').trim()
-          return matchesName || matchesEmail
-        }
-        // Fallback: check by name or email
-        const matchesName = (r.marketer_name || '').trim() === (user?.name || '').trim()
-        const matchesEmail = (r.marketer_email || '').trim() === (user?.email || '').trim()
-        return matchesName || matchesEmail
-      })
+      list = list.filter(r =>
+        (r.marketer_name || '').trim() === (user.name || '').trim() ||
+        (r.marketer_email || '').trim() === (user.email || '').trim()
+      )
     }
-    
-    if (marketerFilter) {
-      const mf = marketerFilter.trim()
-      list = list.filter(r => (r.marketer_name || r.marketer_email || '').trim() === mf)
+    if (filters.marketer) {
+      const mf = filters.marketer.trim()
+      list = list.filter(r =>
+        (r.marketer_name || '').trim() === mf ||
+        (r.marketer_email || '').trim() === mf
+      )
     }
-    if (countyFilter) {
-      const cf = countyFilter.trim().toLowerCase()
-      list = list.filter(r => String(r.county || '').toLowerCase() === cf)
+    if (filters.county) {
+      list = list.filter(r => String(r.county || '').toLowerCase() === filters.county.toLowerCase())
     }
-    if (!q) return list
-    return list.filter(r =>
-      [r.referral_name, r.caregiver_name, r.phone, r.address, r.county]
-        .map(v => String(v || '').toLowerCase())
-        .some(v => v.includes(q))
-    )
-  }, [referrals, user, search, marketerFilter, countyFilter])
-  
+    const q = (filters.search || '').trim().toLowerCase()
+    if (q) {
+      list = list.filter(r =>
+        [r.referral_name, r.caregiver_name, r.phone, r.address, r.county]
+          .map(v => String(v || '').toLowerCase())
+          .some(v => v.includes(q))
+      )
+    }
+    return list
+  }, [referrals, user, filters.search, filters.county, filters.marketer])
+
+  const activeFilterCount = useMemo(() => {
+    const keys = ['marketer','county','cmCompany','homeCareCompany','dateFrom','dateTo']
+    return keys.filter(k => !!filters[k]).length
+  }, [filters])
+
+  async function handleInlineEdit(id, field, value) {
+    const prev = referrals.find(r => r.id === id)
+    setReferrals(rs => rs.map(r => r.id === id ? { ...r, [field]: value } : r))
+    try {
+      const updated = await Referral.update(id, { [field]: value })
+      setReferrals(rs => rs.map(r => r.id === id ? { ...r, ...updated } : r))
+    } catch (err) {
+      setReferrals(rs => rs.map(r => r.id === id ? prev : r))
+      toast({ title: 'Could not save change', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  async function handleArchiveConfirm({ reason, note }) {
+    if (!archiveRow) return
+    try {
+      await Referral.archive(archiveRow.id, { reason, note })
+      toast({ title: 'Prospect archived' })
+      setArchiveRow(null)
+      refreshList()
+    } catch (err) {
+      toast({ title: 'Could not archive', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  async function handleUnarchive() {
+    if (!unarchiveRow) return
+    try {
+      await Referral.unarchive(unarchiveRow.id)
+      toast({ title: 'Prospect restored' })
+      setUnarchiveRow(null)
+      refreshList()
+    } catch (err) {
+      toast({ title: 'Could not unarchive', description: err.message, variant: 'destructive' })
+    }
+  }
 
   return (
     <div className="space-y-10">
       <SectionHeader
         eyebrow="Referrals"
         title="Prospects"
-        description="View the prospects you have referred and their captured details."
+        description="View and work the prospects you have referred."
       />
+
+      <Tabs value={view} onValueChange={setView}>
+        <TabsList>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="archived">Archive</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       <Card className="border rounded-2xl surface-main">
         <CardHeader className="p-6 border-b border-white/5">
           <CardTitle className="text-heading-primary">Search</CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-heading-subdued w-4 h-4" />
-              <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search prospects" className="pl-12 rounded-xl" />
-            </div>
-            <div>
-              <Select value={marketerFilter} onValueChange={setMarketerFilter}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Filter by marketer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All marketers</SelectItem>
-                  {marketerOptions.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Select value={countyFilter} onValueChange={setCountyFilter}>
-                <SelectTrigger className="rounded-xl">
-                  <SelectValue placeholder="Filter by county" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All counties</SelectItem>
-                  {countyOptions.map(opt => (
-                    <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <CardContent className="p-0">
+          <FiltersBar
+            filters={filters}
+            onChange={setFilters}
+            marketers={marketerOptions}
+            counties={countyOptions}
+            cmCompanies={companies}
+            onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+            activeFilterCount={activeFilterCount}
+          />
         </CardContent>
       </Card>
 
       <Card className="border rounded-2xl surface-main">
         <CardHeader className="p-6 border-b border-white/5">
-          <CardTitle className="text-heading-primary">Your Prospects</CardTitle>
+          <CardTitle className="text-heading-primary">{view === 'archived' ? 'Archived Prospects' : 'Your Prospects'}</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {/* Desktop Table View */}
-          <div className="hidden lg:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-b border-white/5">
-                  <TableHead className="text-heading-subdued p-4">Referral Name</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Caregiver</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Phone</TableHead>
-                  <TableHead className="text-heading-subdued p-4">County</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Program</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Case Management Company</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Submitted</TableHead>
-                  <TableHead className="text-heading-subdued p-4">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center text-heading-subdued py-10">No prospects found</TableCell>
-                  </TableRow>
-                ) : rows.map(r => (
-                  <TableRow key={r.id} className="border-b border-white/5">
-                    <TableCell className="p-4 text-heading-primary">{r.referral_name}</TableCell>
-                    <TableCell className="p-4 text-heading-primary/80">{r.caregiver_name}</TableCell>
-                    <TableCell className="p-4 text-heading-primary/80">{r.phone}</TableCell>
-                    <TableCell className="p-4 text-heading-primary/80">{r.county}</TableCell>
-                    <TableCell className="p-4 text-heading-primary/80">{r.requested_program}</TableCell>
-                    <TableCell className="p-4 text-heading-primary/80">
-                      {user?.role !== 'marketer' ? (
-                        <select
-                          className="rounded-lg bg-transparent border border-[rgba(147,165,197,0.25)] px-2 py-1"
-                          value={r.cm_company || ''}
-                          onChange={async (e) => {
-                            const value = e.target.value
-                            const updated = { ...r, cm_company: value }
-                            setReferrals(prev => prev.map(x => x.id === r.id ? updated : x))
-                            try { await Referral.update(r.id, { cm_company: value }) } catch {}
-                          }}
-                        >
-                          <option value="">-- Select --</option>
-                          {companies.map(c => (
-                            <option key={c.id} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="text-heading-primary/70">{r.cm_company || '-'}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="p-4 text-heading-primary/60">
-                      <span>{formatDateInTimezone(r.created_at)}</span>
-                    </TableCell>
-                    <TableCell className="p-4 text-heading-primary/60">
-                      <div className="flex items-center gap-2">
-                        {user?.role !== 'marketer' && (
-                          <Button
-                            variant="outline"
-                            borderRadius="1rem"
-                            className="px-3 py-1 text-xs whitespace-nowrap"
-                            onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${r.id}`)}
-                            title="Start intake from this referral"
-                          >
-                            Start Intake
-                          </Button>
-                        )}
-                        <Button
-                          variant="secondary"
-                          borderRadius="1rem"
-                          className="px-3 py-1 text-xs whitespace-nowrap"
-                          onClick={() => navigate(`/prospects/${r.id}`)}
-                          title="Open referral profile"
-                        >
-                          Open Profile
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Mobile Card View */}
-          <div className="lg:hidden">
-            {rows.length === 0 ? (
-              <div className="text-center text-heading-subdued py-10 px-4">No prospects found</div>
-            ) : (
-              <div className="divide-y divide-white/5">
-                {rows.map(r => (
-                  <div key={r.id} className="p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-heading-primary font-medium truncate">{r.referral_name}</div>
-                        <div className="text-sm text-heading-subdued">Caregiver: {r.caregiver_name}</div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <div className="text-heading-subdued text-xs">Phone</div>
-                        <div className="text-heading-primary">{r.phone || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-heading-subdued text-xs">County</div>
-                        <div className="text-heading-primary">{r.county || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-heading-subdued text-xs">Program</div>
-                        <div className="text-heading-primary">{r.requested_program || '-'}</div>
-                      </div>
-                      <div>
-                        <div className="text-heading-subdued text-xs">Submitted</div>
-                        <div className="text-heading-primary">{formatDateInTimezone(r.created_at)}</div>
-                      </div>
-                    </div>
-
-                    {user?.role !== 'marketer' && (
-                      <div>
-                        <div className="text-heading-subdued text-xs mb-1">Case Management Company</div>
-                        <select
-                          className="w-full rounded-lg bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-                          value={r.cm_company || ''}
-                          onChange={async (e) => {
-                            const value = e.target.value
-                            const updated = { ...r, cm_company: value }
-                            setReferrals(prev => prev.map(x => x.id === r.id ? updated : x))
-                            try { await Referral.update(r.id, { cm_company: value }) } catch {}
-                          }}
-                        >
-                          <option value="">-- Select --</option>
-                          {companies.map(c => (
-                            <option key={c.id} value={c.name}>{c.name}</option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    <div className="flex gap-2 pt-2">
-                      {user?.role !== 'marketer' && (
-                        <Button
-                          variant="outline"
-                          borderRadius="1rem"
-                          className="flex-1 text-xs"
-                          onClick={() => navigate(`${createPageUrl('ClientIntake')}?ref=${r.id}`)}
-                        >
-                          Start Intake
-                        </Button>
-                      )}
-                      <Button
-                        variant="secondary"
-                        borderRadius="1rem"
-                        className="flex-1 text-xs"
-                        onClick={() => navigate(`/prospects/${r.id}`)}
-                      >
-                        Open Profile
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <ProspectsTable
+            rows={rows}
+            companies={companies}
+            view={view}
+            userRole={user?.role}
+            onInlineEdit={handleInlineEdit}
+            onOpenProfile={(id) => navigate(`/prospects/${id}`)}
+            onOpenActivity={(row) => setActivityRow(row)}
+            onArchive={(row) => setArchiveRow(row)}
+            onUnarchive={(row) => setUnarchiveRow(row)}
+            onStartIntake={(id) => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
+          />
+          <ProspectsCards
+            rows={rows}
+            companies={companies}
+            view={view}
+            userRole={user?.role}
+            onInlineEdit={handleInlineEdit}
+            onOpenProfile={(id) => navigate(`/prospects/${id}`)}
+            onOpenActivity={(row) => setActivityRow(row)}
+            onArchive={(row) => setArchiveRow(row)}
+            onUnarchive={(row) => setUnarchiveRow(row)}
+            onStartIntake={(id) => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
+          />
         </CardContent>
       </Card>
+
+      {mobileFiltersOpen && (
+        <MobileFiltersSheet
+          filters={filters}
+          onChange={setFilters}
+          marketers={marketerOptions}
+          counties={countyOptions}
+          cmCompanies={companies}
+          onClose={() => setMobileFiltersOpen(false)}
+          onClearAll={() => setFilters(EMPTY_FILTERS)}
+        />
+      )}
+
+      {activityRow && (
+        <ActivityModal
+          prospect={activityRow}
+          readOnly={view === 'archived'}
+          onChange={(updated) => {
+            setActivityRow(updated)
+            setReferrals(rs => rs.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+          }}
+          onClose={() => setActivityRow(null)}
+        />
+      )}
+
+      {archiveRow && (
+        <ArchiveModal
+          prospect={archiveRow}
+          onClose={() => setArchiveRow(null)}
+          onConfirm={handleArchiveConfirm}
+        />
+      )}
+
+      {unarchiveRow && (
+        <div className="fixed inset-0 z-[1000]">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setUnarchiveRow(null)} />
+          <div className="absolute inset-0 flex items-center justify-center p-4 sm:p-6">
+            <div className="w-full max-w-md rounded-2xl border border-[rgba(147,165,197,0.25)] bg-hero-card p-5">
+              <div className="text-heading-primary font-semibold mb-2">Restore {unarchiveRow.referral_name}?</div>
+              <div className="text-sm text-heading-subdued mb-4">This will move the prospect back to the Active tab.</div>
+              <div className="flex justify-end gap-2">
+                <button className="px-3 py-2 text-sm rounded border border-[rgba(147,165,197,0.25)]" onClick={() => setUnarchiveRow(null)}>Cancel</button>
+                <button className="px-3 py-2 text-sm rounded bg-white/10 hover:bg-white/15 text-heading-primary" onClick={handleUnarchive}>Unarchive</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
-
