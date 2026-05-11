@@ -66,3 +66,9 @@ coverage/
 
 # Local storage backups
 localStorage-backup.json
+
+# Internal tracker (local-only, not published)
+TRACKER.md
+
+# Local DB backups (never commit)
+fca-dev-backup-*.sql
