@@ -51,17 +51,16 @@ export const Referral = {
    * List referrals in the current user's organization.
    *
    * @param {Object} [opts]
-   * @param {'active'|'archived'} [opts.view='active']
+   * @param {'active'|'archived'|'all'} [opts.view] - omit (or 'all') for no archive filter
    * @param {string} [opts.cmCompany]
    * @param {string} [opts.homeCareCompany]
-   * @param {string} [opts.marketer]   - matches marketer_name OR marketer_email
    * @param {string} [opts.county]     - JSON-blob field; filtered client-side after fetch
    * @param {string} [opts.search]     - search term; filtered client-side
    * @param {string} [opts.dateFrom]   - ISO date, inclusive
    * @param {string} [opts.dateTo]     - ISO date, inclusive
    */
   async list(opts = {}) {
-    const { view = 'active', cmCompany, homeCareCompany, marketer, dateFrom, dateTo } = opts
+    const { view, cmCompany, homeCareCompany, dateFrom, dateTo } = opts
 
     let query = supabase
       .from('referrals')
@@ -69,15 +68,19 @@ export const Referral = {
       .order('created_at', { ascending: false })
 
     if (view === 'archived') query = query.not('archived_at', 'is', null)
-    else query = query.is('archived_at', null)
+    else if (view === 'active') query = query.is('archived_at', null)
+    // else (view undefined or 'all') -> no archive filter; preserves legacy callers
 
     if (cmCompany) query = query.eq('cm_company', cmCompany)
     if (homeCareCompany) query = query.eq('home_care_company', homeCareCompany)
-    if (marketer) {
-      query = query.or(`marketer_name.eq.${marketer},marketer_email.eq.${marketer}`)
-    }
     if (dateFrom) query = query.gte('created_at', dateFrom)
-    if (dateTo) query = query.lte('created_at', dateTo)
+    if (dateTo) {
+      // If the caller passed a date-only string (no time component), normalize
+      // to end-of-day so the bound is inclusive. Anything that already includes
+      // a time component is used as-is.
+      const isoEnd = /^\d{4}-\d{2}-\d{2}$/.test(dateTo) ? `${dateTo}T23:59:59.999Z` : dateTo
+      query = query.lte('created_at', isoEnd)
+    }
 
     const { data, error } = await query
     if (error) throw error
