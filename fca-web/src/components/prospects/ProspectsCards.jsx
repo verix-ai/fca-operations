@@ -11,7 +11,7 @@ export default function ProspectsCards({
   const archived = view === 'archived'
 
   if (rows.length === 0) {
-    return <div className="text-center text-heading-subdued py-10 px-4">No prospects found</div>
+    return <div className="lg:hidden text-center text-heading-subdued py-10 px-4">No prospects found</div>
   }
 
   return (
