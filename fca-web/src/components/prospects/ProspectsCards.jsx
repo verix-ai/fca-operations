@@ -17,7 +17,7 @@ export default function ProspectsCards({
   return (
     <div className="lg:hidden divide-y divide-white/5">
       {rows.map(r => (
-        <div key={r.id} className="p-4 space-y-3">
+        <div key={r.id} className={`p-4 space-y-3 ${r.referral_sent ? 'bg-emerald-500/[0.08]' : ''}`}>
           <div className="text-heading-primary font-medium truncate">{r.referral_name}</div>
           <div className="text-sm text-heading-subdued">Caregiver: {r.caregiver_name}</div>
 

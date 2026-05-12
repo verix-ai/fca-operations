@@ -48,7 +48,7 @@ export default function ProspectsTable({
           {rows.length === 0 ? (
             <TableRow><TableCell colSpan={10} className="text-center text-heading-subdued py-10">No prospects found</TableCell></TableRow>
           ) : rows.map(r => (
-            <TableRow key={r.id} className="border-b border-white/5 align-top">
+            <TableRow key={r.id} className={`border-b border-white/5 align-top ${r.referral_sent ? 'bg-emerald-500/[0.08]' : ''}`}>
               <TableCell className="p-4 text-heading-primary">{r.referral_name}</TableCell>
               <TableCell className="p-4 text-heading-primary/80">{r.caregiver_name}</TableCell>
               <TableCell className="p-4 text-heading-primary/80">{r.phone}</TableCell>
