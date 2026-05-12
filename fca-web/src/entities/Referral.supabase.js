@@ -171,7 +171,7 @@ export const Referral = {
       'client_id','referred_by','referral_date','referral_source',
       'cm_company','marketer_id','marketer_name','marketer_email',
       'code','home_care_company','cm_call_status',
-      'assessment_complete','waiting_state_approval',
+      'assessment_complete','waiting_state_approval','referral_sent',
       'archived_at','archived_by','archive_reason','archive_note',
     ])
 
