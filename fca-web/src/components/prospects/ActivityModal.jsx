@@ -142,6 +142,15 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
               />
               Waiting on State Approval
             </label>
+
+            <label className="flex items-center gap-3 text-sm text-heading-primary">
+              <Checkbox
+                checked={!!local.referral_sent}
+                disabled={readOnly}
+                onCheckedChange={(checked) => applyField('referral_sent', !!checked)}
+              />
+              Referral sent
+            </label>
           </div>
 
           {/* Add Note (pinned) */}
