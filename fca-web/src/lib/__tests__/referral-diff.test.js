@@ -35,6 +35,7 @@ describe('referral-diff', () => {
       'cm_call_status',
       'assessment_complete',
       'waiting_state_approval',
+      'referral_sent',
     ])
   })
 })

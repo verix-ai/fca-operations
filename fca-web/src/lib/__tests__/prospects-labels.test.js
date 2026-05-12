@@ -50,5 +50,7 @@ describe('prospects-labels', () => {
     expect(fieldChangeLabel('waiting_state_approval', 'true', 'false')).toBe('No longer waiting on state approval')
     expect(fieldChangeLabel('cm_call_status', 'awaiting', 'contacted'))
       .toBe('CM call status changed from Awaiting CM company contact → CM company has contacted client')
+    expect(fieldChangeLabel('referral_sent', 'false', 'true')).toBe('Referral marked sent')
+    expect(fieldChangeLabel('referral_sent', 'true', 'false')).toBe('Referral marked not sent')
   })
 })

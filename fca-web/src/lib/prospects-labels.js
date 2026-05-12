@@ -59,6 +59,9 @@ export function fieldChangeLabel(field, oldValue, newValue) {
   if (field === 'waiting_state_approval') {
     return newValue === 'true' ? 'Marked waiting on state approval' : 'No longer waiting on state approval'
   }
+  if (field === 'referral_sent') {
+    return newValue === 'true' ? 'Referral marked sent' : 'Referral marked not sent'
+  }
   const title = FIELD_TITLES[field] || field
   const oldLabel = field === 'cm_call_status' ? (cmCallStatusLabel(oldValue) || fmt(oldValue)) : fmt(oldValue)
   const newLabel = field === 'cm_call_status' ? (cmCallStatusLabel(newValue) || fmt(newValue)) : fmt(newValue)
