@@ -194,6 +194,23 @@ export function Textarea({ className = '', ...props }) {
 // --- Simple Select primitives (headless) ---
 const SelectCtx = createContext(null)
 
+function findSelectItemLabel(children, targetValue) {
+  let found = null
+  React.Children.forEach(children, (child) => {
+    if (found != null) return
+    if (!React.isValidElement(child)) return
+    if (child.type === SelectItem && child.props.value === targetValue) {
+      found = typeof child.props.children === 'string' ? child.props.children : null
+      return
+    }
+    if (child.props && child.props.children) {
+      const nested = findSelectItemLabel(child.props.children, targetValue)
+      if (nested != null) found = nested
+    }
+  })
+  return found
+}
+
 export function Select({ value, onValueChange, children }) {
   const [internalValue, setInternalValue] = useState(value ?? null)
   const [label, setLabel] = useState(null)
@@ -201,6 +218,11 @@ export function Select({ value, onValueChange, children }) {
   const containerRef = useRef(null)
 
   useEffect(() => { if (value !== undefined) setInternalValue(value) }, [value])
+
+  const resolvedLabel = useMemo(
+    () => label || findSelectItemLabel(children, internalValue),
+    [label, children, internalValue],
+  )
 
   // Close on outside click (use 'click' so item onClick fires first)
   useEffect(() => {
@@ -222,12 +244,13 @@ export function Select({ value, onValueChange, children }) {
 
   const contextValue = useMemo(() => ({
     value: internalValue,
-    label,
+    label: resolvedLabel,
     open,
     setOpen,
     setValue,
+    setLabel,
     containerRef,
-  }), [internalValue, label, open])
+  }), [internalValue, resolvedLabel, open])
 
   return (
     <SelectCtx.Provider value={contextValue}>
