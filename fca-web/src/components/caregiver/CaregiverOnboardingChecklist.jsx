@@ -8,17 +8,53 @@ import { ClipboardCheck, Check, Loader2 } from 'lucide-react';
 import { ClientCaregiver } from '@/entities/ClientCaregiver.supabase';
 import { COMPLIANCE_ONBOARDING_MAP } from "@/constants/caregiver";
 
-// Define the onboarding checklist items
+// Define the onboarding checklist items. Items with a `dates` array render
+// paired Issued/Expires inputs that remain editable even after finalization.
 const ONBOARDING_ITEMS = [
     { field: 'viventium_onboarding_completed', label: 'Viventium Onboarding Complete' },
-    { field: 'caregiver_fingerprinted', label: 'Caregiver Fingerprinted' },
     { field: 'background_results_uploaded', label: 'Background Results Received & Uploaded' },
     { field: 'ssn_or_birth_certificate_submitted', label: 'SSN/Birth Certificate Submitted' },
     { field: 'pca_cert_including_2_of_3', label: 'PCA Cert (2/3)' },
-    { field: 'drivers_license_submitted', label: 'Driver\'s License Submitted', dateField: 'drivers_license_expires_at', dateLabel: 'Expires' },
-    { field: 'tb_test_completed', label: 'TB Test Completed', dateField: 'tb_test_issued_at', dateLabel: 'Issued' },
-    { field: 'cpr_first_aid_completed', label: 'CPR/First Aid Completed', dateField: 'cpr_issued_at', dateLabel: 'Issued' },
-    { field: 'caregiver_training_completed', label: 'Caregiver Training Completed', dateField: 'caregiver_training_date', dateLabel: 'Date' },
+    {
+        field: 'drivers_license_submitted',
+        label: 'Driver\'s License Submitted',
+        dates: [
+            { field: 'drivers_license_issued_at', label: 'Issued' },
+            { field: 'drivers_license_expires_at', label: 'Expires' },
+        ],
+    },
+    {
+        field: 'tb_test_completed',
+        label: 'TB Test Completed',
+        dates: [
+            { field: 'tb_test_issued_at', label: 'Issued' },
+            { field: 'tb_test_expires_at', label: 'Expires' },
+        ],
+    },
+    {
+        field: 'cpr_first_aid_completed',
+        label: 'CPR/First Aid Completed',
+        dates: [
+            { field: 'cpr_issued_at', label: 'Issued' },
+            { field: 'cpr_expires_at', label: 'Expires' },
+        ],
+    },
+    {
+        field: 'caregiver_training_completed',
+        label: 'Caregiver Training Completed',
+        dates: [
+            { field: 'caregiver_training_date', label: 'Issued' },
+            { field: 'caregiver_training_expires_at', label: 'Expires' },
+        ],
+    },
+    {
+        field: 'caregiver_fingerprinted',
+        label: 'Caregiver Fingerprinted',
+        dates: [
+            { field: 'caregiver_fingerprinted_at', label: 'Issued' },
+            { field: 'fingerprint_expires_at', label: 'Expires' },
+        ],
+    },
 ];
 
 export default function CaregiverOnboardingChecklist({ caregiver, onUpdate }) {
@@ -126,14 +162,17 @@ export default function CaregiverOnboardingChecklist({ caregiver, onUpdate }) {
             <CardContent className="p-6 space-y-3">
                 {ONBOARDING_ITEMS.map((item) => {
                     const checked = Boolean(caregiver[item.field]);
-                    const isUpdating = updating === item.field || updating === item.dateField;
+                    const dateFields = item.dates || [];
+                    const isUpdating =
+                        updating === item.field ||
+                        dateFields.some((d) => updating === d.field);
 
                     return (
                         <div
                             key={item.field}
-                            className={`${item.dateField ? 'flex flex-col gap-2' : 'flex items-center gap-3'} bg-black/10 px-4 py-3 rounded-2xl border border-[rgba(147,165,197,0.25)] ${isFinalized ? 'opacity-60' : ''}`}
+                            className={`${dateFields.length ? 'flex flex-col gap-2' : 'flex items-center gap-3'} bg-black/10 px-4 py-3 rounded-2xl border border-[rgba(147,165,197,0.25)]`}
                         >
-                            <div className="flex items-center gap-3">
+                            <div className={`flex items-center gap-3 ${isFinalized ? 'opacity-60' : ''}`}>
                                 {isUpdating ? (
                                     <Loader2 className="w-4 h-4 animate-spin text-brand" />
                                 ) : (
@@ -149,16 +188,19 @@ export default function CaregiverOnboardingChecklist({ caregiver, onUpdate }) {
                                 </span>
                             </div>
 
-                            {item.dateField && (
-                                <div className="ml-8 mt-1">
-                                    <Input
-                                        type="date"
-                                        value={caregiver[item.dateField] || ''}
-                                        onChange={(e) => handleDateChange(item.dateField, e.target.value)}
-                                        disabled={isFinalized}
-                                        className="h-9 text-xs rounded-lg w-full max-w-[200px]"
-                                    />
-                                    <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{item.dateLabel}</p>
+                            {dateFields.length > 0 && (
+                                <div className="ml-8 mt-1 flex flex-wrap gap-3">
+                                    {dateFields.map((d) => (
+                                        <div key={d.field}>
+                                            <Input
+                                                type="date"
+                                                value={caregiver[d.field] || ''}
+                                                onChange={(e) => handleDateChange(d.field, e.target.value)}
+                                                className="h-9 text-xs rounded-lg w-full max-w-[180px]"
+                                            />
+                                            <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{d.label}</p>
+                                        </div>
+                                    ))}
                                 </div>
                             )}
                         </div>

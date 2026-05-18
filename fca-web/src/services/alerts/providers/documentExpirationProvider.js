@@ -1,73 +1,23 @@
 import { supabase } from '@/lib/supabase'
 import { alertSeverity } from '../index'
 
+// Expiration dates are entered manually by staff (no more "issued + N years"
+// math). Each def points directly at a *_expires_at column.
 const CAREGIVER_DOC_DEFS = [
-  {
-    docId: 'tb_skin_blood_test',
-    docName: 'TB Skin/Blood Test',
-    sourceField: 'tb_test_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 1),
-  },
-  {
-    docId: 'cpr_certificate',
-    docName: 'CPR Certificate',
-    sourceField: 'cpr_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 2),
-  },
-  {
-    docId: 'first_aid_certificate',
-    docName: 'First Aid Certificate',
-    sourceField: 'cpr_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 2),
-  },
-  {
-    docId: 'drivers_license',
-    docName: 'Driving License',
-    sourceField: 'drivers_license_expires_at',
-    computeExpiry: (raw) => raw,
-  },
-  {
-    docId: 'caregiver_training',
-    docName: 'Caregiver Training',
-    sourceField: 'caregiver_training_date',
-    computeExpiry: (date) => addYears(date, 1),
-  },
+  { docId: 'tb_skin_blood_test',    docName: 'TB Skin/Blood Test',    sourceField: 'tb_test_expires_at' },
+  { docId: 'cpr_certificate',       docName: 'CPR Certificate',       sourceField: 'cpr_expires_at' },
+  { docId: 'first_aid_certificate', docName: 'First Aid Certificate', sourceField: 'cpr_expires_at' },
+  { docId: 'drivers_license',       docName: 'Driving License',       sourceField: 'drivers_license_expires_at' },
+  { docId: 'caregiver_training',    docName: 'Caregiver Training',    sourceField: 'caregiver_training_expires_at' },
+  { docId: 'fingerprint',           docName: 'Fingerprint',           sourceField: 'fingerprint_expires_at' },
 ]
 
 const CLIENT_DOC_DEFS = [
-  {
-    docId: 'tb_skin_blood_test',
-    docName: 'TB Skin/Blood Test',
-    sourceField: 'tb_test_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 1),
-  },
-  {
-    docId: 'cpr_certificate',
-    docName: 'CPR Certificate',
-    sourceField: 'cpr_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 2),
-  },
-  {
-    docId: 'first_aid_certificate',
-    docName: 'First Aid Certificate',
-    sourceField: 'cpr_issued_at',
-    computeExpiry: (issuedAt) => addYears(issuedAt, 2),
-  },
-  {
-    docId: 'drivers_license',
-    docName: 'Driving License',
-    sourceField: 'drivers_license_expires_at',
-    computeExpiry: (raw) => raw,
-  },
+  { docId: 'tb_skin_blood_test',    docName: 'TB Skin/Blood Test',    sourceField: 'tb_test_expires_at' },
+  { docId: 'cpr_certificate',       docName: 'CPR Certificate',       sourceField: 'cpr_expires_at' },
+  { docId: 'first_aid_certificate', docName: 'First Aid Certificate', sourceField: 'cpr_expires_at' },
+  { docId: 'drivers_license',       docName: 'Driving License',       sourceField: 'drivers_license_expires_at' },
 ]
-
-function addYears(input, years) {
-  if (!input) return null
-  const d = new Date(input)
-  if (Number.isNaN(d.getTime())) return null
-  d.setFullYear(d.getFullYear() + years)
-  return d.toISOString().slice(0, 10)
-}
 
 function formatLastFirst(fullName) {
   if (!fullName) return ''
@@ -81,7 +31,7 @@ function formatLastFirst(fullName) {
 async function fetchCaregivers() {
   const { data, error } = await supabase
     .from('client_caregivers')
-    .select('id, full_name, tb_test_issued_at, cpr_issued_at, drivers_license_expires_at, caregiver_training_date, client_id, organization_id')
+    .select('id, full_name, tb_test_expires_at, cpr_expires_at, drivers_license_expires_at, caregiver_training_expires_at, fingerprint_expires_at, client_id, organization_id')
   if (error) throw error
   return data || []
 }
@@ -89,7 +39,7 @@ async function fetchCaregivers() {
 async function fetchClients() {
   const { data, error } = await supabase
     .from('clients')
-    .select('id, client_name, tb_test_issued_at, cpr_issued_at, drivers_license_expires_at, organization_id')
+    .select('id, client_name, tb_test_expires_at, cpr_expires_at, drivers_license_expires_at, organization_id')
   if (error) throw error
   return data || []
 }
@@ -102,9 +52,7 @@ function buildAlertsFor(entity, kind, defs) {
     : `${formatLastFirst(entity.client_name)} ${labelSuffix}`
 
   for (const def of defs) {
-    const raw = entity[def.sourceField]
-    if (!raw) continue
-    const expiryDate = def.computeExpiry(raw)
+    const expiryDate = entity[def.sourceField]
     if (!expiryDate) continue
 
     alerts.push({
@@ -120,7 +68,7 @@ function buildAlertsFor(entity, kind, defs) {
       title: def.docName,
       docId: def.docId,
       dueDate: expiryDate,
-      meta: { sourceField: def.sourceField, sourceValue: raw },
+      meta: { sourceField: def.sourceField, sourceValue: expiryDate },
     })
   }
   return alerts

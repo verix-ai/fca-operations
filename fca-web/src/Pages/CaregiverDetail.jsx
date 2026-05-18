@@ -13,7 +13,7 @@ import { ArrowLeft, Phone, Mail, MapPin, Calendar, User, Heart, Home, AlertTrian
 import SectionHeader from "@/components/layout/SectionHeader.jsx";
 import ContactModal from "@/components/client/ContactModal";
 import { createPageUrl, formatPhone } from "@/utils";
-import { format, isBefore, addDays, addYears } from "date-fns";
+import { format, isBefore, addDays } from "date-fns";
 import SettingsStore from '@/entities/Settings.supabase';
 import { useAuth } from "@/auth/AuthProvider.jsx";
 import CaregiverOnboardingChecklist from "@/components/caregiver/CaregiverOnboardingChecklist.jsx";
@@ -153,16 +153,14 @@ export default function CaregiverDetail() {
     };
 
     const client = caregiver?.client || {};
-    // Read expiration dates from caregiver record first (new), then fallback to client record (legacy)
-    const cprIssuedAt = caregiver.cpr_issued_at || client.cpr_issued_at;
-    const tbIssuedAt = caregiver.tb_test_issued_at || client.tb_test_issued_at;
-    const licenseExpiresAt = caregiver.drivers_license_expires_at || client.drivers_license_expires_at;
-    const trainingDate = caregiver.caregiver_training_date || client.training_or_care_start_date;
-
-    const cprExpiration = cprIssuedAt ? addYears(new Date(cprIssuedAt), 2) : null;
-    const tbExpiration = tbIssuedAt ? addYears(new Date(tbIssuedAt), 1) : null;
-    const trainingExpiration = trainingDate ? addYears(new Date(trainingDate), 1) : null;
-    const licenseExpiration = licenseExpiresAt ? new Date(licenseExpiresAt) : null;
+    // Expiration dates are stored manually on the caregiver record; fall back
+    // to the mirrored client record so legacy rows still render.
+    const toDate = (raw) => (raw ? new Date(raw) : null);
+    const cprExpiration = toDate(caregiver.cpr_expires_at || client.cpr_expires_at);
+    const tbExpiration = toDate(caregiver.tb_test_expires_at || client.tb_test_expires_at);
+    const licenseExpiration = toDate(caregiver.drivers_license_expires_at || client.drivers_license_expires_at);
+    const trainingExpiration = toDate(caregiver.caregiver_training_expires_at);
+    const fingerprintExpiration = toDate(caregiver.fingerprint_expires_at);
 
     return (
         <div className="space-y-10">
@@ -336,6 +334,12 @@ export default function CaregiverDetail() {
                                                 label="Training Expires"
                                                 value={trainingExpiration ? format(trainingExpiration, "MMM d, yyyy") : null}
                                                 status={getStatus(trainingExpiration, settings?.training_days)}
+                                            />
+                                            <InfoRow
+                                                icon={getStatus(fingerprintExpiration, settings?.fingerprint_days) !== 'ok' ? AlertTriangle : Calendar}
+                                                label="Fingerprint Expires"
+                                                value={fingerprintExpiration ? format(fingerprintExpiration, "MMM d, yyyy") : null}
+                                                status={getStatus(fingerprintExpiration, settings?.fingerprint_days)}
                                             />
                                         </div>
                                     </CardContent>

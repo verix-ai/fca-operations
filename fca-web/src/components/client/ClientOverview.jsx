@@ -34,7 +34,7 @@ export default function ClientOverview({ client, onUpdate, onRefresh, readOnly =
       console.warn('No active caregiver to update');
       return;
     }
-    await ClientCaregiver.update(activeCaregiver.id, updatedData);
+    await ClientCaregiver.updateCaregiver(activeCaregiver.id, updatedData);
     // Refresh client data to reflect the changes
     onRefresh?.();
   }, [activeCaregiver?.id, onRefresh]);

@@ -14,13 +14,41 @@ export const PHASES = [
     label: 'Caregiver Onboarding',
     items: [
       { field: 'viventium_onboarding_completed', label: 'Viventium Onboarding Complete?' },
-      { field: 'caregiver_fingerprinted', label: 'Caregiver has been Finger Printed?' },
       { field: 'background_results_uploaded', label: 'Background Results Received & Uploaded?' },
       { field: 'ssn_or_birth_certificate_submitted', label: 'Social Security and/or Birth Certificate Submitted?' },
       { field: 'pca_cert_including_2_of_3', label: 'PCA Cert incl 2/3' },
-      { field: 'drivers_license_submitted', label: 'Drivers License Submitted?', dateField: 'drivers_license_expires_at', dateLabel: 'Expiration Date' },
-      { field: 'tb_test_completed', label: 'Completed TB Test?', dateField: 'tb_test_issued_at', dateLabel: 'Issued Date' },
-      { field: 'cpr_first_aid_completed', label: 'Completed CPR/First Aid?', dateField: 'cpr_issued_at', dateLabel: 'Issued Date' },
+      {
+        field: 'drivers_license_submitted',
+        label: 'Drivers License Submitted?',
+        dates: [
+          { field: 'drivers_license_issued_at', label: 'Issued' },
+          { field: 'drivers_license_expires_at', label: 'Expires' },
+        ],
+      },
+      {
+        field: 'tb_test_completed',
+        label: 'Completed TB Test?',
+        dates: [
+          { field: 'tb_test_issued_at', label: 'Issued' },
+          { field: 'tb_test_expires_at', label: 'Expires' },
+        ],
+      },
+      {
+        field: 'cpr_first_aid_completed',
+        label: 'Completed CPR/First Aid?',
+        dates: [
+          { field: 'cpr_issued_at', label: 'Issued' },
+          { field: 'cpr_expires_at', label: 'Expires' },
+        ],
+      },
+      {
+        field: 'caregiver_fingerprinted',
+        label: 'Caregiver has been Finger Printed?',
+        dates: [
+          { field: 'caregiver_fingerprinted_at', label: 'Issued' },
+          { field: 'fingerprint_expires_at', label: 'Expires' },
+        ],
+      },
     ],
     gradient: 'from-blue-400 to-green-500',
     useCaregiver: true, // Flag to indicate this phase reads from caregiver record
@@ -45,7 +73,14 @@ export const PHASES = [
       { field: 'edwp_transmittal_completed', label: 'EDWP Transmittal?' },
       { field: 'manager_ccd', label: "Was Manager CC'd?" },
       { field: 'schedule_created_and_extended_until_aed', label: 'Was Schedule Created & Extended until AED?' },
-      { field: 'caregiver_training_completed', label: 'Caregiver Training / Start of Care Completed?', dateField: 'training_or_care_start_date', dateLabel: 'Date' },
+      {
+        field: 'caregiver_training_completed',
+        label: 'Caregiver Training / Start of Care Completed?',
+        dates: [
+          { field: 'training_or_care_start_date', label: 'Issued' },
+          { field: 'training_or_care_expires_at', label: 'Expires' },
+        ],
+      },
     ],
     gradient: 'from-green-500 to-green-600',
   },
@@ -164,8 +199,10 @@ export default function PhaseProgress({ client, onUpdate, onCaregiverUpdate, rea
                   {phase.items.map(item => {
                     const dataSource = getPhaseDataSource(client, phase);
                     const checked = Boolean(dataSource[item.field]);
+                    const dateFields = item.dates
+                      || (item.dateField ? [{ field: item.dateField, label: item.dateLabel || 'Date' }] : []);
                     return (
-                      <div key={item.field} className={`flex flex-col gap-2 ${item.dateField ? 'bg-black/10 p-2 rounded-xl border border-white/5' : ''}`}>
+                      <div key={item.field} className={`flex flex-col gap-2 ${dateFields.length ? 'bg-black/10 p-2 rounded-xl border border-white/5' : ''}`}>
                         <div className="flex items-center gap-3">
                           <Checkbox
                             checked={checked}
@@ -188,24 +225,27 @@ export default function PhaseProgress({ client, onUpdate, onCaregiverUpdate, rea
                           <span className={`text-sm ${checked ? 'text-heading-primary font-semibold' : 'text-heading-subdued'} ${!canEdit ? 'opacity-70' : ''}`}>{item.label}</span>
                         </div>
 
-                        {item.dateField && (
-                          <div className="ml-8">
-                            <Input
-                              type="date"
-                              value={dataSource[item.dateField] || ''}
-                              onChange={async (e) => {
-                                if (!canEdit) return;
-                                // Use caregiver update for onboarding phase, client update for others
-                                if (phase.useCaregiver && onCaregiverUpdate) {
-                                  await onCaregiverUpdate({ [item.dateField]: e.target.value });
-                                } else {
-                                  await onUpdate({ [item.dateField]: e.target.value });
-                                }
-                              }}
-                              disabled={!canEdit}
-                              className="h-8 text-xs rounded-lg"
-                            />
-                            <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{item.dateLabel || 'Date'}</p>
+                        {dateFields.length > 0 && (
+                          <div className="ml-8 flex flex-wrap gap-3">
+                            {dateFields.map((d) => (
+                              <div key={d.field}>
+                                <Input
+                                  type="date"
+                                  value={dataSource[d.field] || ''}
+                                  onChange={async (e) => {
+                                    if (!canEdit) return;
+                                    if (phase.useCaregiver && onCaregiverUpdate) {
+                                      await onCaregiverUpdate({ [d.field]: e.target.value });
+                                    } else {
+                                      await onUpdate({ [d.field]: e.target.value });
+                                    }
+                                  }}
+                                  disabled={!canEdit}
+                                  className="h-8 text-xs rounded-lg w-[170px]"
+                                />
+                                <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{d.label}</p>
+                              </div>
+                            ))}
                           </div>
                         )}
                       </div>

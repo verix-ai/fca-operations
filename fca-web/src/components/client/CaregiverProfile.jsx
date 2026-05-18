@@ -10,7 +10,7 @@ import { confirm } from "@/components/ui";
 import { useToast } from "@/components/ui/toast.jsx";
 import { Heart, Phone, Mail, Home, MapPin, User as UserIcon, Calendar, AlertTriangle, Pencil, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
-import { format, isBefore, addDays, addYears } from "date-fns";
+import { format, isBefore, addDays } from "date-fns";
 import { ClientCaregiver } from "@/entities/ClientCaregiver.supabase";
 import { CAREGIVER_RELATIONSHIPS } from "../../constants/caregiver.js";
 import { formatPhone } from "@/utils";
@@ -175,20 +175,26 @@ export default function CaregiverProfile({
   const completionRate = totalTasks ? Math.round((completedTasks / totalTasks) * 100) : 0;
   const canEdit = !readOnly;
 
-  // Edit Date Modal State
-  const [editingDate, setEditingDate] = useState(null); // { field, label, currentDate }
+  // Edit Date Modal State. `target` is 'client' (default) or 'caregiver' —
+  // determines which table the field lives on so we save to the right place.
+  const [editingDate, setEditingDate] = useState(null);
 
-  const handleEditDate = (field, label, currentValue) => {
+  const handleEditDate = (field, label, currentValue, target = 'client') => {
     if (!canEdit) return;
-    setEditingDate({ field, label, value: currentValue || '' });
+    setEditingDate({ field, label, value: currentValue || '', target });
   };
 
   const saveDateEdit = async () => {
     if (!editingDate) return;
     try {
-      console.log('Saving date:', editingDate);
       const val = editingDate.value === '' ? null : editingDate.value;
-      await onUpdate({ [editingDate.field]: val });
+      if (editingDate.target === 'caregiver') {
+        if (!activeCaregiver?.id) throw new Error('No active caregiver to update');
+        await ClientCaregiver.updateCaregiver(activeCaregiver.id, { [editingDate.field]: val });
+        await onRefresh?.();
+      } else {
+        await onUpdate({ [editingDate.field]: val });
+      }
       push({ title: "Date updated" });
       setEditingDate(null);
     } catch (e) {
@@ -400,11 +406,15 @@ export default function CaregiverProfile({
 
   const isReadyToFinalize = caregiverPhase.items.every((item) => Boolean(client[item.field]));
 
-  // Calculate expiration dates
-  const cprExpiration = client.cpr_issued_at ? addYears(new Date(client.cpr_issued_at), 2) : null;
-  const tbExpiration = client.tb_test_issued_at ? addYears(new Date(client.tb_test_issued_at), 1) : null;
-  const trainingExpiration = client.training_or_care_start_date ? addYears(new Date(client.training_or_care_start_date), 1) : null;
-  const licenseExpiration = client.drivers_license_expires_at ? new Date(client.drivers_license_expires_at) : null;
+  // Read manually-entered expiration dates directly. Caregiver-level items
+  // (training, fingerprint) prefer the active caregiver record; CPR/TB/License
+  // are mirrored on the client record for the alert system and read from there.
+  const toDate = (raw) => (raw ? new Date(raw) : null);
+  const cprExpiration = toDate(client.cpr_expires_at);
+  const tbExpiration = toDate(client.tb_test_expires_at);
+  const licenseExpiration = toDate(client.drivers_license_expires_at);
+  const trainingExpiration = toDate(activeCaregiver?.caregiver_training_expires_at);
+  const fingerprintExpiration = toDate(activeCaregiver?.fingerprint_expires_at);
 
   // Determine status: 'ok', 'warning', 'error'
   const getStatus = (expirationDate, daysThreshold = 30) => {
@@ -481,14 +491,14 @@ export default function CaregiverProfile({
                   label="CPR | First Aid Expires"
                   value={cprExpiration ? format(cprExpiration, "MMM d, yyyy") : null}
                   status={getStatus(cprExpiration, settings?.cpr_days)}
-                  onEdit={() => handleEditDate('cpr_issued_at', 'CPR Issued Date', client.cpr_issued_at)}
+                  onEdit={() => handleEditDate('cpr_expires_at', 'CPR Expiration Date', client.cpr_expires_at)}
                 />
                 <InfoRow
                   icon={getStatus(tbExpiration, settings?.tb_days) !== 'ok' ? AlertTriangle : Calendar}
                   label="TB Test Expires"
                   value={tbExpiration ? format(tbExpiration, "MMM d, yyyy") : null}
                   status={getStatus(tbExpiration, settings?.tb_days)}
-                  onEdit={() => handleEditDate('tb_test_issued_at', 'TB Test Issued Date', client.tb_test_issued_at)}
+                  onEdit={() => handleEditDate('tb_test_expires_at', 'TB Test Expiration Date', client.tb_test_expires_at)}
                 />
                 <InfoRow
                   icon={getStatus(licenseExpiration, settings?.drivers_license_days) !== 'ok' ? AlertTriangle : Calendar}
@@ -502,7 +512,14 @@ export default function CaregiverProfile({
                   label="Training Expires"
                   value={trainingExpiration ? format(trainingExpiration, "MMM d, yyyy") : null}
                   status={getStatus(trainingExpiration, settings?.training_days)}
-                  onEdit={() => handleEditDate('training_or_care_start_date', 'Training / Start of Care Date', client.training_or_care_start_date)}
+                  onEdit={() => handleEditDate('caregiver_training_expires_at', 'Training Expiration Date', activeCaregiver?.caregiver_training_expires_at, 'caregiver')}
+                />
+                <InfoRow
+                  icon={getStatus(fingerprintExpiration, settings?.fingerprint_days) !== 'ok' ? AlertTriangle : Calendar}
+                  label="Fingerprint Expires"
+                  value={fingerprintExpiration ? format(fingerprintExpiration, "MMM d, yyyy") : null}
+                  status={getStatus(fingerprintExpiration, settings?.fingerprint_days)}
+                  onEdit={() => handleEditDate('fingerprint_expires_at', 'Fingerprint Expiration Date', activeCaregiver?.fingerprint_expires_at, 'caregiver')}
                 />
               </div>
             </div>
@@ -535,9 +552,6 @@ export default function CaregiverProfile({
                   onChange={(e) => setEditingDate(prev => ({ ...prev, value: e.target.value }))}
                   className="mt-2"
                 />
-                <p className="text-[10px] text-heading-subdued mt-2">
-                  Updating this date will automatically recalculate the expiration.
-                </p>
               </div>
               <div className="flex justify-end gap-3">
                 <Button
@@ -881,16 +895,17 @@ export default function CaregiverProfile({
           <div className="grid gap-4">
             {caregiverPhase.items.map((item) => {
               const checked = Boolean(activeCaregiver?.[item.field]);
+              const dateFields = item.dates
+                || (item.dateField ? [{ field: item.dateField, label: item.dateLabel || 'Date' }] : []);
               return (
-                <div key={item.field} className={`${item.dateField ? 'flex flex-col gap-2 bg-black/10 p-4' : 'flex items-center gap-3 bg-black/10 px-4 py-3'} rounded-2xl border border-[rgba(147,165,197,0.25)]`}>
+                <div key={item.field} className={`${dateFields.length ? 'flex flex-col gap-2 bg-black/10 p-4' : 'flex items-center gap-3 bg-black/10 px-4 py-3'} rounded-2xl border border-[rgba(147,165,197,0.25)]`}>
                   <div className="flex items-center gap-3">
                     <Checkbox
                       checked={checked}
                       disabled={!canEdit || !activeCaregiver?.id}
                       onCheckedChange={async (val) => {
                         if (!canEdit || !activeCaregiver?.id) return;
-                        // Update the caregiver record directly
-                        await ClientCaregiver.update(activeCaregiver.id, { [item.field]: Boolean(val) });
+                        await ClientCaregiver.updateCaregiver(activeCaregiver.id, { [item.field]: Boolean(val) });
                         onRefresh?.();
                         const allComplete = caregiverPhase.items.every((it) =>
                           it.field === item.field ? Boolean(val) : activeCaregiver[it.field]
@@ -906,20 +921,23 @@ export default function CaregiverProfile({
                     </span>
                   </div>
 
-                  {item.dateField && (
-                    <div className="ml-8 mt-1">
-                      <Input
-                        type="date"
-                        value={activeCaregiver?.[item.dateField] || ''}
-                        onChange={async (e) => {
-                          if (!canEdit || !activeCaregiver?.id) return;
-                          await ClientCaregiver.update(activeCaregiver.id, { [item.dateField]: e.target.value });
-                          onRefresh?.();
-                        }}
-                        disabled={!canEdit}
-                        className="h-9 text-xs rounded-lg w-full max-w-[200px]"
-                      />
-                      <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{item.dateLabel || 'Date'}</p>
+                  {dateFields.length > 0 && (
+                    <div className="ml-8 mt-1 flex flex-wrap gap-3">
+                      {dateFields.map((d) => (
+                        <div key={d.field}>
+                          <Input
+                            type="date"
+                            value={activeCaregiver?.[d.field] || ''}
+                            onChange={async (e) => {
+                              if (!activeCaregiver?.id) return;
+                              await ClientCaregiver.updateCaregiver(activeCaregiver.id, { [d.field]: e.target.value });
+                              onRefresh?.();
+                            }}
+                            className="h-9 text-xs rounded-lg w-full max-w-[180px]"
+                          />
+                          <p className="text-[10px] text-heading-subdued mt-1 uppercase tracking-wider">{d.label}</p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
