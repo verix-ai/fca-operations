@@ -516,9 +516,25 @@ function EmployeeManagementSection() {
                     <TableCell className="p-3 sm:p-4 text-heading-subdued hidden md:table-cell">{u.email}</TableCell>
                     <TableCell className="p-3 sm:p-4">
                       <div className="flex flex-col gap-1">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium w-fit ${getRoleBadgeColor(u.role)}`}>
-                          {u.role || 'No role'}
-                        </span>
+                        {u.id === currentUser?.id ? (
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium w-fit ${getRoleBadgeColor(u.role)}`}>
+                            {u.role || 'No role'}
+                          </span>
+                        ) : (
+                          <Select
+                            value={u.role || ''}
+                            onValueChange={(newRole) => handleChangeRole(u.id, newRole)}
+                            disabled={loading}
+                          >
+                            <SelectTrigger className="h-8 w-[130px] rounded-full text-xs">
+                              <SelectValue placeholder="No role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="marketer">Marketer</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
                         {u.is_active ? (
                           <span className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 text-xs lg:hidden">
                             <UserCheck className="w-3 h-3" />
