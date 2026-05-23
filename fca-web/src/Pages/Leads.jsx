@@ -3,6 +3,8 @@ import { format } from 'date-fns'
 import {
   Archive,
   ArchiveRestore,
+  Facebook,
+  Globe,
   Loader2,
   Mail,
   MapPin,
@@ -44,6 +46,12 @@ const STATUS_STYLES = {
   signed_up:       { row: 'bg-emerald-500/[0.08]',   badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' },
   doesnt_qualify:  { row: 'bg-rose-500/[0.08]',      badge: 'bg-rose-500/15 text-rose-300 border-rose-500/40' },
 }
+
+const SOURCE_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'website', label: 'Website' },
+  { value: 'facebook', label: 'Facebook' },
+]
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
@@ -94,6 +102,7 @@ function formatTimeIn(iso) {
 export default function Leads() {
   const [view, setView] = useState('active')                 // 'active' | 'archived'
   const [stateFilter, setStateFilter] = useState('GA')       // 'GA' | 'OUT_OF_STATE' | 'all'
+  const [sourceFilter, setSourceFilter] = useState('all')    // 'all' | 'website' | 'facebook'
   const [statusFilter, setStatusFilter] = useState([])       // string[]
   const [countyFilter, setCountyFilter] = useState('')
   const [datePreset, setDatePreset] = useState('all')
@@ -133,7 +142,7 @@ export default function Leads() {
   // Reset to page 1 whenever filters change
   useEffect(() => {
     setPage(1)
-  }, [view, stateFilter, statusFilter, countyFilter, datePreset, customFrom, customTo, search, pageSize])
+  }, [view, stateFilter, sourceFilter, statusFilter, countyFilter, datePreset, customFrom, customTo, search, pageSize])
 
   useEffect(() => {
     let cancelled = false
@@ -143,6 +152,7 @@ export default function Leads() {
         const result = await Lead.list({
           view,
           state: stateFilter,
+          source: sourceFilter,
           statuses: statusFilter.length ? statusFilter : undefined,
           county: countyFilter || undefined,
           search: search.trim() || undefined,
@@ -168,7 +178,7 @@ export default function Leads() {
     }
     load()
     return () => { cancelled = true }
-  }, [view, stateFilter, statusFilter, countyFilter, dateRange.from, dateRange.to, search, page, pageSize])
+  }, [view, stateFilter, sourceFilter, statusFilter, countyFilter, dateRange.from, dateRange.to, search, page, pageSize])
 
   useEffect(() => {
     Lead.distinctCounties().then(setCounties).catch(() => setCounties([]))
@@ -182,6 +192,7 @@ export default function Leads() {
     function matchesCurrentFilter(lead) {
       if (lead.archived_at) return false
       if (stateFilter !== 'all' && lead.state !== stateFilter) return false
+      if (sourceFilter !== 'all' && lead.source !== sourceFilter) return false
       if (statusFilter.length > 0 && !statusFilter.includes(lead.status)) return false
       if (countyFilter && lead.county !== countyFilter) return false
       if (dateRange.from && new Date(lead.created_at) < new Date(dateRange.from)) return false
@@ -212,7 +223,7 @@ export default function Leads() {
     })
 
     return off
-  }, [view, page, pageSize, stateFilter, statusFilter, countyFilter, dateRange.from, dateRange.to, search, onNewLead, markSeen])
+  }, [view, page, pageSize, stateFilter, sourceFilter, statusFilter, countyFilter, dateRange.from, dateRange.to, search, onNewLead, markSeen])
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize))
 
@@ -224,6 +235,7 @@ export default function Leads() {
 
   function clearFilters() {
     setStateFilter(view === 'active' ? 'GA' : 'all')
+    setSourceFilter('all')
     setStatusFilter([])
     setCountyFilter('')
     setDatePreset('all')
@@ -304,6 +316,25 @@ export default function Leads() {
                   onClick={() => setStateFilter(opt.value)}
                   className={`px-3 py-1.5 rounded-full text-xs border transition ${
                     stateFilter === opt.value
+                      ? 'bg-white/15 text-heading-primary border-white/40'
+                      : 'bg-white/[0.03] text-heading-subdued border-white/10 hover:text-heading-primary hover:border-white/30'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Source pill */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs uppercase tracking-[0.3em] text-heading-subdued mr-2">Source</span>
+              {SOURCE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setSourceFilter(opt.value)}
+                  className={`px-3 py-1.5 rounded-full text-xs border transition ${
+                    sourceFilter === opt.value
                       ? 'bg-white/15 text-heading-primary border-white/40'
                       : 'bg-white/[0.03] text-heading-subdued border-white/10 hover:text-heading-primary hover:border-white/30'
                   }`}
@@ -424,6 +455,7 @@ export default function Leads() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Time In</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Phone</TableHead>
                   <TableHead>Email</TableHead>
@@ -438,7 +470,7 @@ export default function Leads() {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={10}>
+                    <TableCell colSpan={11}>
                       <div className="py-10 flex items-center justify-center text-heading-subdued">
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Loading leads…
                       </div>
@@ -446,7 +478,7 @@ export default function Leads() {
                   </TableRow>
                 ) : rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10}>
+                    <TableCell colSpan={11}>
                       <div className="py-10 text-center text-heading-subdued">
                         No leads match your filters.
                       </div>
@@ -458,6 +490,19 @@ export default function Leads() {
                     return (
                       <TableRow key={lead.id} className={styles.row}>
                         <TableCell className="whitespace-nowrap text-sm">{formatTimeIn(lead.created_at)}</TableCell>
+                        <TableCell>
+                          {lead.source === 'facebook' ? (
+                            <Badge className="bg-[#1877F2]/15 text-[#5b9bff] border-[#1877F2]/40 gap-1">
+                              <Facebook className="h-3 w-3" />
+                              FB
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-white/5 text-neutral-200 border-white/10 gap-1">
+                              <Globe className="h-3 w-3" />
+                              Web
+                            </Badge>
+                          )}
+                        </TableCell>
                         <TableCell className="font-medium">{lead.full_name}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           {lead.phone ? (

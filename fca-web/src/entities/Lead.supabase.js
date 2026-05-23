@@ -27,6 +27,7 @@ export const Lead = {
    * @param {Object} opts
    * @param {'active'|'archived'} [opts.view='active']  - active = not archived
    * @param {'GA'|'OUT_OF_STATE'|'all'} [opts.state='GA']
+   * @param {'website'|'facebook'|'manual'|'all'} [opts.source='all']
    * @param {string[]} [opts.statuses]                   - filter to these statuses (omit for all)
    * @param {string|null} [opts.county]                  - exact county match
    * @param {string} [opts.search]                       - matches name/email/phone (ilike)
@@ -40,6 +41,7 @@ export const Lead = {
     const {
       view = 'active',
       state = 'GA',
+      source = 'all',
       statuses,
       county,
       search,
@@ -65,6 +67,10 @@ export const Lead = {
 
     if (state && state !== 'all') {
       query = query.eq('state', state)
+    }
+
+    if (source && source !== 'all') {
+      query = query.eq('source', source)
     }
 
     if (Array.isArray(statuses) && statuses.length > 0) {

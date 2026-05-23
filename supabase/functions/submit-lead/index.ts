@@ -13,6 +13,12 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts"
 // @ts-ignore Deno-specific import
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4"
+import {
+  isValidEmail,
+  normalizeMedicaid,
+  normalizePhone,
+  normalizeZip,
+} from "../_shared/lead-normalize.ts"
 
 // @ts-ignore Deno global
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!
@@ -35,22 +41,6 @@ function jsonResponse(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   })
-}
-
-function isValidEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-}
-
-function normalizePhone(raw: string) {
-  const digits = (raw || "").replace(/\D/g, "")
-  if (digits.length < 10) return null
-  return digits.slice(-10)
-}
-
-function normalizeZip(raw: string) {
-  const digits = (raw || "").replace(/\D/g, "")
-  if (digits.length < 5) return null
-  return digits.slice(0, 5)
 }
 
 serve(async (req) => {
@@ -77,8 +67,7 @@ serve(async (req) => {
   const email = String(payload.email ?? "").trim().toLowerCase()
   const phoneRaw = String(payload.phone ?? "").trim()
   const zipRaw = String(payload.zip ?? "").trim()
-  const medicaidRaw = String(payload.medicaid_number ?? "").trim()
-  const medicaidNumber = medicaidRaw.length > 0 ? medicaidRaw : null
+  const medicaidNumber = normalizeMedicaid(payload.medicaid_number)
 
   if (!fullName) return jsonResponse({ error: "full_name is required" }, 400)
   if (!email || !isValidEmail(email)) return jsonResponse({ error: "valid email is required" }, 400)
@@ -113,6 +102,7 @@ serve(async (req) => {
     state,
     medicaid_number: medicaidNumber,
     status: "new",
+    source: "website",
   })
 
   if (insertError) {
