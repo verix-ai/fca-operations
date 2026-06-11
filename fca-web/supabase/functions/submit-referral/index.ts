@@ -98,7 +98,9 @@ function validate(p: IncomingPayload): string | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(p.referral_dob)) return 'Invalid referral_dob';
   if (!/^\(\d{3}\) \d{3}-\d{4}$/.test(p.phone)) return 'Invalid phone format';
   if (!/^\(\d{3}\) \d{3}-\d{4}$/.test(p.caregiver_phone)) return 'Invalid caregiver_phone format';
-  if (!/^\d{3}-\d{2}-\d{4}$/.test(p.medicaid_or_ssn)) return 'Invalid medicaid_or_ssn format';
+  // Accept either a 9-digit SSN (XXX-XX-XXXX) or a 12-digit GA Medicaid number
+  // (XXX-XXX-XXX-XXX). Must stay in sync with the form's input mask/pattern.
+  if (!/^(\d{3}-\d{2}-\d{4}|\d{3}-\d{3}-\d{3}-\d{3})$/.test(p.medicaid_or_ssn)) return 'Invalid medicaid_or_ssn format';
   if (!Array.isArray(p.services_needed)) return 'services_needed must be an array';
   if (p.receives_benefits === 'Yes' && !p.benefits_pay_date) return 'benefits_pay_date required when receives_benefits is Yes';
   return null;
@@ -218,6 +220,13 @@ Deno.serve(async (req: Request) => {
     submission_source: 'public_website',
   };
 
+  // Every employee has a referral link and must get credit on the prospect board —
+  // not just marketers. The board displays marketer_name/marketer_email, so stamp the
+  // referrer's name/email for ALL roles. marketer_id stays gated on an actual marketers
+  // row (reports key off it), but the displayed credit no longer depends on having one.
+  notesPayload.marketer_name = referrer.name;
+  notesPayload.marketer_email = referrer.email ?? null;
+
   if (referrer.role === 'marketer') {
     // Look up the marketers row so existing reports keyed off marketer_id keep working.
     const { data: m } = await supabase
@@ -227,8 +236,8 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
     if (m) {
       notesPayload.marketer_id = m.id;
-      notesPayload.marketer_name = m.name;
-      notesPayload.marketer_email = m.email ?? null;
+      notesPayload.marketer_name = m.name ?? notesPayload.marketer_name;
+      notesPayload.marketer_email = m.email ?? notesPayload.marketer_email;
     }
   }
 

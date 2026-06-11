@@ -31,19 +31,32 @@ async function getUserOrganization() {
  */
 function parseReferralNotes(referral) {
   if (!referral) return referral
-  
+
+  let result = referral
   // If notes is a JSON string, parse it and merge into the object
   if (referral.notes && typeof referral.notes === 'string') {
     try {
-      const parsed = JSON.parse(referral.notes)
-      return { ...referral, ...parsed }
+      result = { ...referral, ...JSON.parse(referral.notes) }
     } catch {
-      // If parsing fails, just return as-is
-      return referral
+      // If parsing fails, leave result as the raw row
     }
   }
-  
-  return referral
+
+  // Credit attribution: every employee has a referral link, not just marketers, and
+  // referrals must show who referred them. `marketer_name`/`marketer_email` are only
+  // stamped for marketer-role referrers (and older rows predate that stamping), but
+  // every referral carries the generic `referrer_name`/`referred_by`. Fall back to
+  // those so the prospect board and profile always credit the referrer.
+  const creditedName = result.marketer_name || result.referrer_name || result.referred_by
+  const creditedEmail = result.marketer_email || result.referrer_email
+  if (creditedName && creditedName !== result.marketer_name) {
+    result = { ...result, marketer_name: creditedName }
+  }
+  if (creditedEmail && creditedEmail !== result.marketer_email) {
+    result = { ...result, marketer_email: creditedEmail }
+  }
+
+  return result
 }
 
 export const Referral = {
