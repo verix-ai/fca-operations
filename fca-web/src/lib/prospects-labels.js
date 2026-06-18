@@ -29,6 +29,25 @@ export const ARCHIVE_REASON_OPTIONS = [
   { value: 'other', label: 'Other' },
 ]
 
+/**
+ * Start of the current week (most recent Monday, local time, at 00:00).
+ * "This week" for the call-center board runs Monday → Sunday.
+ */
+export function startOfWeekMonday(d = new Date()) {
+  const date = new Date(d)
+  date.setHours(0, 0, 0, 0)
+  const day = date.getDay()              // 0=Sun … 6=Sat
+  const diff = day === 0 ? -6 : 1 - day  // shift back to Monday
+  date.setDate(date.getDate() + diff)
+  return date
+}
+
+/** True when the client was called on or after this week's Monday. */
+export function isCalledThisWeek(lastCalledAt) {
+  if (!lastCalledAt) return false
+  return new Date(lastCalledAt) >= startOfWeekMonday()
+}
+
 function lookup(options, value) {
   if (value === null || value === undefined || value === '') return ''
   const hit = options.find(o => o.value === value)

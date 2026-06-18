@@ -15,11 +15,18 @@ import ProspectsTable from '@/components/prospects/ProspectsTable'
 import ProspectsCards from '@/components/prospects/ProspectsCards'
 import ActivityModal from '@/components/prospects/ActivityModal'
 import ArchiveModal from '@/components/prospects/ArchiveModal'
+import { isCalledThisWeek } from '@/lib/prospects-labels'
 
 const EMPTY_FILTERS = {
   search: '', marketer: '', county: '',
-  cmCompany: '', homeCareCompany: '',
+  cmCompany: '', homeCareCompany: '', code: '',
   dateFrom: '', dateTo: '',
+  unsentOnly: false,
+  waitingStateApproval: false,
+  waitingCmCall: false,
+  needResend: false,
+  hadAssessment: false,
+  notCalledThisWeek: false,
 }
 
 export default function Prospects() {
@@ -42,6 +49,7 @@ export default function Prospects() {
         view,
         cmCompany: filters.cmCompany || undefined,
         homeCareCompany: filters.homeCareCompany || undefined,
+        code: filters.code || undefined,
         dateFrom: filters.dateFrom ? new Date(filters.dateFrom).toISOString() : undefined,
         dateTo: filters.dateTo || undefined,
       })
@@ -50,7 +58,7 @@ export default function Prospects() {
       toast({ title: 'Could not load prospects', description: err.message, variant: 'destructive' })
       setReferrals([])
     }
-  }, [view, filters.cmCompany, filters.homeCareCompany, filters.dateFrom, filters.dateTo, toast])
+  }, [view, filters.cmCompany, filters.homeCareCompany, filters.code, filters.dateFrom, filters.dateTo, toast])
 
   useEffect(() => {
     (async () => {
@@ -98,6 +106,24 @@ export default function Prospects() {
     if (filters.county) {
       list = list.filter(r => String(r.county || '').toLowerCase() === filters.county.toLowerCase())
     }
+    if (filters.unsentOnly) {
+      list = list.filter(r => !r.referral_sent)
+    }
+    if (filters.waitingStateApproval) {
+      list = list.filter(r => r.waiting_state_approval)
+    }
+    if (filters.waitingCmCall) {
+      list = list.filter(r => r.cm_call_status === 'awaiting')
+    }
+    if (filters.needResend) {
+      list = list.filter(r => r.cm_call_status === 'need_resend')
+    }
+    if (filters.hadAssessment) {
+      list = list.filter(r => r.assessment_complete)
+    }
+    if (filters.notCalledThisWeek) {
+      list = list.filter(r => !isCalledThisWeek(r.last_called_at))
+    }
     const q = (filters.search || '').trim().toLowerCase()
     if (q) {
       list = list.filter(r =>
@@ -107,10 +133,13 @@ export default function Prospects() {
       )
     }
     return list
-  }, [referrals, user, filters.search, filters.county, filters.marketer])
+  }, [referrals, user, filters.search, filters.county, filters.marketer, filters.unsentOnly,
+      filters.waitingStateApproval, filters.waitingCmCall, filters.needResend, filters.hadAssessment,
+      filters.notCalledThisWeek])
 
   const activeFilterCount = useMemo(() => {
-    const keys = ['marketer','county','cmCompany','homeCareCompany','dateFrom','dateTo']
+    const keys = ['marketer','county','cmCompany','homeCareCompany','code','dateFrom','dateTo',
+      'unsentOnly','waitingStateApproval','waitingCmCall','needResend','hadAssessment','notCalledThisWeek']
     return keys.filter(k => !!filters[k]).length
   }, [filters])
 
@@ -123,6 +152,16 @@ export default function Prospects() {
     } catch (err) {
       setReferrals(rs => rs.map(r => r.id === id ? prev : r))
       toast({ title: 'Could not save change', description: err.message, variant: 'destructive' })
+    }
+  }
+
+  async function handleLogCall(row) {
+    try {
+      const updated = await Referral.logCall(row.id)
+      setReferrals(rs => rs.map(r => r.id === row.id ? { ...r, ...updated } : r))
+      toast({ title: 'Call logged', description: row.referral_name })
+    } catch (err) {
+      toast({ title: 'Could not log call', description: err.message, variant: 'destructive' })
     }
   }
 
@@ -198,6 +237,7 @@ export default function Prospects() {
             onArchive={(row) => setArchiveRow(row)}
             onUnarchive={(row) => setUnarchiveRow(row)}
             onStartIntake={(id) => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
+            onLogCall={handleLogCall}
           />
           <ProspectsCards
             rows={rows}
@@ -210,6 +250,7 @@ export default function Prospects() {
             onArchive={(row) => setArchiveRow(row)}
             onUnarchive={(row) => setUnarchiveRow(row)}
             onStartIntake={(id) => navigate(`${createPageUrl('ClientIntake')}?ref=${id}`)}
+            onLogCall={handleLogCall}
           />
         </CardContent>
       </Card>

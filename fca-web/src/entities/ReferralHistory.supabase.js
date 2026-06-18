@@ -78,6 +78,25 @@ export const ReferralHistory = {
     return data
   },
 
+  /** Log that the call center phoned the client. */
+  async addCallEvent(referralId) {
+    const { userId, organizationId, name } = await getUserContext()
+    const { data, error } = await supabase
+      .from('referral_status_history')
+      .insert({
+        referral_id: referralId,
+        organization_id: organizationId,
+        event_type: 'call',
+        note: 'Logged a phone call',
+        changed_by: userId,
+        changed_by_name: name,
+      })
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
   /** Write an archive event. Reason/note are inlined into the note text for display. */
   async addArchiveEvent(referralId, { reason, note }) {
     const { userId, organizationId, name } = await getUserContext()

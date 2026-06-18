@@ -67,13 +67,14 @@ export const Referral = {
    * @param {'active'|'archived'|'all'} [opts.view] - omit (or 'all') for no archive filter
    * @param {string} [opts.cmCompany]
    * @param {string} [opts.homeCareCompany]
+   * @param {string} [opts.code]
    * @param {string} [opts.county]     - JSON-blob field; filtered client-side after fetch
    * @param {string} [opts.search]     - search term; filtered client-side
    * @param {string} [opts.dateFrom]   - ISO date, inclusive
    * @param {string} [opts.dateTo]     - ISO date, inclusive
    */
   async list(opts = {}) {
-    const { view, cmCompany, homeCareCompany, dateFrom, dateTo } = opts
+    const { view, cmCompany, homeCareCompany, code, dateFrom, dateTo } = opts
 
     let query = supabase
       .from('referrals')
@@ -86,6 +87,7 @@ export const Referral = {
 
     if (cmCompany) query = query.eq('cm_company', cmCompany)
     if (homeCareCompany) query = query.eq('home_care_company', homeCareCompany)
+    if (code) query = query.eq('code', code)
     if (dateFrom) query = query.gte('created_at', dateFrom)
     if (dateTo) {
       // If the caller passed a date-only string (no time component), normalize
@@ -185,6 +187,7 @@ export const Referral = {
       'cm_company','marketer_id','marketer_name','marketer_email',
       'code','home_care_company','cm_call_status',
       'assessment_complete','waiting_state_approval','referral_sent',
+      'last_called_at',
       'archived_at','archived_by','archive_reason','archive_note',
     ])
 
@@ -234,6 +237,25 @@ export const Referral = {
     }
 
     return parseReferralNotes(result)
+  },
+
+  /**
+   * Log that the call center phoned this client. Stamps last_called_at = now and
+   * writes a 'call' event to the activity timeline. The Prospects board derives
+   * "called this week" from last_called_at.
+   */
+  async logCall(id) {
+    const nowIso = new Date().toISOString()
+    const { data, error } = await supabase
+      .from('referrals')
+      .update({ last_called_at: nowIso })
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+
+    try { await ReferralHistory.addCallEvent(id) } catch (e) { console.warn('call history failed', e) }
+    return parseReferralNotes(data)
   },
 
   /** Soft-archive a referral with a reason + optional note. Writes a history event. */

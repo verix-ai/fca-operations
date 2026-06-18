@@ -1,12 +1,14 @@
 import React from 'react'
+import { Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import CmCompanyCell from './CmCompanyCell'
+import CalledBadge from './CalledBadge'
 import { CODE_OPTIONS, HOME_CARE_COMPANY_OPTIONS } from '@/lib/prospects-labels'
 import { formatDateInTimezone } from '@/utils'
 
 export default function ProspectsCards({
   rows, companies, view, userRole,
-  onInlineEdit, onOpenProfile, onOpenActivity, onArchive, onUnarchive, onStartIntake,
+  onInlineEdit, onOpenProfile, onOpenActivity, onArchive, onUnarchive, onStartIntake, onLogCall,
 }) {
   const archived = view === 'archived'
 
@@ -18,7 +20,10 @@ export default function ProspectsCards({
     <div className="lg:hidden divide-y divide-white/5">
       {rows.map(r => (
         <div key={r.id} className={`p-4 space-y-3 ${r.referral_sent ? 'bg-emerald-500/[0.08]' : ''}`}>
-          <div className="text-heading-primary font-medium truncate">{r.referral_name}</div>
+          <div className="flex items-start justify-between gap-2">
+            <div className="text-heading-primary font-medium truncate">{r.referral_name}</div>
+            <CalledBadge lastCalledAt={r.last_called_at} />
+          </div>
           <div className="text-sm text-heading-subdued">Caregiver: {r.caregiver_name}</div>
 
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -67,6 +72,12 @@ export default function ProspectsCards({
           </div>
 
           <div className="flex flex-wrap gap-2 pt-2">
+            {!archived && (
+              <Button variant="outline" borderRadius="1rem" className="flex-1 text-xs"
+                onClick={() => onLogCall(r)}>
+                <Phone className="h-3 w-3 mr-1" /> Log call
+              </Button>
+            )}
             {!archived && userRole !== 'marketer' && (
               <Button variant="outline" borderRadius="1rem" className="flex-1 text-xs"
                 onClick={() => onStartIntake(r.id)}>Start Intake</Button>

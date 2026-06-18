@@ -1,7 +1,9 @@
 import React from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { Phone } from 'lucide-react'
 import CmCompanyCell from './CmCompanyCell'
+import CalledBadge from './CalledBadge'
 import { CODE_OPTIONS, HOME_CARE_COMPANY_OPTIONS } from '@/lib/prospects-labels'
 import { formatDateInTimezone } from '@/utils'
 
@@ -23,7 +25,7 @@ import { formatDateInTimezone } from '@/utils'
  */
 export default function ProspectsTable({
   rows, companies, view, userRole,
-  onInlineEdit, onOpenProfile, onOpenActivity, onArchive, onUnarchive, onStartIntake,
+  onInlineEdit, onOpenProfile, onOpenActivity, onArchive, onUnarchive, onStartIntake, onLogCall,
 }) {
   const archived = view === 'archived'
 
@@ -41,12 +43,13 @@ export default function ProspectsTable({
             <TableHead className="text-heading-subdued p-4">Home Care Company</TableHead>
             <TableHead className="text-heading-subdued p-4">Case Management Company</TableHead>
             <TableHead className="text-heading-subdued p-4">Submitted</TableHead>
+            <TableHead className="text-heading-subdued p-4">Last Call</TableHead>
             <TableHead className="text-heading-subdued p-4">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {rows.length === 0 ? (
-            <TableRow><TableCell colSpan={10} className="text-center text-heading-subdued py-10">No prospects found</TableCell></TableRow>
+            <TableRow><TableCell colSpan={11} className="text-center text-heading-subdued py-10">No prospects found</TableCell></TableRow>
           ) : rows.map(r => (
             <TableRow key={r.id} className={`border-b border-white/5 align-top ${r.referral_sent ? 'bg-emerald-500/[0.08]' : ''}`}>
               <TableCell className="p-4 text-heading-primary">{r.referral_name}</TableCell>
@@ -90,6 +93,18 @@ export default function ProspectsTable({
               </TableCell>
 
               <TableCell className="p-4 text-heading-primary/60"><span>{formatDateInTimezone(r.created_at)}</span></TableCell>
+
+              <TableCell className="p-4">
+                <div className="flex flex-col items-start gap-2">
+                  <CalledBadge lastCalledAt={r.last_called_at} />
+                  {!archived && (
+                    <Button variant="outline" borderRadius="1rem" className="px-3 py-1 text-xs whitespace-nowrap"
+                      onClick={() => onLogCall(r)}>
+                      <Phone className="h-3 w-3 mr-1" /> Log call
+                    </Button>
+                  )}
+                </div>
+              </TableCell>
 
               <TableCell className="p-4">
                 <div className="flex items-center gap-2 flex-wrap">

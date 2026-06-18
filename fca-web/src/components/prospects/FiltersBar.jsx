@@ -1,7 +1,7 @@
 import React from 'react'
 import { Search, Filter as FilterIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
-import { HOME_CARE_COMPANY_OPTIONS } from '@/lib/prospects-labels'
+import { HOME_CARE_COMPANY_OPTIONS, CODE_OPTIONS } from '@/lib/prospects-labels'
 
 /**
  * The header strip above the Prospects table:
@@ -17,6 +17,15 @@ import { HOME_CARE_COMPANY_OPTIONS } from '@/lib/prospects-labels'
  *   onOpenMobileFilters: () => void
  *   activeFilterCount: number   – shown on the mobile button
  */
+function Toggle({ checked, onChange, label }) {
+  return (
+    <label className="flex items-center gap-2 rounded-xl border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm text-heading-primary cursor-pointer select-none">
+      <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-emerald-500" />
+      {label}
+    </label>
+  )
+}
+
 export default function FiltersBar({
   filters, onChange,
   marketers, counties, cmCompanies,
@@ -69,10 +78,21 @@ export default function FiltersBar({
           <option value="">All home care companies</option>
           {HOME_CARE_COMPANY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
+        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
+          value={filters.code || ''} onChange={e => set('code', e.target.value)}>
+          <option value="">All codes</option>
+          {CODE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         <div className="flex gap-2">
           <Input type="date" value={filters.dateFrom || ''} onChange={e => set('dateFrom', e.target.value)} className="rounded-xl" />
           <Input type="date" value={filters.dateTo || ''} onChange={e => set('dateTo', e.target.value)} className="rounded-xl" />
         </div>
+        <Toggle checked={!!filters.unsentOnly} onChange={e => set('unsentOnly', e.target.checked)} label="Unsent only" />
+        <Toggle checked={!!filters.waitingStateApproval} onChange={e => set('waitingStateApproval', e.target.checked)} label="Waiting on state approval" />
+        <Toggle checked={!!filters.waitingCmCall} onChange={e => set('waitingCmCall', e.target.checked)} label="Waiting on CM call" />
+        <Toggle checked={!!filters.needResend} onChange={e => set('needResend', e.target.checked)} label="No call / resend" />
+        <Toggle checked={!!filters.hadAssessment} onChange={e => set('hadAssessment', e.target.checked)} label="Had assessment" />
+        <Toggle checked={!!filters.notCalledThisWeek} onChange={e => set('notCalledThisWeek', e.target.checked)} label="Not called this week" />
       </div>
     </div>
   )

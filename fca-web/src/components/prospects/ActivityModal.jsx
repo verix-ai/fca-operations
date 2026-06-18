@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react'
-import { X, Loader2 } from 'lucide-react'
+import { X, Loader2, Phone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useToast } from '@/components/ui/toast'
 import Referral from '@/entities/Referral.supabase'
 import ReferralHistory from '@/entities/ReferralHistory.supabase'
+import CalledBadge from './CalledBadge'
 import {
   CM_CALL_STATUS_OPTIONS,
   fieldChangeLabel,
@@ -29,6 +30,7 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
   const [loadingHistory, setLoadingHistory] = useState(true)
   const [draft, setDraft] = useState('')
   const [adding, setAdding] = useState(false)
+  const [logging, setLogging] = useState(false)
   const [local, setLocal] = useState(prospect)
 
   const refreshHistory = useCallback(async () => {
@@ -65,6 +67,22 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
     }
   }
 
+  async function logCall() {
+    if (readOnly) return
+    try {
+      setLogging(true)
+      const updated = await Referral.logCall(prospect.id)
+      setLocal(updated)
+      onChange?.(updated)
+      await refreshHistory()
+      toast({ title: 'Call logged' })
+    } catch (err) {
+      toast({ title: 'Could not log call', description: err.message, variant: 'destructive' })
+    } finally {
+      setLogging(false)
+    }
+  }
+
   async function addNote() {
     const value = draft.trim()
     if (!value) return
@@ -83,6 +101,7 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
 
   function describeEvent(h) {
     if (h.event_type === 'note') return h.note
+    if (h.event_type === 'call') return h.note || 'Logged a phone call'
     if (h.event_type === 'archive') return h.note     // already formatted by ReferralHistory.addArchiveEvent
     if (h.event_type === 'unarchive') return 'Unarchived'
     if (h.event_type === 'field_change') return fieldChangeLabel(h.field_name, h.old_value, h.new_value)
@@ -108,6 +127,20 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
 
           {/* Workflow controls */}
           <div className="shrink-0 px-5 py-4 border-b border-white/5 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs uppercase tracking-[0.3em] text-heading-subdued">Phone call</span>
+                <CalledBadge lastCalledAt={local.last_called_at} />
+              </div>
+              {!readOnly && (
+                <Button onClick={logCall} disabled={logging} className="whitespace-nowrap">
+                  {logging
+                    ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Logging…</>
+                    : <><Phone className="h-4 w-4 mr-2" /> Log call</>}
+                </Button>
+              )}
+            </div>
+
             <div>
               <label className="block text-xs uppercase tracking-[0.3em] text-heading-subdued mb-2">
                 Did you receive a call from the CM company?
