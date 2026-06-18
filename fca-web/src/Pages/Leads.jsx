@@ -199,7 +199,7 @@ export default function Leads() {
       if (dateRange.to && new Date(lead.created_at) > new Date(dateRange.to)) return false
       const term = search.trim().toLowerCase()
       if (term) {
-        const hay = `${lead.full_name} ${lead.email || ''} ${lead.phone || ''}`.toLowerCase()
+        const hay = `${lead.full_name} ${lead.email || ''} ${lead.phone || ''} ${lead.zip || ''}`.toLowerCase()
         if (!hay.includes(term)) return false
       }
       return true
@@ -421,7 +421,7 @@ export default function Leads() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                   <Input
                     className="pl-9"
-                    placeholder="Name, phone, or email"
+                    placeholder="Name, phone, email, or ZIP"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />

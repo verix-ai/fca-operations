@@ -86,8 +86,8 @@ export const Lead = {
 
     if (search && search.trim()) {
       const term = `%${search.trim()}%`
-      // OR-match on name / email / phone
-      query = query.or(`full_name.ilike.${term},email.ilike.${term},phone.ilike.${term}`)
+      // OR-match on name / email / phone / zip
+      query = query.or(`full_name.ilike.${term},email.ilike.${term},phone.ilike.${term},zip.ilike.${term}`)
     }
 
     const from = (page - 1) * pageSize
