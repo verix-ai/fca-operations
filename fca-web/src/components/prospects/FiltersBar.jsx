@@ -2,39 +2,34 @@ import React from 'react'
 import { Search, Filter as FilterIcon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { HOME_CARE_COMPANY_OPTIONS, CODE_OPTIONS } from '@/lib/prospects-labels'
+import { GroupLabel, StatusChips } from './FilterControls'
 
 /**
  * The header strip above the Prospects table:
- *   - Desktop: search + 5 dropdowns in a 3-column grid.
+ *   - Desktop: search + three labeled groups (People & Program / Status / Dates).
  *   - Mobile:  search + a "Filters" button that opens MobileFiltersSheet.
  *
  * Props:
- *   filters: { search, marketer, county, cmCompany, homeCareCompany, dateFrom, dateTo }
+ *   filters: { search, marketer, county, cmCompany, homeCareCompany, code, dateFrom, dateTo, ...status }
  *   onChange: (next) => void
  *   marketers: string[]
  *   counties: string[]
  *   cmCompanies: { id, name }[]
  *   onOpenMobileFilters: () => void
- *   activeFilterCount: number   – shown on the mobile button
+ *   onClearAll: () => void
+ *   activeFilterCount: number   – shown on the mobile button + gates the desktop "Clear all"
  */
-function Toggle({ checked, onChange, label }) {
-  return (
-    <label className="flex items-center gap-2 rounded-xl border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm text-heading-primary cursor-pointer select-none">
-      <input type="checkbox" checked={checked} onChange={onChange} className="h-4 w-4 accent-emerald-500" />
-      {label}
-    </label>
-  )
-}
+const selectCls = 'w-full rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm'
 
 export default function FiltersBar({
   filters, onChange,
   marketers, counties, cmCompanies,
-  onOpenMobileFilters, activeFilterCount,
+  onOpenMobileFilters, onClearAll, activeFilterCount,
 }) {
   const set = (k, v) => onChange({ ...filters, [k]: v })
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-5">
       {/* Always visible: search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
@@ -56,43 +51,61 @@ export default function FiltersBar({
         </button>
       </div>
 
-      {/* Desktop-only: 2 rows of 3 */}
-      <div className="hidden md:grid md:grid-cols-3 gap-4">
-        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-          value={filters.marketer || ''} onChange={e => set('marketer', e.target.value)}>
-          <option value="">All marketers</option>
-          {marketers.map(m => <option key={m} value={m}>{m}</option>)}
-        </select>
-        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-          value={filters.county || ''} onChange={e => set('county', e.target.value)}>
-          <option value="">All counties</option>
-          {counties.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-          value={filters.cmCompany || ''} onChange={e => set('cmCompany', e.target.value)}>
-          <option value="">All CM companies</option>
-          {cmCompanies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
-        </select>
-        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-          value={filters.homeCareCompany || ''} onChange={e => set('homeCareCompany', e.target.value)}>
-          <option value="">All home care companies</option>
-          {HOME_CARE_COMPANY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <select className="rounded-xl bg-transparent border border-[rgba(147,165,197,0.25)] px-3 py-2 text-sm"
-          value={filters.code || ''} onChange={e => set('code', e.target.value)}>
-          <option value="">All codes</option>
-          {CODE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
-        <div className="flex gap-2">
-          <Input type="date" value={filters.dateFrom || ''} onChange={e => set('dateFrom', e.target.value)} className="rounded-xl" />
-          <Input type="date" value={filters.dateTo || ''} onChange={e => set('dateTo', e.target.value)} className="rounded-xl" />
+      {/* Desktop-only: grouped filters */}
+      <div className="hidden md:block space-y-5">
+        {/* People & Program */}
+        <div>
+          <GroupLabel>People &amp; Program</GroupLabel>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
+            <select className={selectCls}
+              value={filters.marketer || ''} onChange={e => set('marketer', e.target.value)}>
+              <option value="">All marketers</option>
+              {marketers.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select className={selectCls}
+              value={filters.county || ''} onChange={e => set('county', e.target.value)}>
+              <option value="">All counties</option>
+              {counties.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <select className={selectCls}
+              value={filters.cmCompany || ''} onChange={e => set('cmCompany', e.target.value)}>
+              <option value="">All CM companies</option>
+              {cmCompanies.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+            </select>
+            <select className={selectCls}
+              value={filters.homeCareCompany || ''} onChange={e => set('homeCareCompany', e.target.value)}>
+              <option value="">All home care companies</option>
+              {HOME_CARE_COMPANY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <select className={selectCls}
+              value={filters.code || ''} onChange={e => set('code', e.target.value)}>
+              <option value="">All codes</option>
+              {CODE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+          </div>
         </div>
-        <Toggle checked={!!filters.unsentOnly} onChange={e => set('unsentOnly', e.target.checked)} label="Unsent only" />
-        <Toggle checked={!!filters.waitingStateApproval} onChange={e => set('waitingStateApproval', e.target.checked)} label="Waiting on state approval" />
-        <Toggle checked={!!filters.waitingCmCall} onChange={e => set('waitingCmCall', e.target.checked)} label="Waiting on CM call" />
-        <Toggle checked={!!filters.needResend} onChange={e => set('needResend', e.target.checked)} label="No call / resend" />
-        <Toggle checked={!!filters.hadAssessment} onChange={e => set('hadAssessment', e.target.checked)} label="Had assessment" />
-        <Toggle checked={!!filters.notCalledThisWeek} onChange={e => set('notCalledThisWeek', e.target.checked)} label="Not called this week" />
+
+        {/* Workflow status */}
+        <div>
+          <GroupLabel>Status</GroupLabel>
+          <StatusChips filters={filters} set={set} />
+        </div>
+
+        {/* Date submitted */}
+        <div>
+          <GroupLabel>Date Submitted</GroupLabel>
+          <div className="flex items-center gap-2">
+            <div className="w-44"><Input type="date" value={filters.dateFrom || ''} onChange={e => set('dateFrom', e.target.value)} className="rounded-xl" /></div>
+            <span className="text-sm text-heading-subdued">to</span>
+            <div className="w-44"><Input type="date" value={filters.dateTo || ''} onChange={e => set('dateTo', e.target.value)} className="rounded-xl" /></div>
+            {activeFilterCount > 0 && (
+              <button type="button" onClick={onClearAll}
+                className="ml-auto text-sm text-heading-subdued hover:text-heading-primary underline whitespace-nowrap">
+                Clear all
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )

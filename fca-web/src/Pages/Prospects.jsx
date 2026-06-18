@@ -216,6 +216,7 @@ export default function Prospects() {
             counties={countyOptions}
             cmCompanies={companies}
             onOpenMobileFilters={() => setMobileFiltersOpen(true)}
+            onClearAll={() => setFilters(EMPTY_FILTERS)}
             activeFilterCount={activeFilterCount}
           />
         </CardContent>
