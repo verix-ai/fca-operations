@@ -18,7 +18,7 @@ export default function ReferralConversionChart({ referrals = [], clients = [], 
     return [
       {
         stage: 'Total Referrals',
-        description: 'All people referred to you',
+        description: 'All prospects referred to you',
         count: totalReferrals,
         color: '#9333EA',
         percentage: 100,
@@ -51,7 +51,7 @@ export default function ReferralConversionChart({ referrals = [], clients = [], 
       <div className="rounded-2xl border border-[rgba(147,165,197,0.25)] bg-[rgba(7,12,21,0.95)] px-4 py-3 text-xs shadow-[0_25px_60px_-30px_rgba(0,0,0,0.9)]">
         <p className="text-heading-primary font-semibold text-base mb-1">{data.stage}</p>
         <p className="text-kpi-secondary text-xs mb-2">{data.description}</p>
-        <p className="text-heading-primary font-semibold text-lg">{data.count} people</p>
+        <p className="text-heading-primary font-semibold text-lg">{data.count} prospects</p>
         <p className="text-purple-400/80">{data.percentage.toFixed(1)}% of total referrals</p>
       </div>
     )
@@ -93,7 +93,7 @@ export default function ReferralConversionChart({ referrals = [], clients = [], 
           <div className="mt-4 p-4 rounded-xl bg-brand/5 border border-brand/20 text-sm space-y-2">
             <p className="font-semibold text-heading-primary">What This Shows:</p>
             <p className="text-heading-secondary">
-              This tracks your <strong>conversion funnel</strong> - how many people who are referred to you 
+              This tracks your <strong>conversion funnel</strong> - how many prospects referred to you
               actually become clients and start the intake process.
             </p>
             <div className="space-y-1 pt-2">
@@ -101,10 +101,10 @@ export default function ReferralConversionChart({ referrals = [], clients = [], 
                 <strong className="text-purple-400">Total Referrals:</strong> Everyone who's been referred to you
               </p>
               <p className="text-heading-secondary">
-                <strong className="text-purple-400">Still Prospects:</strong> People waiting in your Prospects page (haven't started yet)
+                <strong className="text-purple-400">Still Prospects:</strong> Waiting in your Prospects page (haven't started yet)
               </p>
               <p className="text-heading-secondary">
-                <strong className="text-brand">Converted to Clients:</strong> People who started intake and became actual clients
+                <strong className="text-brand">Converted to Clients:</strong> Prospects who started intake and became actual clients
               </p>
             </div>
             <p className="text-heading-subdued pt-2 text-xs">
@@ -179,7 +179,7 @@ export default function ReferralConversionChart({ referrals = [], clients = [], 
                     tick={{ fill: axisLabelColor, fontSize: 12 }} 
                     axisLine={false} 
                     tickLine={false}
-                    label={{ value: 'People', angle: -90, position: 'insideLeft', fill: axisLabelColor, fontSize: 11 }}
+                    label={{ value: 'Prospects', angle: -90, position: 'insideLeft', fill: axisLabelColor, fontSize: 11 }}
                   />
                   <Tooltip 
                     content={<CustomTooltip />}

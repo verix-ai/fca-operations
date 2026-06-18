@@ -231,7 +231,7 @@ export default function ClientList() {
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Program</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Phase</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Location</TableHead>
-                    <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Frequency</TableHead>
+                    <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs cursor-help" title="Care the client is approved for: hours of care per day and how many days per week.">Frequency</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Intake Date</TableHead>
                     <TableHead className="text-heading-subdued font-semibold uppercase tracking-[0.15em] text-xs">Actions</TableHead>
                   </TableRow>
@@ -417,7 +417,7 @@ export default function ClientList() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px]">Frequency</span>
+                      <span className="text-xs text-heading-subdued uppercase tracking-wider min-w-[80px] cursor-help" title="Care the client is approved for: hours of care per day and how many days per week.">Frequency</span>
                       <span className="text-sm text-heading-primary">{client.frequency || '-'}</span>
                     </div>
                   </div>

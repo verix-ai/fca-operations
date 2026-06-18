@@ -120,7 +120,7 @@ export default function ActivityModal({ prospect, readOnly, onChange, onClose })
               <div className="text-heading-primary font-semibold truncate">{local.referral_name || 'Prospect'}</div>
               <div className="text-xs text-heading-subdued mt-0.5">Activity & call log</div>
             </div>
-            <button onClick={onClose} className="ml-3 p-1 rounded text-neutral-400 hover:text-white hover:bg-white/5" aria-label="Close">
+            <button onClick={onClose} className="ml-3 p-1.5 rounded-lg border border-white/15 text-heading-subdued hover:text-white hover:bg-white/10" aria-label="Close">
               <X className="h-4 w-4" />
             </button>
           </div>

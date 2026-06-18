@@ -150,7 +150,7 @@ export default function ProspectMetrics({ referrals = [], clients = [], isLoadin
         <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/20 text-sm space-y-2">
           <p className="font-semibold text-heading-primary">What This Shows:</p>
           <p className="text-heading-secondary">
-            These cards track your <strong>prospect pipeline</strong> - people who have been referred 
+            These cards track your <strong>prospect pipeline</strong> - prospects who have been referred
             but haven't started intake yet.
           </p>
           <div className="grid md:grid-cols-2 gap-3 pt-2">

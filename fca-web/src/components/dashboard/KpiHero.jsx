@@ -232,7 +232,7 @@ export default function KpiHero({ clients = [], referrals = [], isLoading }) {
                   Marketer Performance
                 </li>
                 <li className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-neutral-500/80" />
+                  <span className="h-2 w-2 rounded-full bg-neutral-300" />
                   Operations
                 </li>
               </ul>

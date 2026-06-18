@@ -13,13 +13,13 @@ export const PHASES = [
     key: 'onboarding',
     label: 'Caregiver Onboarding',
     items: [
-      { field: 'viventium_onboarding_completed', label: 'Viventium Onboarding Complete?' },
-      { field: 'background_results_uploaded', label: 'Background Results Received & Uploaded?' },
-      { field: 'ssn_or_birth_certificate_submitted', label: 'Social Security and/or Birth Certificate Submitted?' },
+      { field: 'viventium_onboarding_completed', label: 'Viventium Onboarding Complete' },
+      { field: 'background_results_uploaded', label: 'Background Results Received & Uploaded' },
+      { field: 'ssn_or_birth_certificate_submitted', label: 'Social Security and/or Birth Certificate Submitted' },
       { field: 'pca_cert_including_2_of_3', label: 'PCA Cert incl 2/3' },
       {
         field: 'drivers_license_submitted',
-        label: 'Drivers License Submitted?',
+        label: 'Drivers License Submitted',
         dates: [
           { field: 'drivers_license_issued_at', label: 'Issued' },
           { field: 'drivers_license_expires_at', label: 'Expires' },
@@ -27,7 +27,7 @@ export const PHASES = [
       },
       {
         field: 'tb_test_completed',
-        label: 'Completed TB Test?',
+        label: 'Completed TB Test',
         dates: [
           { field: 'tb_test_issued_at', label: 'Issued' },
           { field: 'tb_test_expires_at', label: 'Expires' },
@@ -35,7 +35,7 @@ export const PHASES = [
       },
       {
         field: 'cpr_first_aid_completed',
-        label: 'Completed CPR/First Aid?',
+        label: 'Completed CPR/First Aid',
         dates: [
           { field: 'cpr_issued_at', label: 'Issued' },
           { field: 'cpr_expires_at', label: 'Expires' },
@@ -43,7 +43,7 @@ export const PHASES = [
       },
       {
         field: 'caregiver_fingerprinted',
-        label: 'Caregiver has been Finger Printed?',
+        label: 'Caregiver has been Finger Printed',
         dates: [
           { field: 'caregiver_fingerprinted_at', label: 'Issued' },
           { field: 'fingerprint_expires_at', label: 'Expires' },
@@ -57,11 +57,11 @@ export const PHASES = [
     key: 'intake',
     label: 'Client Intake',
     items: [
-      { field: 'initial_assessment_required', label: 'Initial Assessment?' },
-      { field: 'clinical_dates_entered', label: 'Clinical Dates Entered?' },
-      { field: 'reassessment_date_entered', label: 'Re-Assessment Date Entered?' },
-      { field: 'initial_assessment_completed', label: 'Initial Assessment Completed?' },
-      { field: 'client_documents_populated', label: 'Client Documents Populated?' },
+      { field: 'initial_assessment_required', label: 'Initial Assessment' },
+      { field: 'clinical_dates_entered', label: 'Clinical Dates Entered' },
+      { field: 'reassessment_date_entered', label: 'Re-Assessment Date Entered' },
+      { field: 'initial_assessment_completed', label: 'Initial Assessment Completed' },
+      { field: 'client_documents_populated', label: 'Client Documents Populated' },
     ],
     gradient: 'from-blue-500 to-blue-600',
   },
@@ -69,13 +69,13 @@ export const PHASES = [
     key: 'service_initiation',
     label: 'Services Initiated',
     items: [
-      { field: 'edwp_created_and_sent', label: 'Start Of EDWP Created & Sent to Case Manager?' },
-      { field: 'edwp_transmittal_completed', label: 'EDWP Transmittal?' },
-      { field: 'manager_ccd', label: "Was Manager CC'd?" },
-      { field: 'schedule_created_and_extended_until_aed', label: 'Was Schedule Created & Extended until AED?' },
+      { field: 'edwp_created_and_sent', label: 'Start Of EDWP Created & Sent to Case Manager' },
+      { field: 'edwp_transmittal_completed', label: 'EDWP Transmittal' },
+      { field: 'manager_ccd', label: "Was Manager CC'd" },
+      { field: 'schedule_created_and_extended_until_aed', label: 'Was Schedule Created & Extended until AED' },
       {
         field: 'caregiver_training_completed',
-        label: 'Caregiver Training / Start of Care Completed?',
+        label: 'Caregiver Training / Start of Care Completed',
         dates: [
           { field: 'training_or_care_start_date', label: 'Issued' },
           { field: 'training_or_care_expires_at', label: 'Expires' },
@@ -256,7 +256,7 @@ export default function PhaseProgress({ client, onUpdate, onCaregiverUpdate, rea
                       variant="default"
                       disabled={readOnly || phaseFinalized || !isPhaseReadyToFinalize(phase.key)}
                       onClick={async () => {
-                        const confirmed = await confirm({ title: 'Finalize this phase?', description: 'This will lock its checklist.' });
+                        const confirmed = await confirm({ title: 'Finalize this phase', description: 'This will lock its checklist.' });
                         if (!confirmed) return;
                         await onUpdate({ [`${phase.key}_finalized`]: true });
                         push({ title: `${phase.label} finalized` });
